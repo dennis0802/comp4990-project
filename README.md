@@ -1,5 +1,7 @@
 # Game Development Project for COMP4990 - Project Management: Techniques and Tools
 
+# Game Name: <to be determined>
+
 This game development project simulates a survival environment where the user must survive from a starting 
 location to a goal location, with branching paths they can choose along the way. Depending on the chosen path, the 
 environment, dangers, and distance travelled will change, allowing for replay value. Additional features supporting 
