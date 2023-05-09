@@ -1,6 +1,6 @@
 # Game Development Project for COMP4990 - Project Management: Techniques and Tools
 
-# Game Name: to be determined
+# Game Name: The Western Trail (working name)
 
 This game development project simulates a survival environment where the user must survive from a starting 
 location to a goal location, with branching paths they can choose along the way. Depending on the chosen path, the 
@@ -23,3 +23,8 @@ done during 2023, where milestones will be set throughout the year to have desig
 done by a certain time, and the final deadline is by the end of the year to present the final product. This project’s 
 success will be measured by interest in the final product, how efficient it can run, the replay value, and how 
 immersive the game environment is to end-users.
+
+# Documentation
+* Button click sound from Dr. Scott Goodwin's COMP3770-2021F Game Design, Development, and Tools class
+* Basic game development concepts from Dr. Scott Goodwin's COMP3770-2021F Game Design, Development, and Tools class
+* Game AI concepts from Dr. Akram Vasighizaker's COMP4770-2023W Artificial Intelligence for Games class
