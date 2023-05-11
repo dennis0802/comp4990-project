@@ -39,6 +39,19 @@ namespace UI
 
         }
 
+        public void TestFunction(){
+            hitCount++;
+            IDbConnection dbConnection = CreateAndOpenDatabase();
+            IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
+            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable (id, hits) VALUES (0, " + hitCount + ")";
+            dbCommandInsertValue.ExecuteNonQuery();
+
+            dbConnection.Close();
+        }
+
+        /// <summary>
+        /// Exit the game
+        /// </summary>
         public void ExitGame(){
             #if UNITY_EDITOR
                 UnityEditor.EditorApplication.isPlaying = false;
