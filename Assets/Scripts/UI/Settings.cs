@@ -11,7 +11,7 @@ namespace UI{
     {
         [Tooltip("Text object for description")]
         [SerializeField]
-        private TextMeshProUGUI muteDesc, windowDesc, res0, res1, res2;
+        private TextMeshProUGUI muteDesc, resText, windowText;
 
         [Tooltip("Slider to control volume")]
         [SerializeField]
@@ -26,7 +26,6 @@ namespace UI{
             isMuted = PlayerPrefs.GetInt("IsMuted") == 1;
             isFullScreen = PlayerPrefs.GetInt("IsFullScreen") == 1;
             muteDesc.text = isMuted ? "Audio is muted" : "Audio is not muted";
-            windowDesc.text = isFullScreen ? "Fullscreen" : "Windowed";
             SetResolutionText();
 
             AudioListener.pause = isMuted;
@@ -37,6 +36,7 @@ namespace UI{
             else{
                 volumeSlider.value = PlayerPrefs.GetFloat("Volume");
             }
+            windowText.text = isFullScreen ? "Toggle: Full-screen" : "Toggle: Windowed";
         }
 
         /// <summary>
@@ -80,7 +80,8 @@ namespace UI{
                     return;
             }
             PlayerPrefs.SetInt("IsFullScreen", isFullScreen ? 1 : 0);
-            windowDesc.text = isFullScreen ? "Fullscreen" : "Windowed";
+            Vector3 pos = windowText.transform.localPosition;
+            windowText.text = isFullScreen ? "Toggle: Full-screen" : "Toggle: Windowed";
         }
 
         /// <sumamry>
@@ -115,21 +116,16 @@ namespace UI{
         /// Change the text of the selected resolution
         /// </sumamry>
         private void SetResolutionText(){
+            Vector3 pos = resText.transform.localPosition;
             switch(PlayerPrefs.GetInt("Resolution")){
                 case 0:
-                    res0.text = "Selected";
-                    res1.text = string.Empty;
-                    res2.text = res1.text;
+                    resText.transform.localPosition = new Vector3(pos.x, 51f, pos.z);
                     break;
                 case 1:
-                    res1.text = "Selected";
-                    res0.text = string.Empty;
-                    res2.text = res0.text;
+                    resText.transform.localPosition = new Vector3(pos.x, 0f, pos.z);
                     break;
                 case 2:
-                    res2.text = "Selected";
-                    res1.text = string.Empty;
-                    res0.text = res1.text;
+                    resText.transform.localPosition = new Vector3(pos.x, -51f, pos.z);
                     break;
                 default:
                     return;
