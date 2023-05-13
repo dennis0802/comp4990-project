@@ -12,9 +12,6 @@ namespace UI
     [DisallowMultipleComponent]
     public class MainMenu : MonoBehaviour {
         [SerializeField]
-        [Tooltip("The sound that is played when a button is clicked.")]
-        private AudioSource buttonClick;
-        [SerializeField]
         private int hitCount = 0;
 
         public void Start(){
@@ -31,12 +28,20 @@ namespace UI
             dbConnection.Close();
         }
 
-        public void StartNewGame(){
-
+        /// <summary>
+        /// Start a new game
+        /// </summary>
+        /// <param name="id">The id of the save file specified in the editor</param>
+        public void StartNewGame(int id){
+            // Create the file if it doesn't exist (game over by dying or making it to the end will auto delete)
         }
 
+        /// <summary>
+        /// Load a saved game
+        /// </summary>
+        /// <param name="id">The id of the save file specified in the editor</param>
         public void LoadGame(){
-
+            // Ignore the input if the file doesn't exist
         }
 
         public void TestFunction(){
@@ -60,6 +65,9 @@ namespace UI
             #endif
         }
 
+        /// <summary>
+        /// Create and open a connection to the database
+        /// </summary>
         private IDbConnection CreateAndOpenDatabase(){
             // Open connection to database
             string dbUri = "URI=file:GameData.sqlite";
