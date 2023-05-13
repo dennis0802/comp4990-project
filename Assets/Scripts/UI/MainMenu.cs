@@ -1,7 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using System.Data;
+using UnityEngine;
+using UnityEngine.UI;
 using Mono.Data.Sqlite;
 using TMPro;
 
@@ -19,6 +20,10 @@ namespace UI
         [SerializeField]
         private TextMeshProUGUI[] fileDescriptors;
 
+        [Tooltip("Buttons for disabling/enabling")]
+        [SerializeField]
+        private Button[] fileButtons;
+
         [Tooltip("Title for accessing files")]
         [SerializeField]
         private TextMeshProUGUI fileAccessTitle;
@@ -32,7 +37,7 @@ namespace UI
             dbConnection.Close();
             dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
-            SetFileText();
+            SetFileUI();
         }
 
         /// <summary>
@@ -79,7 +84,6 @@ namespace UI
                     if(dataReader.GetInt32(0) == id){
                         check = dataReader.GetInt32(1);
                         idFound = true;
-                        break;
                     }
                 }
 
@@ -100,6 +104,29 @@ namespace UI
         public void AccessFiles(bool mode){
             isCreatingNewFile = mode ? true : false;
             fileAccessTitle.text = mode ? "Start New File" : "Load File";
+            List<int> ids = new List<int>(){0,1,2,3};
+
+            if(!mode){
+                // Disable the files with no saved data
+                IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+                IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+                dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
+                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+
+                while(dataReader.Read()){
+                    ids.Remove(dataReader.GetInt32(0));
+                }
+                dbConnection.Close();
+
+                foreach(int id in ids){
+                    fileButtons[id].interactable = false;
+                }
+            }
+            else{
+                foreach(int id in ids){
+                    fileButtons[id].interactable = true;
+                }
+            }
         }
 
         /// <summary>
@@ -150,7 +177,7 @@ namespace UI
         /// <summary> 
         /// Set the file descriptor of each save file
         /// </summary>
-        private void SetFileText(){
+        private void SetFileUI(){
             IDbConnection dbConnection = CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable";
