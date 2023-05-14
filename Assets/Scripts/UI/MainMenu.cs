@@ -13,6 +13,7 @@ namespace UI
 
     [DisallowMultipleComponent]
     public class MainMenu : MonoBehaviour {
+        [Header("File Access")]
         [SerializeField]
         private bool isCreatingNewFile;
 
@@ -28,7 +29,19 @@ namespace UI
         [SerializeField]
         private TextMeshProUGUI fileAccessTitle;
 
-        private int check;
+        [Tooltip("Game object containing file UI")]
+        [SerializeField]
+        private GameObject fileAccessWindow;
+
+        [Tooltip("Game object containing UI for replacing a save file")]
+        [SerializeField]
+        private GameObject fileReplaceWindow;
+
+        [Tooltip("Game object containing UI for deleting a save file")]
+        [SerializeField]
+        private GameObject fileDeleteWindow;
+
+        private int check, targetFile = -1;
         private bool idFound = false;
 
         public void Start(){
@@ -65,11 +78,13 @@ namespace UI
 
                 if(idFound){
                     Debug.Log("Ask the player if they want to overwrite or cancel.");
+                    ConfirmFileReplace(id);
+                    dbConnection.Close();
                     return;
                 }
 
                 IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-                dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, inProgress) VALUES (" + id + ", 1)";
+                dbCommandInsertValue.CommandText = "INSERT INTO SaveFilesTable(id, inProgress) VALUES (" + id + ", 1)";
                 dbCommandInsertValue.ExecuteNonQuery();
                 fileDescriptors[id].text = "  File " + (id+1) + "\n  name here\n  distance here\t loc here\n  difficulty here";
                 Debug.Log("File Created. Game should start");
@@ -90,11 +105,48 @@ namespace UI
                 if(idFound){
                     Debug.Log("Game should be loaded");
                 }
-                else{
-                    Debug.Log("Disable the button during runtime or make an error sound");
-                }
             }
             dbConnection.Close();
+        }
+
+        /// <summary>
+        /// Confirm that the user wants to replace a save file
+        /// </summary>
+        /// <param name="id">The id of the save file specified in the editor</param>
+        private void ConfirmFileReplace(int id){
+            fileAccessWindow.SetActive(false);
+            fileReplaceWindow.SetActive(true);
+            targetFile = id;
+        }
+
+        /// <summary>
+        /// Replace the file
+        /// </summary>
+        public void ReplaceFile(){
+            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
+            dbCommandInsertValue.CommandText = "REPLACE INTO SaveFilesTable(id, inProgress) VALUES (" + targetFile + ", 1)";
+            dbCommandInsertValue.ExecuteNonQuery();
+            fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n  name here\n  distance here\t loc here\n  difficulty here";
+            Debug.Log("File Created. Game should start");
+            dbConnection.Close();
+        }
+
+        /// <summary>
+        /// Confirm that the user wants to delete a save file
+        /// </summary>
+        /// <param name="id">The id of the save file specified in the editor</param>
+        public void ConfirmFileDeletion(int id){
+            fileAccessWindow.SetActive(false);
+            fileDeleteWindow.SetActive(true);
+            targetFile = id;
+        }
+
+        /// <summary>
+        /// Delete the file
+        /// </summary>
+        public void DeleteFile(){
+            // SQLite code for deleting a record
         }
 
         /// <summary>
@@ -106,8 +158,8 @@ namespace UI
             fileAccessTitle.text = mode ? "Start New File" : "Load File";
             List<int> ids = new List<int>(){0,1,2,3};
 
-            if(!mode){
-                // Disable the files with no saved data
+            // Disable access to files with no saved data if loading
+            if(!isCreatingNewFile){
                 IDbConnection dbConnection = CreateSavesAndOpenDatabase();
                 IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
                 dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
