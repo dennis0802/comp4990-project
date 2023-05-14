@@ -13,6 +13,15 @@ namespace UI
 
     [DisallowMultipleComponent]
     public class MainMenu : MonoBehaviour {
+        [Header("Screens")]
+        [Tooltip("Game object containing screen for accessing a file")]
+        [SerializeField]
+        private GameObject accessScreen;
+
+        [Tooltip("Game object containing screen for picking the gamemode")]
+        [SerializeField]
+        private GameObject gameModeScreen;
+
         [Header("File Access")]
         [SerializeField]
         private bool isCreatingNewFile;
@@ -43,6 +52,8 @@ namespace UI
 
         // To track which file is being marked for deletion/replacement
         private int targetFile = -1;
+        // Timer for splash
+        private float timer = 0;
         // To track if a file exists
         private bool idFound = false;
 
@@ -53,6 +64,13 @@ namespace UI
             dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
             SetFileDesc();
+        }
+
+        public void Update(){
+            timer += Time.deltaTime;
+            if(timer >= 5.0f){
+                
+            }
         }
 
         /// <summary>
@@ -135,7 +153,11 @@ namespace UI
                 dbCommandInsertValue.ExecuteNonQuery();
                 fileDescriptors[id].text = "  File " + (id+1) + "\n  name here\n  distance here\t loc here\n  difficulty here";
                 deletionButtons[id].interactable = true;
-                Debug.Log("File Created. Game should start");
+
+                // Change screens (not in replacingFile function due to single possible action)
+                accessScreen.SetActive(false);
+                gameModeScreen.SetActive(true);
+                targetFile = id;
             }
             // Loading a file
             else{
@@ -195,7 +217,7 @@ namespace UI
             dbCommandInsertValue.ExecuteNonQuery();
             fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n  name here\n  distance here\t loc here\n  difficulty here";
             deletionButtons[targetFile].interactable = true;
-            Debug.Log("File Created. Game should start");
+
             dbConnection.Close();
         }
 
