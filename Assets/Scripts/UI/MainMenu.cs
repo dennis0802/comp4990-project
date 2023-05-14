@@ -23,7 +23,7 @@ namespace UI
 
         [Tooltip("Buttons for disabling/enabling")]
         [SerializeField]
-        private Button[] fileButtons;
+        private Button[] fileButtons, deletionButtons;
 
         [Tooltip("Title for accessing files")]
         [SerializeField]
@@ -46,6 +46,7 @@ namespace UI
 
         public void Start(){
             // Read values from table
+            DontDestroyOnLoad(this.gameObject);
             IDbConnection dbConnection = CreateSavesAndOpenDatabase();
             dbConnection.Close();
             dbConnection = CreateCustomAndOpenDatabase();
@@ -68,6 +69,7 @@ namespace UI
                 dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable";
                 IDataReader dataReader = dbCommandReadValues.ExecuteReader();
 
+                // Search for the id (ids go from 0-3)
                 while(dataReader.Read()){
                     if(dataReader.GetInt32(0) == id){
                         check = dataReader.GetInt32(1);
@@ -76,6 +78,7 @@ namespace UI
                     }
                 }
 
+                // Confirm to overwrite or cancel
                 if(idFound){
                     Debug.Log("Ask the player if they want to overwrite or cancel.");
                     ConfirmFileReplace(id);
@@ -83,12 +86,15 @@ namespace UI
                     return;
                 }
 
+                // Create file
                 IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
                 dbCommandInsertValue.CommandText = "INSERT INTO SaveFilesTable(id, inProgress) VALUES (" + id + ", 1)";
                 dbCommandInsertValue.ExecuteNonQuery();
                 fileDescriptors[id].text = "  File " + (id+1) + "\n  name here\n  distance here\t loc here\n  difficulty here";
+                deletionButtons[id].interactable = true;
                 Debug.Log("File Created. Game should start");
             }
+            // Loading a file
             else{
                 IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
                 dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable";
@@ -102,6 +108,7 @@ namespace UI
                     }
                 }
 
+                // Open the game
                 if(idFound){
                     Debug.Log("Game should be loaded");
                 }
@@ -113,7 +120,7 @@ namespace UI
         /// Confirm that the user wants to replace a save file
         /// </summary>
         /// <param name="id">The id of the save file specified in the editor</param>
-        private void ConfirmFileReplace(int id){
+        public void ConfirmFileReplace(int id){
             fileAccessWindow.SetActive(false);
             fileReplaceWindow.SetActive(true);
             targetFile = id;
@@ -128,6 +135,7 @@ namespace UI
             dbCommandInsertValue.CommandText = "REPLACE INTO SaveFilesTable(id, inProgress) VALUES (" + targetFile + ", 1)";
             dbCommandInsertValue.ExecuteNonQuery();
             fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n  name here\n  distance here\t loc here\n  difficulty here";
+            deletionButtons[targetFile].interactable = true;
             Debug.Log("File Created. Game should start");
             dbConnection.Close();
         }
@@ -146,7 +154,17 @@ namespace UI
         /// Delete the file
         /// </summary>
         public void DeleteFile(){
-            // SQLite code for deleting a record
+            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
+            dbCommandInsertValue.CommandText = "DELETE FROM SaveFilesTable WHERE id = " + targetFile + ";";
+            dbCommandInsertValue.ExecuteNonQuery();
+            fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n\n  No save file";
+            deletionButtons[targetFile].interactable = false;
+            dbConnection.Close();
+
+            if(!isCreatingNewFile){
+                fileButtons[targetFile].interactable = false;
+            }
         }
 
         /// <summary>
@@ -172,11 +190,24 @@ namespace UI
 
                 foreach(int id in ids){
                     fileButtons[id].interactable = false;
+                    deletionButtons[id].interactable = false;
                 }
             }
             else{
+                IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+                IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+                dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
+                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+
+                while(dataReader.Read()){
+                    ids.Remove(dataReader.GetInt32(0));
+                    deletionButtons[dataReader.GetInt32(0)].interactable = true;
+                }
+                dbConnection.Close();
+
                 foreach(int id in ids){
                     fileButtons[id].interactable = true;
+                    deletionButtons[id].interactable = false;
                 }
             }
         }
