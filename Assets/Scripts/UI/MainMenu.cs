@@ -41,24 +41,69 @@ namespace UI
         [SerializeField]
         private GameObject fileDeleteWindow;
 
-        private int check, targetFile = -1;
+        // To track which file is being marked for deletion/replacement
+        private int targetFile = -1;
+        // To track if a file exists
         private bool idFound = false;
 
         public void Start(){
-            // Read values from table
             DontDestroyOnLoad(this.gameObject);
             IDbConnection dbConnection = CreateSavesAndOpenDatabase();
             dbConnection.Close();
             dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
-            SetFileUI();
+            SetFileDesc();
         }
 
         /// <summary>
-        /// Load a saved game
+        /// Access save files
+        /// </summary>
+        /// <param name="mode">True for new file creation, false for loading
+        public void AccessFiles(bool mode){
+            isCreatingNewFile = mode ? true : false;
+            fileAccessTitle.text = mode ? "Start New File" : "Load File";
+            // Temp list to track which ids are used
+            List<int> ids = new List<int>(){0,1,2,3};
+
+            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+
+            // Disable access to files with no saved data if loading
+            if(!isCreatingNewFile){
+                // Remove ids with save data
+                while(dataReader.Read()){
+                    ids.Remove(dataReader.GetInt32(0));
+                }
+
+                // Disable access to file access and deletion of files that aren't used
+                foreach(int id in ids){
+                    fileButtons[id].interactable = false;
+                    deletionButtons[id].interactable = false;
+                }
+            }
+            // Enable access to files with no saved data if creating a new file
+            else{
+                while(dataReader.Read()){
+                    ids.Remove(dataReader.GetInt32(0));
+                    deletionButtons[dataReader.GetInt32(0)].interactable = true;
+                }
+
+                // Disable access to deletion but allow file access for unused files
+                foreach(int id in ids){
+                    fileButtons[id].interactable = true;
+                    deletionButtons[id].interactable = false;
+                }
+            }
+            dbConnection.Close();
+        }
+
+        /// <summary>
+        /// Access a saved game
         /// </summary>
         /// <param name="id">The id of the save file specified in the editor</param>
-        public void LoadGame(int id){
+        public void AccessGame(int id){
             idFound = false;
             IDbConnection dbConnection = CreateSavesAndOpenDatabase();
 
@@ -72,7 +117,6 @@ namespace UI
                 // Search for the id (ids go from 0-3)
                 while(dataReader.Read()){
                     if(dataReader.GetInt32(0) == id){
-                        check = dataReader.GetInt32(1);
                         idFound = true;
                         break;
                     }
@@ -80,7 +124,6 @@ namespace UI
 
                 // Confirm to overwrite or cancel
                 if(idFound){
-                    Debug.Log("Ask the player if they want to overwrite or cancel.");
                     ConfirmFileReplace(id);
                     dbConnection.Close();
                     return;
@@ -103,8 +146,8 @@ namespace UI
                 // Search for the id (ids go from 0-3)
                 while(dataReader.Read()){
                     if(dataReader.GetInt32(0) == id){
-                        check = dataReader.GetInt32(1);
                         idFound = true;
+                        break;
                     }
                 }
 
@@ -113,6 +156,22 @@ namespace UI
                     Debug.Log("Game should be loaded");
                 }
             }
+            dbConnection.Close();
+        }
+
+        /// <summary> 
+        /// Set the file descriptor of each save file
+        /// </summary>
+        private void SetFileDesc(){
+            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable";
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+
+            while(dataReader.Read()){
+                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  name here\n  distance here\t loc here\n  difficulty here";
+            }
+
             dbConnection.Close();
         }
 
@@ -168,51 +227,6 @@ namespace UI
         }
 
         /// <summary>
-        /// Access save files
-        /// </summary>
-        /// <param name="mode">True for new file creation, false for loading
-        public void AccessFiles(bool mode){
-            isCreatingNewFile = mode ? true : false;
-            fileAccessTitle.text = mode ? "Start New File" : "Load File";
-            List<int> ids = new List<int>(){0,1,2,3};
-
-            // Disable access to files with no saved data if loading
-            if(!isCreatingNewFile){
-                IDbConnection dbConnection = CreateSavesAndOpenDatabase();
-                IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
-                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-
-                while(dataReader.Read()){
-                    ids.Remove(dataReader.GetInt32(0));
-                }
-                dbConnection.Close();
-
-                foreach(int id in ids){
-                    fileButtons[id].interactable = false;
-                    deletionButtons[id].interactable = false;
-                }
-            }
-            else{
-                IDbConnection dbConnection = CreateSavesAndOpenDatabase();
-                IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
-                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-
-                while(dataReader.Read()){
-                    ids.Remove(dataReader.GetInt32(0));
-                    deletionButtons[dataReader.GetInt32(0)].interactable = true;
-                }
-                dbConnection.Close();
-
-                foreach(int id in ids){
-                    fileButtons[id].interactable = true;
-                    deletionButtons[id].interactable = false;
-                }
-            }
-        }
-
-        /// <summary>
         /// Exit the game
         /// </summary>
         public void ExitGame(){
@@ -255,22 +269,6 @@ namespace UI
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;
-        }
-
-        /// <summary> 
-        /// Set the file descriptor of each save file
-        /// </summary>
-        private void SetFileUI(){
-            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable";
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-
-            while(dataReader.Read()){
-                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  name here\n  distance here\t loc here\n  difficulty here";
-            }
-
-            dbConnection.Close();
         }
     }
 }
