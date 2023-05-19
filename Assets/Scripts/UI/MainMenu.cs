@@ -50,10 +50,23 @@ namespace UI
         [SerializeField]
         private GameObject fileDeleteWindow;
 
+        [Header("Gamemode Text")]
+        [Tooltip("Gamemode title")]
+        [SerializeField]
+        private TextMeshProUGUI gamemodeTitle;
+        
+        [Tooltip("Gamemode title")]
+        [SerializeField]
+        private TextMeshProUGUI gamemodeDesc;
+
+        [Tooltip("Gamemode selected text")]
+        [SerializeField]
+        private TextMeshProUGUI modeSelectedText;
+
         // To track which file is being marked for deletion/replacement
         private int targetFile = -1;
-        // Timer for splash
-        private float timer = 0;
+        // To track selected difficulty
+        private int selectedMode = 1, confirmedMode = 1;
         // To track if a file exists
         private bool idFound = false;
 
@@ -64,13 +77,6 @@ namespace UI
             dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
             SetFileDesc();
-        }
-
-        public void Update(){
-            timer += Time.deltaTime;
-            if(timer >= 5.0f){
-                
-            }
         }
 
         /// <summary>
@@ -246,6 +252,57 @@ namespace UI
             if(!isCreatingNewFile){
                 fileButtons[targetFile].interactable = false;
             }
+        }
+
+        /// <summary>
+        /// Select a game mode
+        /// </summary>
+        public void SelectMode(int key){
+            switch(key){
+                case 1:
+                    gamemodeTitle.text = "Standard";
+                    gamemodeDesc.text = "Standard enemies, randomized characters, decent amount of supplies";
+                    break;
+                case 2:
+                    gamemodeTitle.text = "Deadlier";
+                    gamemodeDesc.text = "Deadlier enemies, randomized characters, scarce amount of supplies";
+                    break;
+                case 3:
+                    gamemodeTitle.text = "Standard Custom";
+                    gamemodeDesc.text = "Standard enemies, custom characters, decent amount of supplies";
+                    break;
+                case 4:
+                    gamemodeTitle.text = "Deadlier Custom";
+                    gamemodeDesc.text = "Deadlier enemies, custom characters, scarce amount of supplies";
+                    break;
+                default:
+                    return;
+            }
+            selectedMode = key;
+        }
+
+        /// <summary>
+        /// Confirm selected gamemode.
+        /// </summary>
+        public void ConfirmMode(){
+            Vector3 pos = modeSelectedText.transform.localPosition;
+            switch(selectedMode){
+                case 1:
+                    modeSelectedText.transform.localPosition = new Vector3(pos.x, 40f, pos.z);
+                    break;
+                case 2:
+                    modeSelectedText.transform.localPosition = new Vector3(pos.x, -20f, pos.z);
+                    break;
+                case 3:
+                    modeSelectedText.transform.localPosition = new Vector3(pos.x, -80f, pos.z);
+                    break;
+                case 4:
+                    modeSelectedText.transform.localPosition = new Vector3(pos.x, -140f, pos.z);
+                    break;
+                default:
+                    return;
+            }
+            confirmedMode = selectedMode;
         }
 
         /// <summary>
