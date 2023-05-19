@@ -65,7 +65,7 @@ namespace UI
 
         // To track which file is being marked for deletion/replacement
         private int targetFile = -1;
-        // To track selected difficulty
+        // To track selected and confirmed difficulties
         private int selectedMode = 1, confirmedMode = 1;
         // To track if a file exists
         private bool idFound = false;
@@ -73,8 +73,6 @@ namespace UI
         public void Start(){
             DontDestroyOnLoad(this.gameObject);
             IDbConnection dbConnection = CreateSavesAndOpenDatabase();
-            dbConnection.Close();
-            dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
             SetFileDesc();
         }
@@ -328,23 +326,6 @@ namespace UI
             // Create a table for the save files in the databases if it doesn't exist yet
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, inProgress INTEGER)";
-            dbCommandCreateTable.ExecuteReader();
-
-            return dbConnection;
-        }
-
-        /// <summary>
-        /// Create and open a connection to the database to access custom characters
-        /// </summary>
-        private IDbConnection CreateCustomAndOpenDatabase(){
-            // Open connection to database
-            string dbUri = "URI=file:GameData.sqlite";
-            IDbConnection dbConnection = new SqliteConnection(dbUri);
-            dbConnection.Open();
-
-            // Create a table for the save files in the databases if it doesn't exist yet
-            IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
-            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CustomCharactersTable(id INTEGER PRIMARY KEY)";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;
