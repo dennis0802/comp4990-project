@@ -13,19 +13,24 @@ namespace UI{
         [SerializeField]
         private TextMeshProUGUI pageText;
 
+        [Header("Character Components")]
         [Tooltip("Game objects containing each slot to display a character")]
         [SerializeField]
-        private GameObject[] characterSlots;
+        private TextMeshProUGUI[] characterDescText;
 
         // To track page number
         private int pageNum = 1;
         // Lower and upper bound of records to display per page.
-        private int lowerBound = 1, upperBound = 9;
+        private int lowerBound = 0, upperBound = 8;
+        // To track currently viewed character
+        private int viewedCharacter = -1;
+        // To track if id was found
+        private bool idFound;
 
-        
         public void Start(){
             IDbConnection dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
+            UpdateButtonText();
         }
 
         /// <summary>
@@ -52,12 +57,63 @@ namespace UI{
 
         }
 
-        private void CreateCharacter(){
+        /// <summary>
+        /// Access characters in the database for customizing
+        /// </summary>
+        /// <param name="baseId">Base id number for the button (ie. button 1, button 2...) to determine which character id in the database</param>
+        public void AccessCharacter(int baseId){
+            // Determine character to access
+            int accessId = (pageNum - 1) * 9 + baseId - 1;
+            viewedCharacter = accessId;
+            if(accessId < 0 || accessId >= 45){
+                return;
+            }
 
+            IDbConnection dbConnection = CreateCustomAndOpenDatabase();
+
+            // Database commands to search for character id
+            idFound = false;
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable";
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+
+            // Search for the id (ids go 1-45)
+            while(dataReader.Read()){
+                if(dataReader.GetInt32(0) == accessId){
+                    idFound = true;
+                    break;
+                }
+            }
+
+            // If id wasn't found, create character
+            if(idFound){
+                dbCommandReadValues = dbConnection.CreateCommand();
+                dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable WHERE id = " + accessId + ";";
+                dataReader = dbCommandReadValues.ExecuteReader();
+            }
+            // Otherwise, access character
+            else{
+                IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
+                dbCommandInsertValue.CommandText = "INSERT INTO CustomCharactersTable(id) VALUES (" + accessId + ")";
+                dbCommandInsertValue.ExecuteNonQuery();
+            }
+            dbConnection.Close();
+
+            UpdateButtonText();
         }
 
+        /// <summary>
+        /// Delete a custom character
+        /// </summary>
         private void DeleteCharacter(){
+            viewedCharacter = -1;
+        }
 
+        /// <summary>
+        /// Reset which character was being viewed
+        /// </summary>
+        public void ResetCharacterView(){
+            viewedCharacter = -1;
         }
 
         /// <summary>
@@ -66,16 +122,52 @@ namespace UI{
         /// <param name="forward">If the page number is incrementing or not</param>
         public void ChangePage(bool forward){
             if(forward){
+                lowerBound = pageNum == 5 ? 0: lowerBound + 9;
+                upperBound = pageNum == 5 ? 8: upperBound + 9;
                 pageNum = pageNum == 5 ? 1 : pageNum + 1;
-                lowerBound = pageNum == 5 ? 1: lowerBound + 9;
-                upperBound = pageNum == 5 ? 9: upperBound + 9;
+
             }
             else{
+                lowerBound = pageNum == 1 ? 35 : lowerBound - 9;
+                upperBound = pageNum == 1 ? 44 : upperBound - 9;
                 pageNum = pageNum == 1 ? 5 : pageNum - 1;
-                lowerBound = pageNum == 1 ? 36 : lowerBound - 9;
-                upperBound = pageNum == 1 ? 45 : upperBound - 9;
             }
+
+            // Change text
             pageText.text = "Page " + pageNum + "/5";
+            UpdateButtonText();
+        }
+
+        /// <summary>
+        /// Update the text on the character button
+        /// </summary>
+        private void UpdateButtonText(){
+            int baseId;
+            for(int i = lowerBound; i <= upperBound; i++){
+                baseId = i - (pageNum - 1) * 9;
+                IDbConnection dbConnection = CreateCustomAndOpenDatabase();
+                IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+                dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable";
+                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+
+                // Search for the id (ids go 0-44)
+                while(dataReader.Read()){
+                    if(dataReader.GetInt32(0) == i){
+                        idFound = true;
+                        break;
+                    }
+                }
+                // Populate with relevant info
+                if(idFound){
+                    characterDescText[baseId].text = "          Name:\n          Perk:\n          Trait:\n";                    
+                }
+                // Generic text
+                else{
+                    characterDescText[baseId].text = "          Create new character";
+                }
+                idFound = false;
+                dbConnection.Close();
+            }
         }
     }
 }
