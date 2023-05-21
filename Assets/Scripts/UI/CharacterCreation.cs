@@ -5,8 +5,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using Mono.Data.Sqlite;
 using TMPro;
+using Database;
 
 namespace UI{
+    [DisallowMultipleComponent]
     public class CharacterCreation : MonoBehaviour
     {
         [Tooltip("Page text")]
@@ -28,26 +30,7 @@ namespace UI{
         private bool idFound;
 
         public void Start(){
-            IDbConnection dbConnection = CreateCustomAndOpenDatabase();
-            dbConnection.Close();
             UpdateButtonText();
-        }
-
-        /// <summary>
-        /// Create and open a connection to the database to access custom characters
-        /// </summary>
-        private IDbConnection CreateCustomAndOpenDatabase(){
-            // Open connection to database
-            string dbUri = "URI=file:GameData.sqlite";
-            IDbConnection dbConnection = new SqliteConnection(dbUri);
-            dbConnection.Open();
-
-            // Create a table for the save files in the databases if it doesn't exist yet
-            IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
-            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CustomCharactersTable(id INTEGER PRIMARY KEY)";
-            dbCommandCreateTable.ExecuteReader();
-
-            return dbConnection;
         }
 
         /// <summary>
@@ -69,7 +52,7 @@ namespace UI{
                 return;
             }
 
-            IDbConnection dbConnection = CreateCustomAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
 
             // Database commands to search for character id
             idFound = false;
@@ -145,18 +128,11 @@ namespace UI{
             int baseId;
             for(int i = lowerBound; i <= upperBound; i++){
                 baseId = i - (pageNum - 1) * 9;
-                IDbConnection dbConnection = CreateCustomAndOpenDatabase();
+                IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
                 IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
                 dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable";
-                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+                idFound = GameDatabase.MatchId(dbCommandReadValues, i);
 
-                // Search for the id (ids go 0-44)
-                while(dataReader.Read()){
-                    if(dataReader.GetInt32(0) == i){
-                        idFound = true;
-                        break;
-                    }
-                }
                 // Populate with relevant info
                 if(idFound){
                     characterDescText[baseId].text = "          Name:\n          Perk:\n          Trait:\n";                    

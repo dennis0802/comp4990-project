@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Mono.Data.Sqlite;
 using TMPro;
+using Database;
 
 namespace UI
 {
@@ -72,8 +73,6 @@ namespace UI
 
         public void Start(){
             DontDestroyOnLoad(this.gameObject);
-            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
-            dbConnection.Close();
             SetFileDesc();
         }
 
@@ -87,7 +86,7 @@ namespace UI
             // Temp list to track which ids are used
             List<int> ids = new List<int>(){0,1,2,3};
 
-            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -127,23 +126,13 @@ namespace UI
         /// <param name="id">The id of the save file specified in the editor</param>
         public void AccessGame(int id){
             idFound = false;
-            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable";
+            idFound = GameDatabase.MatchId(dbCommandReadValues, id);
 
             // Creating a new file
             if(isCreatingNewFile){
-                // Check if the file already exists
-                IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable";
-                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-
-                // Search for the id (ids go from 0-3)
-                while(dataReader.Read()){
-                    if(dataReader.GetInt32(0) == id){
-                        idFound = true;
-                        break;
-                    }
-                }
-
                 // Confirm to overwrite or cancel
                 if(idFound){
                     ConfirmFileReplace(id);
@@ -165,18 +154,6 @@ namespace UI
             }
             // Loading a file
             else{
-                IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable";
-                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-
-                // Search for the id (ids go from 0-3)
-                while(dataReader.Read()){
-                    if(dataReader.GetInt32(0) == id){
-                        idFound = true;
-                        break;
-                    }
-                }
-
                 // Open the game
                 if(idFound){
                     Debug.Log("Game should be loaded");
@@ -189,7 +166,7 @@ namespace UI
         /// Set the file descriptor of each save file
         /// </summary>
         private void SetFileDesc(){
-            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -215,7 +192,7 @@ namespace UI
         /// Replace the file
         /// </summary>
         public void ReplaceFile(){
-            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
             dbCommandInsertValue.CommandText = "REPLACE INTO SaveFilesTable(id, inProgress) VALUES (" + targetFile + ", 1)";
             dbCommandInsertValue.ExecuteNonQuery();
@@ -239,7 +216,7 @@ namespace UI
         /// Delete the file
         /// </summary>
         public void DeleteFile(){
-            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
             dbCommandInsertValue.CommandText = "DELETE FROM SaveFilesTable WHERE id = " + targetFile + ";";
             dbCommandInsertValue.ExecuteNonQuery();
@@ -312,23 +289,6 @@ namespace UI
             #else
                 UnityEngine.Application.Quit();
             #endif
-        }
-
-        /// <summary>
-        /// Create and open a connection to the database to access save files
-        /// </summary>
-        private IDbConnection CreateSavesAndOpenDatabase(){
-            // Open connection to database
-            string dbUri = "URI=file:GameData.sqlite";
-            IDbConnection dbConnection = new SqliteConnection(dbUri);
-            dbConnection.Open();
-
-            // Create a table for the save files in the databases if it doesn't exist yet
-            IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
-            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, inProgress INTEGER)";
-            dbCommandCreateTable.ExecuteReader();
-
-            return dbConnection;
         }
     }
 }
