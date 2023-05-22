@@ -20,6 +20,19 @@ namespace UI{
         [SerializeField]
         private TextMeshProUGUI[] characterDescText;
 
+        [Header("Screens")]
+        [Tooltip("Character creation screen")]
+        [SerializeField]
+        private GameObject creationScreen;
+
+        [Tooltip("Character creation menu")]
+        [SerializeField]
+        private GameObject creationMenu;
+
+        [Header("User Input")]
+        [SerializeField]
+        private TMP_InputField nameField;
+
         // To track page number
         private int pageNum = 1;
         // Lower and upper bound of records to display per page.
@@ -31,13 +44,6 @@ namespace UI{
 
         public void Start(){
             UpdateButtonText();
-        }
-
-        /// <summary>
-        /// Display characters in the character slots
-        /// </summary>
-        private void DisplayCharacter(){
-
         }
 
         /// <summary>
@@ -60,7 +66,7 @@ namespace UI{
             dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
 
-            // Search for the id (ids go 1-45)
+            // Search for the id (ids go 0-44)
             while(dataReader.Read()){
                 if(dataReader.GetInt32(0) == accessId){
                     idFound = true;
@@ -68,17 +74,16 @@ namespace UI{
                 }
             }
 
-            // If id wasn't found, create character
+            // If id found, access character info
             if(idFound){
                 dbCommandReadValues = dbConnection.CreateCommand();
                 dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable WHERE id = " + accessId + ";";
                 dataReader = dbCommandReadValues.ExecuteReader();
+                dataReader.Read();
+                nameField.text = dataReader.GetString(1);
             }
-            // Otherwise, access character
             else{
-                IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-                dbCommandInsertValue.CommandText = "INSERT INTO CustomCharactersTable(id) VALUES (" + accessId + ")";
-                dbCommandInsertValue.ExecuteNonQuery();
+                nameField.text = "";
             }
             dbConnection.Close();
 
@@ -86,10 +91,47 @@ namespace UI{
         }
 
         /// <summary>
+        /// Save a custom character
+        /// </summary>
+        private void SaveCharacter(){
+            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
+            dbCommandInsertValue.CommandText = "INSERT INTO CustomCharactersTable(id, name) VALUES (" + viewedCharacter + ", '" + nameField.text + "')";
+            dbCommandInsertValue.ExecuteNonQuery();
+
+            int baseId = viewedCharacter - (pageNum - 1) * 9;
+            characterDescText[baseId].text = "          Name: " + nameField.text + "\n          Perk:\n          Trait:\n";  
+            viewedCharacter = -1;
+            dbConnection.Close();
+        }
+
+        /// <summary>
+        /// Validate character name, perk, and trait before allowing character to be saved
+        /// </summary>
+        public void ValidateCharacter(){
+            if(string.IsNullOrWhiteSpace(nameField.text)){
+                Debug.Log("Game should throw error");
+                return;
+            }
+
+            creationMenu.SetActive(true);
+            creationScreen.SetActive(false);
+            SaveCharacter();
+        }
+
+        /// <summary>
         /// Delete a custom character
         /// </summary>
-        private void DeleteCharacter(){
+        public void DeleteCharacter(){
+            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
+            dbCommandInsertValue.CommandText = "DELETE FROM CustomCharactersTable WHERE id = " + viewedCharacter + ";";
+            dbCommandInsertValue.ExecuteNonQuery();
+            
+            int baseId = viewedCharacter - (pageNum - 1) * 9;
+            characterDescText[baseId].text = "          Create new character";
             viewedCharacter = -1;
+            dbConnection.Close();
         }
 
         /// <summary>
@@ -111,7 +153,7 @@ namespace UI{
 
             }
             else{
-                lowerBound = pageNum == 1 ? 35 : lowerBound - 9;
+                lowerBound = pageNum == 1 ? 36 : lowerBound - 9;
                 upperBound = pageNum == 1 ? 44 : upperBound - 9;
                 pageNum = pageNum == 1 ? 5 : pageNum - 1;
             }
@@ -126,16 +168,25 @@ namespace UI{
         /// </summary>
         private void UpdateButtonText(){
             int baseId;
+            bool idFound = false;
             for(int i = lowerBound; i <= upperBound; i++){
                 baseId = i - (pageNum - 1) * 9;
                 IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
                 IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
                 dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable";
-                idFound = GameDatabase.MatchId(dbCommandReadValues, i);
+                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+
+                // Search for the id (ids go 0-44)
+                while(dataReader.Read()){
+                    if(dataReader.GetInt32(0) == i){
+                        idFound = true;
+                        break;
+                    }
+                }
 
                 // Populate with relevant info
                 if(idFound){
-                    characterDescText[baseId].text = "          Name:\n          Perk:\n          Trait:\n";                    
+                    characterDescText[baseId].text = "          Name: " + dataReader.GetString(1) + "\n          Perk:\n          Trait:\n";                    
                 }
                 // Generic text
                 else{

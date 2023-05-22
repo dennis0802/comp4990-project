@@ -29,7 +29,7 @@ namespace Database{
 
             // Create a table for the save files in the databases if it doesn't exist yet
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
-            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CustomCharactersTable(id INTEGER PRIMARY KEY)";
+            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CustomCharactersTable(id INTEGER PRIMARY KEY, name TEXT(10), perk INTEGER, trait INTEGER)";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;
