@@ -30,8 +30,21 @@ namespace UI{
         private GameObject creationMenu;
 
         [Header("User Input")]
+        [Tooltip("Input field for character name")]
         [SerializeField]
         private TMP_InputField nameField;
+
+        [Tooltip("Dropdown field for perks")]
+        [SerializeField]
+        private TMP_Dropdown perkList;
+
+        [Tooltip("Dropdown field for traits")]
+        [SerializeField]
+        private TMP_Dropdown traitList;
+
+        [Tooltip("Error for blank name")]
+        [SerializeField]
+        private GameObject errorText;
 
         // To track page number
         private int pageNum = 1;
@@ -96,11 +109,13 @@ namespace UI{
         private void SaveCharacter(){
             IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "INSERT INTO CustomCharactersTable(id, name) VALUES (" + viewedCharacter + ", '" + nameField.text + "')";
+            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO CustomCharactersTable(id, name, perk, trait) VALUES (" 
+                                                + viewedCharacter + ", '" + nameField.text + "', '" + perkList.captionText.text + "', '" + traitList.captionText.text + "')";
             dbCommandInsertValue.ExecuteNonQuery();
 
             int baseId = viewedCharacter - (pageNum - 1) * 9;
-            characterDescText[baseId].text = "          Name: " + nameField.text + "\n          Perk:\n          Trait:\n";  
+            characterDescText[baseId].text = "          Name: " + nameField.text + "\n          Perk: " + perkList.captionText.text 
+                                            + "\n          Trait: " + traitList.captionText.text + "\n";  
             viewedCharacter = -1;
             dbConnection.Close();
         }
@@ -110,10 +125,11 @@ namespace UI{
         /// </summary>
         public void ValidateCharacter(){
             if(string.IsNullOrWhiteSpace(nameField.text)){
-                Debug.Log("Game should throw error");
+                errorText.SetActive(true);
                 return;
             }
 
+            errorText.SetActive(false);
             creationMenu.SetActive(true);
             creationScreen.SetActive(false);
             SaveCharacter();
@@ -139,6 +155,7 @@ namespace UI{
         /// </summary>
         public void ResetCharacterView(){
             viewedCharacter = -1;
+            errorText.SetActive(false);
         }
 
         /// <summary>
@@ -186,7 +203,8 @@ namespace UI{
 
                 // Populate with relevant info
                 if(idFound){
-                    characterDescText[baseId].text = "          Name: " + dataReader.GetString(1) + "\n          Perk:\n          Trait:\n";                    
+                    characterDescText[baseId].text = "          Name: " + dataReader.GetString(1) + "\n          Perk: " + dataReader.GetString(2) 
+                                                     + "\n          Trait: " + dataReader.GetString(3) + "\n";                    
                 }
                 // Generic text
                 else{
