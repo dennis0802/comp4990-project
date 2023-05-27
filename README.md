@@ -28,3 +28,4 @@ immersive the game environment is to end-users.
 * Button click sound from Dr. Scott Goodwin's COMP3770-2021F Game Design, Development, and Tools class
 * Basic game development concepts from Dr. Scott Goodwin's COMP3770-2021F Game Design, Development, and Tools class
 * Game AI concepts from Dr. Akram Vasighizaker's COMP4770-2023W Artificial Intelligence for Games class
+* Player model visuals from Dr. Akram Vasighizaker's COMP4770-2023W Artificial Intelligence for Games class
