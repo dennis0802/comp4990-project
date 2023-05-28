@@ -42,12 +42,34 @@ namespace UI{
         [SerializeField]
         private TMP_Dropdown traitList;
 
+        [Tooltip("Game objects containing each slot to display a character")]
+        [SerializeField]
+        private TextMeshProUGUI perkDescText;
+
+        [Tooltip("Game objects containing each slot to display a character")]
+        [SerializeField]
+        private TextMeshProUGUI traitDescText;
+
+        [Tooltip("Colors for players")]
+        [SerializeField]
+        private Material[] playerColors;
+
         [Tooltip("Error for blank name")]
         [SerializeField]
         private GameObject errorText;
 
+        [Tooltip("Character component number text objects")]
+        [SerializeField]
+        private TextMeshProUGUI colorNumText, accNumText, hatNumText, outfitNumText;
+
+        [Tooltip("Player body visuals")]
+        [SerializeField]
+        private GameObject[] playerVisuals;
+
         // To track page number
         private int pageNum = 1;
+        // To track character customization features
+        private int colorNum = 1, accNum = 1, outfitNum = 1, hatNum = 1;
         // Lower and upper bound of records to display per page.
         private int lowerBound = 0, upperBound = 8;
         // To track currently viewed character
@@ -94,10 +116,25 @@ namespace UI{
                 dataReader = dbCommandReadValues.ExecuteReader();
                 dataReader.Read();
                 nameField.text = dataReader.GetString(1);
+                perkList.value = dataReader.GetInt32(2);
+                traitList.value = dataReader.GetInt32(3);
+                accNum = dataReader.GetInt32(4);
+                hatNum = dataReader.GetInt32(5);
+                colorNum = dataReader.GetInt32(6);
+                outfitNum = dataReader.GetInt32(7);
             }
+            // Otherwise set to defaults
             else{
                 nameField.text = "";
+                colorNum = 1;
+                accNum = 1;
+                outfitNum = 1;
+                hatNum = 1;
+                perkList.value = 0;
+                traitList.value = 0;
             }
+
+            ChangeCharacterInfo();
             dbConnection.Close();
 
             UpdateButtonText();
@@ -109,8 +146,9 @@ namespace UI{
         private void SaveCharacter(){
             IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO CustomCharactersTable(id, name, perk, trait) VALUES (" 
-                                                + viewedCharacter + ", '" + nameField.text + "', '" + perkList.captionText.text + "', '" + traitList.captionText.text + "')";
+            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO CustomCharactersTable(id, name, perk, trait, accessory, hat, color, outfit) VALUES (" 
+                                                + viewedCharacter + ", '" + nameField.text + "', " + perkList.value + ", " + traitList.value + ", "
+                                                + accNum + ", " + hatNum + ", " + colorNum + ", " + outfitNum + ")";
             dbCommandInsertValue.ExecuteNonQuery();
 
             int baseId = viewedCharacter - (pageNum - 1) * 9;
@@ -121,9 +159,10 @@ namespace UI{
         }
 
         /// <summary>
-        /// Validate character name, perk, and trait before allowing character to be saved
+        /// Validate character name before saving
         /// </summary>
         public void ValidateCharacter(){
+            // If empty or whitespace, show an error (name must exist)
             if(string.IsNullOrWhiteSpace(nameField.text)){
                 errorText.SetActive(true);
                 return;
@@ -159,7 +198,7 @@ namespace UI{
         }
 
         /// <summary>
-        /// Display characters in the character slots
+        /// Change page number of characters page
         /// </summary>
         /// <param name="forward">If the page number is incrementing or not</param>
         public void ChangePage(bool forward){
@@ -167,7 +206,6 @@ namespace UI{
                 lowerBound = pageNum == 5 ? 0: lowerBound + 9;
                 upperBound = pageNum == 5 ? 8: upperBound + 9;
                 pageNum = pageNum == 5 ? 1 : pageNum + 1;
-
             }
             else{
                 lowerBound = pageNum == 1 ? 36 : lowerBound - 9;
@@ -203,8 +241,8 @@ namespace UI{
 
                 // Populate with relevant info
                 if(idFound){
-                    characterDescText[baseId].text = "          Name: " + dataReader.GetString(1) + "\n          Perk: " + dataReader.GetString(2) 
-                                                     + "\n          Trait: " + dataReader.GetString(3) + "\n";                    
+                    characterDescText[baseId].text = "          Name: " + dataReader.GetString(1) + "\n          Perk: " + perkList.options[dataReader.GetInt32(2)].text
+                                                     + "\n          Trait: " + traitList.options[dataReader.GetInt32(3)].text + "\n";                    
                 }
                 // Generic text
                 else{
@@ -213,6 +251,129 @@ namespace UI{
                 idFound = false;
                 dbConnection.Close();
             }
+        }
+
+        /// <summary>
+        /// Change text of character info (color, outfit, perk, trait, hat, accessory)
+        /// </summary>
+        public void ChangeCharacterInfo(){
+            // Perk
+            switch(perkList.value){
+                case 0:
+                    perkDescText.text = "Fixing the car will be easier.";
+                    break;
+                case 1:
+                    perkDescText.text = "Dogs will flock to them, feral or domesticated.";
+                    break;
+                case 2:
+                    perkDescText.text = "Will come with additional medical supplies.";
+                    break;
+                case 3:
+                    perkDescText.text = "Healing other members will be easier.";
+                    break;
+                case 4:
+                    perkDescText.text = "Will think through situations logcially.";
+                    break;
+                case 5:
+                    perkDescText.text = "Increasing the group's morale will be easier.";
+                    break;
+            }  
+
+            // Trait
+            switch(traitList.value){
+                case 0: // Charming
+                    traitDescText.text = "Smooth-talk traders on the road for better deals.";
+                    break;
+                case 1: // Paranoid
+                    traitDescText.text = "More wary of the world and strangers around them.";
+                    break;
+                case 2: // Civilized
+                    traitDescText.text = "Will look for peaceful solutions to problems.";  
+                    break;
+                case 3: // Bandit
+                    traitDescText.text = "Will not feel guilty about destructive choices."; 
+                    break;
+                case 4: // Hot Headed
+                    traitDescText.text = "Stronger, but will get into more arguments.";   
+                    break;
+                case 5: // Creative
+                    traitDescText.text = "Will solve problems in a 'creative' manner.";     
+                    break;
+            }
+
+            // Color, accessory, outfit, and hat number
+            colorNumText.text = colorNum.ToString();
+            accNumText.text = accNum.ToString();
+            outfitNumText.text = outfitNum.ToString();
+            hatNumText.text = hatNum.ToString();
+
+            // Visuals
+            foreach(GameObject component in playerVisuals){
+                component.GetComponent<MeshRenderer>().material = playerColors[colorNum-1];
+            }      
+        }
+
+        /// <summary>
+        /// Change color number of character
+        /// </summary>
+        /// <param name="forward">If the color number is incrementing or not</param>
+        public void ChangeColor(bool forward){
+            if(forward){
+                colorNum = colorNum == 9 ? 1 : colorNum + 1;
+            }
+            else{
+                colorNum = colorNum == 1 ? 9 : colorNum - 1;
+            }
+
+            foreach(GameObject component in playerVisuals){
+                component.GetComponent<MeshRenderer>().material = playerColors[colorNum-1];
+            }
+            colorNumText.text = colorNum.ToString();
+        }
+
+        /// <summary>
+        /// Change acessory number of character
+        /// </summary>
+        /// <param name="forward">If the accessory number is incrementing or not</param>
+        public void ChangeAccessory(bool forward){
+            if(forward){
+                accNum = accNum == 9 ? 1 : accNum + 1;
+            }
+            else{
+                accNum = accNum == 1 ? 9 : accNum - 1;
+            }
+
+            accNumText.text = accNum.ToString();
+        }
+
+        /// <summary>
+        /// Change hat number of character
+        /// </summary>
+        /// <param name="forward">If the hat number is incrementing or not</param>
+        public void ChangeHat(bool forward){
+            if(forward){
+                hatNum = hatNum == 9 ? 1 : hatNum + 1;
+            }
+            else{
+                hatNum = hatNum == 1 ? 9 : hatNum - 1;
+            }
+
+            hatNumText.text = hatNum.ToString();
+        }
+
+        /// <summary>
+        /// Change outfit number of character
+        /// </summary>
+        /// <param name="forward">If the outfit number is incrementing or not</param>
+        public void ChangeOutfit(bool forward){
+            if(forward){
+                outfitNum = outfitNum == 9 ? 1 : outfitNum + 1;
+            }
+            else{
+                outfitNum = outfitNum == 1 ? 9 : outfitNum - 1;
+            }
+
+            outfitNumText.text = outfitNum.ToString();
         }
     }
 }
