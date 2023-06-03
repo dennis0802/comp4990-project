@@ -143,12 +143,9 @@ namespace UI{
                 accNum = 1;
                 outfitNum = 1;
                 hatNum = 1;
-                playerAccs[0].SetActive(false);
-                playerAccs[1].SetActive(false);
-                playerHats[0].SetActive(false);
-                playerHats[1].SetActive(false);
-                playerOutfits[0].SetActive(false);
-                playerOutfits[1].SetActive(false);
+                ChangeSampleDisplay(1);
+                ChangeSampleDisplay(2);
+                ChangeSampleDisplay(3);
                 perkList.value = 0;
                 traitList.value = 0;
             }
@@ -325,51 +322,9 @@ namespace UI{
             accNumText.text = accNum.ToString();
             outfitNumText.text = outfitNum.ToString();
             hatNumText.text = hatNum.ToString();
-
-            switch(accNum){
-                case 1:
-                    playerAccs[0].SetActive(false);
-                    playerAccs[1].SetActive(false);
-                    break;
-                case 2:
-                    playerAccs[0].SetActive(true);
-                    playerAccs[1].SetActive(false);
-                    break;
-                case 3:
-                    playerAccs[0].SetActive(false);
-                    playerAccs[1].SetActive(true);
-                    break;
-            }
-
-            switch(hatNum){
-                case 1:
-                    playerHats[0].SetActive(false);
-                    playerHats[1].SetActive(false);
-                    break;
-                case 2:
-                    playerHats[0].SetActive(true);
-                    playerHats[1].SetActive(false);
-                    break;
-                case 3:
-                    playerHats[0].SetActive(false);
-                    playerHats[1].SetActive(true);
-                    break;
-            }
-
-            switch(outfitNum){
-                case 1:
-                    playerOutfits[0].SetActive(false);
-                    playerOutfits[1].SetActive(false);
-                    break;
-                case 2:
-                    playerOutfits[0].SetActive(true);
-                    playerOutfits[1].SetActive(false);
-                    break;
-                case 3:
-                    playerOutfits[0].SetActive(false);
-                    playerOutfits[1].SetActive(true);
-                    break;
-            }
+            ChangeSampleDisplay(1);
+            ChangeSampleDisplay(2);
+            ChangeSampleDisplay(3);
 
             // Visuals
             foreach(GameObject component in playerVisuals){
@@ -407,21 +362,7 @@ namespace UI{
                 accNum = accNum == 1 ? 3 : accNum - 1;
             }
 
-            switch(accNum){
-                case 1:
-                    playerAccs[0].SetActive(false);
-                    playerAccs[1].SetActive(false);
-                    break;
-                case 2:
-                    playerAccs[0].SetActive(true);
-                    playerAccs[1].SetActive(false);
-                    break;
-                case 3:
-                    playerAccs[0].SetActive(false);
-                    playerAccs[1].SetActive(true);
-                    break;
-            }
-
+            ChangeSampleDisplay(1);
             accNumText.text = accNum.ToString();
         }
 
@@ -437,21 +378,7 @@ namespace UI{
                 hatNum = hatNum == 1 ? 3 : hatNum - 1;
             }
 
-            switch(hatNum){
-                case 1:
-                    playerHats[0].SetActive(false);
-                    playerHats[1].SetActive(false);
-                    break;
-                case 2:
-                    playerHats[0].SetActive(true);
-                    playerHats[1].SetActive(false);
-                    break;
-                case 3:
-                    playerHats[0].SetActive(false);
-                    playerHats[1].SetActive(true);
-                    break;
-            }
-
+            ChangeSampleDisplay(2);
             hatNumText.text = hatNum.ToString();
         }
 
@@ -467,22 +394,67 @@ namespace UI{
                 outfitNum = outfitNum == 1 ? 3 : outfitNum - 1;
             }
 
-            switch(outfitNum){
-                case 1:
-                    playerOutfits[0].SetActive(false);
-                    playerOutfits[1].SetActive(false);
-                    break;
-                case 2:
-                    playerOutfits[0].SetActive(true);
-                    playerOutfits[1].SetActive(false);
-                    break;
+            ChangeSampleDisplay(3);
+            outfitNumText.text = outfitNum.ToString();
+        }
+
+        /// <summary>
+        /// Change what the sample character displays depending on player choice.
+        /// </summary>
+        /// <param name="mode">1 for accessory, 2 for hat, 3 for outfit</param>
+        private void ChangeSampleDisplay(int mode){
+            switch(mode){
                 case 3:
-                    playerOutfits[0].SetActive(false);
-                    playerOutfits[1].SetActive(true);
+                    switch(outfitNum){
+                        case 1:
+                            playerOutfits[0].SetActive(false);
+                            playerOutfits[1].SetActive(false);
+                            break;
+                        case 2:
+                            playerOutfits[0].SetActive(true);
+                            playerOutfits[1].SetActive(false);
+                            break;
+                        case 3:
+                            playerOutfits[0].SetActive(false);
+                            playerOutfits[1].SetActive(true);
+                            break;
+                    }
+                    break;
+
+                case 2:
+                    switch(hatNum){
+                        case 1:
+                            playerHats[0].SetActive(false);
+                            playerHats[1].SetActive(false);
+                            break;
+                        case 2:
+                            playerHats[0].SetActive(true);
+                            playerHats[1].SetActive(false);
+                            break;
+                        case 3:
+                            playerHats[0].SetActive(false);
+                            playerHats[1].SetActive(true);
+                            break;
+                    }
+                    break;
+
+                case 1:
+                    switch(accNum){
+                        case 1:
+                            playerAccs[0].SetActive(false);
+                            playerAccs[1].SetActive(false);
+                            break;
+                        case 2:
+                            playerAccs[0].SetActive(true);
+                            playerAccs[1].SetActive(false);
+                            break;
+                        case 3:
+                            playerAccs[0].SetActive(false);
+                            playerAccs[1].SetActive(true);
+                            break;
+                    }
                     break;
             }
-
-            outfitNumText.text = outfitNum.ToString();
         }
     }
 }
