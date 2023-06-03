@@ -50,10 +50,6 @@ namespace UI{
         [SerializeField]
         private TextMeshProUGUI traitDescText;
 
-        [Tooltip("Colors for players")]
-        [SerializeField]
-        private Material[] playerColors;
-
         [Tooltip("Error for blank name")]
         [SerializeField]
         private GameObject errorText;
@@ -62,9 +58,26 @@ namespace UI{
         [SerializeField]
         private TextMeshProUGUI colorNumText, accNumText, hatNumText, outfitNumText;
 
+        [Header("Player Components")]
         [Tooltip("Player body visuals")]
         [SerializeField]
         private GameObject[] playerVisuals;
+
+        [Tooltip("Colors for players")]
+        [SerializeField]
+        private Material[] playerColors;
+
+        [Tooltip("Player hats")]
+        [SerializeField]
+        private GameObject[] playerHats;
+
+        [Tooltip("Player accessories")]
+        [SerializeField]
+        private GameObject[] playerAccs;
+
+        [Tooltip("Player outfits")]
+        [SerializeField]
+        private GameObject[] playerOutfits;
 
         // To track page number
         private int pageNum = 1;
@@ -130,6 +143,12 @@ namespace UI{
                 accNum = 1;
                 outfitNum = 1;
                 hatNum = 1;
+                playerAccs[0].SetActive(false);
+                playerAccs[1].SetActive(false);
+                playerHats[0].SetActive(false);
+                playerHats[1].SetActive(false);
+                playerOutfits[0].SetActive(false);
+                playerOutfits[1].SetActive(false);
                 perkList.value = 0;
                 traitList.value = 0;
             }
@@ -263,7 +282,7 @@ namespace UI{
                     perkDescText.text = "Fixing the car will be easier.";
                     break;
                 case 1:
-                    perkDescText.text = "Dogs will flock to them, feral or domesticated.";
+                    perkDescText.text = "Shots will be more likely to pierce.";
                     break;
                 case 2:
                     perkDescText.text = "Will come with additional medical supplies.";
@@ -307,6 +326,51 @@ namespace UI{
             outfitNumText.text = outfitNum.ToString();
             hatNumText.text = hatNum.ToString();
 
+            switch(accNum){
+                case 1:
+                    playerAccs[0].SetActive(false);
+                    playerAccs[1].SetActive(false);
+                    break;
+                case 2:
+                    playerAccs[0].SetActive(true);
+                    playerAccs[1].SetActive(false);
+                    break;
+                case 3:
+                    playerAccs[0].SetActive(false);
+                    playerAccs[1].SetActive(true);
+                    break;
+            }
+
+            switch(hatNum){
+                case 1:
+                    playerHats[0].SetActive(false);
+                    playerHats[1].SetActive(false);
+                    break;
+                case 2:
+                    playerHats[0].SetActive(true);
+                    playerHats[1].SetActive(false);
+                    break;
+                case 3:
+                    playerHats[0].SetActive(false);
+                    playerHats[1].SetActive(true);
+                    break;
+            }
+
+            switch(outfitNum){
+                case 1:
+                    playerOutfits[0].SetActive(false);
+                    playerOutfits[1].SetActive(false);
+                    break;
+                case 2:
+                    playerOutfits[0].SetActive(true);
+                    playerOutfits[1].SetActive(false);
+                    break;
+                case 3:
+                    playerOutfits[0].SetActive(false);
+                    playerOutfits[1].SetActive(true);
+                    break;
+            }
+
             // Visuals
             foreach(GameObject component in playerVisuals){
                 component.GetComponent<MeshRenderer>().material = playerColors[colorNum-1];
@@ -337,10 +401,25 @@ namespace UI{
         /// <param name="forward">If the accessory number is incrementing or not</param>
         public void ChangeAccessory(bool forward){
             if(forward){
-                accNum = accNum == 9 ? 1 : accNum + 1;
+                accNum = accNum == 3 ? 1 : accNum + 1;
             }
             else{
-                accNum = accNum == 1 ? 9 : accNum - 1;
+                accNum = accNum == 1 ? 3 : accNum - 1;
+            }
+
+            switch(accNum){
+                case 1:
+                    playerAccs[0].SetActive(false);
+                    playerAccs[1].SetActive(false);
+                    break;
+                case 2:
+                    playerAccs[0].SetActive(true);
+                    playerAccs[1].SetActive(false);
+                    break;
+                case 3:
+                    playerAccs[0].SetActive(false);
+                    playerAccs[1].SetActive(true);
+                    break;
             }
 
             accNumText.text = accNum.ToString();
@@ -352,10 +431,25 @@ namespace UI{
         /// <param name="forward">If the hat number is incrementing or not</param>
         public void ChangeHat(bool forward){
             if(forward){
-                hatNum = hatNum == 9 ? 1 : hatNum + 1;
+                hatNum = hatNum == 3 ? 1 : hatNum + 1;
             }
             else{
-                hatNum = hatNum == 1 ? 9 : hatNum - 1;
+                hatNum = hatNum == 1 ? 3 : hatNum - 1;
+            }
+
+            switch(hatNum){
+                case 1:
+                    playerHats[0].SetActive(false);
+                    playerHats[1].SetActive(false);
+                    break;
+                case 2:
+                    playerHats[0].SetActive(true);
+                    playerHats[1].SetActive(false);
+                    break;
+                case 3:
+                    playerHats[0].SetActive(false);
+                    playerHats[1].SetActive(true);
+                    break;
             }
 
             hatNumText.text = hatNum.ToString();
@@ -367,10 +461,25 @@ namespace UI{
         /// <param name="forward">If the outfit number is incrementing or not</param>
         public void ChangeOutfit(bool forward){
             if(forward){
-                outfitNum = outfitNum == 9 ? 1 : outfitNum + 1;
+                outfitNum = outfitNum == 3 ? 1 : outfitNum + 1;
             }
             else{
-                outfitNum = outfitNum == 1 ? 9 : outfitNum - 1;
+                outfitNum = outfitNum == 1 ? 3 : outfitNum - 1;
+            }
+
+            switch(outfitNum){
+                case 1:
+                    playerOutfits[0].SetActive(false);
+                    playerOutfits[1].SetActive(false);
+                    break;
+                case 2:
+                    playerOutfits[0].SetActive(true);
+                    playerOutfits[1].SetActive(false);
+                    break;
+                case 3:
+                    playerOutfits[0].SetActive(false);
+                    playerOutfits[1].SetActive(true);
+                    break;
             }
 
             outfitNumText.text = outfitNum.ToString();
