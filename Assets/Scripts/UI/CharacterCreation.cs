@@ -79,10 +79,16 @@ namespace UI{
         [SerializeField]
         private GameObject[] playerOutfits;
 
+        [Tooltip("Player menu icon")]
+        [SerializeField]
+        private GameObject[] playerIcons;
+
         // To track page number
         private int pageNum = 1;
         // To track character customization features
         private int colorNum = 1, accNum = 1, outfitNum = 1, hatNum = 1;
+        // To track character customization features for the icon
+        private int iconColorNum = 1, iconAccNum = 1, iconOutfitNum = 1, iconHatNum = 1;
         // Lower and upper bound of records to display per page.
         private int lowerBound = 0, upperBound = 8;
         // To track currently viewed character
@@ -143,14 +149,14 @@ namespace UI{
                 accNum = 1;
                 outfitNum = 1;
                 hatNum = 1;
-                ChangeSampleDisplay(1);
-                ChangeSampleDisplay(2);
-                ChangeSampleDisplay(3);
                 perkList.value = 0;
                 traitList.value = 0;
             }
 
             ChangeCharacterInfo();
+            ChangeSampleDisplay(1);
+            ChangeSampleDisplay(2);
+            ChangeSampleDisplay(3);
             dbConnection.Close();
 
             UpdateButtonText();
@@ -172,6 +178,7 @@ namespace UI{
                                             + "\n          Trait: " + traitList.captionText.text + "\n";  
             viewedCharacter = -1;
             dbConnection.Close();
+            UpdateButtonText();
         }
 
         /// <summary>
@@ -203,6 +210,7 @@ namespace UI{
             characterDescText[baseId].text = "          Create new character";
             viewedCharacter = -1;
             dbConnection.Close();
+            UpdateButtonText();
         }
 
         /// <summary>
@@ -257,12 +265,19 @@ namespace UI{
 
                 // Populate with relevant info
                 if(idFound){
+                    playerIcons[baseId].SetActive(true);
                     characterDescText[baseId].text = "          Name: " + dataReader.GetString(1) + "\n          Perk: " + perkList.options[dataReader.GetInt32(2)].text
-                                                     + "\n          Trait: " + traitList.options[dataReader.GetInt32(3)].text + "\n";                    
+                                                     + "\n          Trait: " + traitList.options[dataReader.GetInt32(3)].text + "\n";
+                    iconAccNum = dataReader.GetInt32(4);
+                    iconHatNum = dataReader.GetInt32(5);
+                    iconColorNum = dataReader.GetInt32(6);
+                    iconOutfitNum = dataReader.GetInt32(7);
+                    ChangeMenuIcon(baseId);                   
                 }
                 // Generic text
                 else{
                     characterDescText[baseId].text = "          Create new character";
+                    playerIcons[baseId].SetActive(false);
                 }
                 idFound = false;
                 dbConnection.Close();
@@ -453,6 +468,61 @@ namespace UI{
                             playerAccs[1].SetActive(true);
                             break;
                     }
+                    break;
+            }
+        }
+    
+        /// <summary>
+        /// Change the appearance of the character on the button
+        /// </summary>
+        private void ChangeMenuIcon(int baseId){
+            GameObject iconComp = playerIcons[baseId];
+            // Color
+            iconComp.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[iconColorNum-1];
+            iconComp.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[iconColorNum-1];
+
+            switch(iconHatNum){
+                case 1:
+                    iconComp.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(false);
+                    iconComp.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 2:
+                    iconComp.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(true);
+                    iconComp.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 3:
+                    iconComp.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(false);
+                    iconComp.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(true);
+                    break;
+            }
+
+            switch(iconOutfitNum){
+                case 1:
+                    iconComp.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(false);
+                    iconComp.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 2:
+                    iconComp.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(true);
+                    iconComp.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 3:
+                    iconComp.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(false);
+                    iconComp.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(true);
+                    break;
+            }
+
+            switch(iconAccNum){
+                case 1:
+                    iconComp.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(false);
+                    iconComp.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 2:
+                    iconComp.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(true);
+                    iconComp.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 3:
+                    iconComp.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(false);
+                    iconComp.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(true);
                     break;
             }
         }
