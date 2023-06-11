@@ -83,6 +83,23 @@ namespace UI{
         [SerializeField]
         private GameObject[] playerIcons;
 
+        [Header("Assigning Character Components")]
+        [Tooltip("Assiging player menu icon")]
+        [SerializeField]
+        private GameObject[] assignIcons;
+
+        [Tooltip("Page text")]
+        [SerializeField]
+        private TextMeshProUGUI assignPageText;
+
+        [Tooltip("Game objects containing each slot to display a character")]
+        [SerializeField]
+        private TextMeshProUGUI[] assignCharacterDescText;
+
+        [Tooltip("Game objects containing buttons to assign characters")]
+        [SerializeField]
+        private Button[] assignButtons;
+
         // To track page number
         private int pageNum = 1;
         // To track character customization features
@@ -97,7 +114,16 @@ namespace UI{
         private bool idFound;
 
         public void Start(){
-            UpdateButtonText();
+            UpdateButtonsText();
+        }
+
+        public void UpdateButtonsText(){
+            if(!MainMenu.assigningChar){
+                UpdateButtonText(playerIcons, characterDescText);
+            }
+            else{
+                UpdateButtonText(assignIcons, assignCharacterDescText);
+            }
         }
 
         /// <summary>
@@ -159,7 +185,7 @@ namespace UI{
             ChangeSampleDisplay(3);
             dbConnection.Close();
 
-            UpdateButtonText();
+            UpdateButtonsText();
         }
 
         /// <summary>
@@ -178,7 +204,7 @@ namespace UI{
                                             + "\n          Trait: " + traitList.captionText.text + "\n";  
             viewedCharacter = -1;
             dbConnection.Close();
-            UpdateButtonText();
+            UpdateButtonsText();
         }
 
         /// <summary>
@@ -210,7 +236,7 @@ namespace UI{
             characterDescText[baseId].text = "          Create new character";
             viewedCharacter = -1;
             dbConnection.Close();
-            UpdateButtonText();
+            UpdateButtonsText();
         }
 
         /// <summary>
@@ -238,14 +264,19 @@ namespace UI{
             }
 
             // Change text
-            pageText.text = "Page " + pageNum + "/5";
-            UpdateButtonText();
+            if(MainMenu.assigningChar){
+                assignPageText.text = "Page " + pageNum + "/5";
+            }
+            else{
+                pageText.text = "Page " + pageNum + "/5";
+            }
+            UpdateButtonsText();
         }
 
         /// <summary>
         /// Update the text on the character button
         /// </summary>
-        private void UpdateButtonText(){
+        private void UpdateButtonText(GameObject[] icons, TextMeshProUGUI[] descText){
             int baseId;
             bool idFound = false;
             for(int i = lowerBound; i <= upperBound; i++){
@@ -265,20 +296,32 @@ namespace UI{
 
                 // Populate with relevant info
                 if(idFound){
-                    playerIcons[baseId].SetActive(true);
-                    characterDescText[baseId].text = "          Name: " + dataReader.GetString(1) + "\n          Perk: " + perkList.options[dataReader.GetInt32(2)].text
+                    icons[baseId].SetActive(true);
+                    descText[baseId].gameObject.SetActive(true);
+                    assignButtons[baseId].interactable = true;
+                    descText[baseId].text = "          Name: " + dataReader.GetString(1) + "\n          Perk: " + perkList.options[dataReader.GetInt32(2)].text
                                                      + "\n          Trait: " + traitList.options[dataReader.GetInt32(3)].text + "\n";
                     iconAccNum = dataReader.GetInt32(4);
                     iconHatNum = dataReader.GetInt32(5);
                     iconColorNum = dataReader.GetInt32(6);
-                    iconOutfitNum = dataReader.GetInt32(7);
-                    ChangeMenuIcon(baseId);                   
+                    iconOutfitNum = dataReader.GetInt32(7);                  
+                }
+                else if(MainMenu.assigningChar){
+                    icons[baseId].SetActive(false);
+                    descText[baseId].gameObject.SetActive(false);
+                    assignButtons[baseId].interactable = false;
                 }
                 // Generic text
                 else{
-                    characterDescText[baseId].text = "          Create new character";
-                    playerIcons[baseId].SetActive(false);
+                    icons[baseId].SetActive(true);
+                    assignButtons[baseId].interactable = true;
+                    iconAccNum = 1;
+                    iconHatNum = 1;
+                    iconColorNum = 1;
+                    iconOutfitNum = 1;   
+                    descText[baseId].text = "          Create new character";
                 }
+                ChangeMenuIcon(baseId); 
                 idFound = false;
                 dbConnection.Close();
             }
@@ -475,8 +518,11 @@ namespace UI{
         /// <summary>
         /// Change the appearance of the character on the button
         /// </summary>
+        /// <param name="baseId">Base id of the button to change the player icon</param>
         private void ChangeMenuIcon(int baseId){
-            GameObject iconComp = playerIcons[baseId];
+            GameObject iconComp;
+            
+            iconComp = MainMenu.assigningChar ? assignIcons[baseId] : playerIcons[baseId];
             // Color
             iconComp.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[iconColorNum-1];
             iconComp.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[iconColorNum-1];
@@ -526,5 +572,7 @@ namespace UI{
                     break;
             }
         }
+    
+
     }
 }

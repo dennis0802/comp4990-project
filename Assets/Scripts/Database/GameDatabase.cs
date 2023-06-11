@@ -16,6 +16,7 @@ namespace Database{
             dbConnection.Close();
             dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
+            DontDestroyOnLoad(this.gameObject);
         }
 
         /// <summary>

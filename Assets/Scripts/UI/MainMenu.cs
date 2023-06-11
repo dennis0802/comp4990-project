@@ -71,6 +71,8 @@ namespace UI
         // To track if a file exists
         private bool idFound = false;
 
+        public static bool assigningChar = false;
+
         public void Start(){
             DontDestroyOnLoad(this.gameObject);
             SetFileDesc();
@@ -278,6 +280,13 @@ namespace UI
                     return;
             }
             confirmedMode = selectedMode;
+        }
+
+        /// <summary>
+        /// Toggle how characters will be selected - assign to a file or to access their database data
+        /// </summary>
+        public void ToggleCharAssignment(){
+            assigningChar = !assigningChar;
         }
 
         /// <summary>
