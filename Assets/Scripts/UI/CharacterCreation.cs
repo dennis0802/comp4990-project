@@ -118,7 +118,7 @@ namespace UI{
         }
 
         public void UpdateButtonsText(){
-            if(!MainMenu.assigningChar){
+            if(!GamemodeSelect.assigningChar){
                 UpdateButtonText(playerIcons, characterDescText);
             }
             else{
@@ -264,7 +264,7 @@ namespace UI{
             }
 
             // Change text
-            if(MainMenu.assigningChar){
+            if(GamemodeSelect.assigningChar){
                 assignPageText.text = "Page " + pageNum + "/5";
             }
             else{
@@ -306,7 +306,7 @@ namespace UI{
                     iconColorNum = dataReader.GetInt32(6);
                     iconOutfitNum = dataReader.GetInt32(7);                  
                 }
-                else if(MainMenu.assigningChar){
+                else if(GamemodeSelect.assigningChar){
                     icons[baseId].SetActive(false);
                     descText[baseId].gameObject.SetActive(false);
                     assignButtons[baseId].interactable = false;
@@ -522,7 +522,7 @@ namespace UI{
         private void ChangeMenuIcon(int baseId){
             GameObject iconComp;
             
-            iconComp = MainMenu.assigningChar ? assignIcons[baseId] : playerIcons[baseId];
+            iconComp = GamemodeSelect.assigningChar ? assignIcons[baseId] : playerIcons[baseId];
             // Color
             iconComp.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[iconColorNum-1];
             iconComp.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[iconColorNum-1];
