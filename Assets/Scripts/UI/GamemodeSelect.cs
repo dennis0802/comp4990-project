@@ -171,9 +171,13 @@ namespace UI{
             }
         }
 
+        /// <summary>
+        /// Reset the screen if player cancels new file creation
+        /// </summary>
         public void ResetScreen(){
             selectPartnerButton.interactable = true;
             randomizePartnerButton.interactable = selectPartnerButton.interactable;
+            partnerModel.gameObject.SetActive(selectPartnerButton.interactable);
             RandomizeCharacter(true);
             RandomizeCharacter(false);
             togglePartnerButtonText.text = "X";
