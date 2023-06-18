@@ -222,7 +222,7 @@ namespace UI
         }
 
         public void StartGame(){
-
+            Debug.Log("Game should be starting");
         }
 
         /// <summary>
