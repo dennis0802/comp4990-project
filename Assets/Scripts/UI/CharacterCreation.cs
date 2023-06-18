@@ -101,7 +101,7 @@ namespace UI{
         private Button[] assignButtons;
 
         // To track page number
-        private int pageNum = 1;
+        public static int pageNum = 1;
         // To track character customization features
         private int colorNum = 1, accNum = 1, outfitNum = 1, hatNum = 1;
         // To track character customization features for the icon
@@ -112,6 +112,19 @@ namespace UI{
         private int viewedCharacter = -1;
         // To track if id was found
         private bool idFound;
+
+        // List of perks (mechanic, sharpshooter, health care, surgeon, programmer, musician)
+        private List<string> perkDescs = new List<string>(){
+            "Fixing the car will be easier.", "Shots will be more likely to pierce.", 
+            "Will come with additional medical supplies.","Healing other members will be easier.", "Will think through situations logcially.", 
+            "Increasing the group's morale will be easier."
+        };
+
+        // List of traits (charming, paranoid, civilized, bandit, hot headed, creative)
+        private List<string> traitDescs = new List<string>(){
+            "Smooth-talk traders on the road for better deals.", "More wary of the world and strangers around them.", "Will look for peaceful solutions to problems.",  
+            "Will not feel guilty about destructive choices.", "Stronger, but will get into more arguments.", "Will solve problems in a 'creative' manner."  
+        };
 
         public void Start(){
             UpdateButtonsText();
@@ -132,11 +145,11 @@ namespace UI{
         /// <param name="baseId">Base id number for the button (ie. button 1, button 2...) to determine which character id in the database</param>
         public void AccessCharacter(int baseId){
             // Determine character to access
-            int accessId = (pageNum - 1) * 9 + baseId - 1;
-            viewedCharacter = accessId;
-            if(accessId < 0 || accessId >= 45){
+            int accessId = ReadCharacterId(baseId);
+            if(accessId == -1){
                 return;
             }
+            viewedCharacter = accessId;
 
             IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
 
@@ -148,7 +161,7 @@ namespace UI{
 
             // Search for the id (ids go 0-44)
             while(dataReader.Read()){
-                if(dataReader.GetInt32(0) == accessId){
+                if(dataReader.GetInt32(0) == viewedCharacter){
                     idFound = true;
                     break;
                 }
@@ -186,6 +199,15 @@ namespace UI{
             dbConnection.Close();
 
             UpdateButtonsText();
+        }
+
+        /// <summary>
+        /// Get the access id of a character, given the base button id.
+        /// </summary>
+        /// <param name="baseId">Base id number for the button (ie. button 1, button 2...) to determine which character id in the database</param>
+        public static int ReadCharacterId(int baseId){
+            int id = (pageNum - 1) * 9 + baseId - 1;
+            return id < 0 || id >= 45 ? -1 : id;
         }
 
         /// <summary>
@@ -331,49 +353,8 @@ namespace UI{
         /// Change text of character info (color, outfit, perk, trait, hat, accessory)
         /// </summary>
         public void ChangeCharacterInfo(){
-            // Perk
-            switch(perkList.value){
-                case 0:
-                    perkDescText.text = "Fixing the car will be easier.";
-                    break;
-                case 1:
-                    perkDescText.text = "Shots will be more likely to pierce.";
-                    break;
-                case 2:
-                    perkDescText.text = "Will come with additional medical supplies.";
-                    break;
-                case 3:
-                    perkDescText.text = "Healing other members will be easier.";
-                    break;
-                case 4:
-                    perkDescText.text = "Will think through situations logcially.";
-                    break;
-                case 5:
-                    perkDescText.text = "Increasing the group's morale will be easier.";
-                    break;
-            }  
-
-            // Trait
-            switch(traitList.value){
-                case 0: // Charming
-                    traitDescText.text = "Smooth-talk traders on the road for better deals.";
-                    break;
-                case 1: // Paranoid
-                    traitDescText.text = "More wary of the world and strangers around them.";
-                    break;
-                case 2: // Civilized
-                    traitDescText.text = "Will look for peaceful solutions to problems.";  
-                    break;
-                case 3: // Bandit
-                    traitDescText.text = "Will not feel guilty about destructive choices."; 
-                    break;
-                case 4: // Hot Headed
-                    traitDescText.text = "Stronger, but will get into more arguments.";   
-                    break;
-                case 5: // Creative
-                    traitDescText.text = "Will solve problems in a 'creative' manner.";     
-                    break;
-            }
+            perkDescText.text = perkDescs[perkList.value];
+            traitDescText.text = traitDescs[traitList.value];
 
             // Color, accessory, outfit, and hat number
             colorNumText.text = colorNum.ToString();

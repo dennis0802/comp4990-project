@@ -136,6 +136,9 @@ namespace UI
                 accessScreen.SetActive(false);
                 gameModeScreen.SetActive(true);
                 targetFile = id;
+
+                gameObject.GetComponent<GamemodeSelect>().RandomizeCharacter(true);
+                gameObject.GetComponent<GamemodeSelect>().RandomizeCharacter(false);
             }
             // Loading a file
             else{
@@ -183,6 +186,9 @@ namespace UI
             dbCommandInsertValue.ExecuteNonQuery();
             fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n  name here\n  distance here\t loc here\n  difficulty here";
             deletionButtons[targetFile].interactable = true;
+
+            gameObject.GetComponent<GamemodeSelect>().RandomizeCharacter(true);
+            gameObject.GetComponent<GamemodeSelect>().RandomizeCharacter(false);
 
             dbConnection.Close();
         }

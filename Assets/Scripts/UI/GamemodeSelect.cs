@@ -72,8 +72,14 @@ namespace UI{
             "Emmy","Macey","Ramiro","Andreas","Yazmin","Adam","Jovany","Liliana","Leonel","Roselyn","Zain","Paige","Karissa","Dane","Emery","Aidan"
         };
 
+        // Perk list
+        private List<string> perks = new List<string>(){"Mechanic", "Sharpshooter", "Health Care", "Surgeon", "Programmer", "Musician"};
+        
+        // Trait list
+        private List<string> traits = new List<string>(){"Charming", "Paranoid", "Civilized", "Bandit", "Hot Headed", "Creative"};
+
         // To track if character selection is for assigning or accessing
-        public static bool assigningChar = false;
+        public static bool assigningChar = false, assigningPartner = false;
 
         /// <summary>
         /// Select a game mode
@@ -134,6 +140,20 @@ namespace UI{
         }
 
         /// <summary>
+        /// Toggle if partner is being selected
+        /// </summary>
+        public void SelectingPartner(){
+            assigningPartner = !assigningPartner;
+        }
+
+        /// <summary>
+        /// Reset if partner is being selected
+        /// </summary>
+        public void ResetPartnerSelect(){
+            assigningPartner = false;
+        }
+
+        /// <summary>
         /// Toggle if a partner will be used at the start
         /// </summary>
         public void TogglePartner(){
@@ -142,20 +162,20 @@ namespace UI{
             partnerModel.gameObject.SetActive(selectPartnerButton.interactable);
 
             if(selectPartnerButton.interactable){
-                partnerDesc.text = "Name:\nDesc:\nTrait:";
+                RandomizeCharacter(true);
                 togglePartnerButtonText.text = "X";
             }
             else{
                 partnerDesc.text = "No partner";
                 togglePartnerButtonText.text = "O";
             }
-
         }
 
         public void ResetScreen(){
             selectPartnerButton.interactable = true;
             randomizePartnerButton.interactable = selectPartnerButton.interactable;
-            partnerDesc.text = "Name:\nDesc:\nTrait:";
+            RandomizeCharacter(true);
+            RandomizeCharacter(false);
             togglePartnerButtonText.text = "X";
         }
 
@@ -165,16 +185,78 @@ namespace UI{
         /// <param name="isPartner">If the character randomzied is the partner</param>
         public void RandomizeCharacter(bool isPartner){
             string name = randomNames[Random.Range(0,49)];
-            int perk = Random.Range(0,5), trait = Random.Range(0,5), hatNum = Random.Range(1,3), outfitNum = Random.Range(1,3), accNum = Random.Range(1,3), colorNum = Random.Range(0,8);
-            
-            TextMeshProUGUI textFocus = isPartner ? partnerDesc: leaderDesc;
-            GameObject model = isPartner ? partnerModel : leaderModel;
+            int perk = Random.Range(0,6), trait = Random.Range(0,6), hatNum = Random.Range(1,4), outfitNum = Random.Range(1,4), accNum = Random.Range(1,4), colorNum = Random.Range(1,10);
+            UpdateVisuals(perk, trait, colorNum, hatNum, outfitNum, accNum, name, isPartner);
+        }
 
-            textFocus.text = "Name: " + name + "\nDesc:\nTrait:";
+        /// <summary>
+        /// Assign leader/partner as a custom character
+        /// </summary>
+        /// <param name="baseId">Base id number for the button (ie. button 1, button 2...) to determine which character id in the database</param>
+        public void LoadCustomCharacter(int baseId){
+            int colorNum, hatNum, outfitNum, accNum, perk, trait;
+            string name;
+
+            int accessId = CharacterCreation.ReadCharacterId(baseId);
+            if(accessId == -1){
+                return;
+            }
+
+            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+
+            // Database commands to search for character id
+            bool idFound = false;
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable";
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+
+            // Search for the id (ids go 0-44)
+            while(dataReader.Read()){
+                if(dataReader.GetInt32(0) == accessId){
+                    idFound = true;
+                    break;
+                }
+            }
+
+            // If id found, access character info
+            if(idFound){
+                dbCommandReadValues = dbConnection.CreateCommand();
+                dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable WHERE id = " + accessId + ";";
+                dataReader = dbCommandReadValues.ExecuteReader();
+                dataReader.Read();
+                name = dataReader.GetString(1);
+                perk = dataReader.GetInt32(2);
+                trait = dataReader.GetInt32(3);
+                accNum = dataReader.GetInt32(4);
+                hatNum = dataReader.GetInt32(5);
+                colorNum = dataReader.GetInt32(6);
+                outfitNum = dataReader.GetInt32(7);
+                UpdateVisuals(perk, trait, colorNum, hatNum, outfitNum, accNum, name, assigningPartner);
+            }
+            else{
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Update player visuals
+        /// </summary>
+        /// <param name="perk">Player perk number</param>
+        /// <param name="trait">Player trait number</param>
+        /// <param name="colorNum">Player color number</param>
+        /// <param name="hatNum">Player hat number</param>
+        /// <param name="outfitNum">Player outfit number</param>
+        /// <param name="accNum">Player accessory number</param>
+        /// <param name="name">Player name</param>
+        /// <param name="isPartner">If the character randomzied is the partner</param>
+        private void UpdateVisuals(int perk, int trait, int colorNum, int hatNum, int outfitNum, int accNum, string name, bool isPartner){
+            GameObject model = isPartner ? partnerModel : leaderModel;
+            TextMeshProUGUI textFocus = isPartner ? partnerDesc: leaderDesc;
+            textFocus.text = "Name: " + name + "\nPerk: " + perks[perk] + "\nTrait: " + traits[trait];
 
             // Color
-            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[colorNum];
-            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[colorNum];
+            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[colorNum-1];
+            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[colorNum-1];
 
             switch(hatNum){
                 case 1:
@@ -220,12 +302,6 @@ namespace UI{
                     model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(true);
                     break;
             }
-        }
-
-        /// <summary>
-        /// Assign leader/partner as a custom character
-        public void SelectCustomCharacter(){
-            
         }
     }
 }
