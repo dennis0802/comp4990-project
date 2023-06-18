@@ -145,6 +145,7 @@ namespace UI
                 // Open the game
                 if(idFound){
                     Debug.Log("Game should be loaded");
+                    StartGame();
                 }
             }
             dbConnection.Close();
@@ -218,6 +219,10 @@ namespace UI
             if(!isCreatingNewFile){
                 fileButtons[targetFile].interactable = false;
             }
+        }
+
+        public void StartGame(){
+
         }
 
         /// <summary>

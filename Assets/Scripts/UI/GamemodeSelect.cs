@@ -78,6 +78,15 @@ namespace UI{
         // Trait list
         private List<string> traits = new List<string>(){"Charming", "Paranoid", "Civilized", "Bandit", "Hot Headed", "Creative"};
 
+        // Mode list
+        private List<string> modes = new List<string>(){"Standard", "Deadlier", "Standard Custom", "Deadlier Custom"};
+
+        // Mode descriptions
+        private List<string> modeDescs = new List<string>(){
+            "Standard enemies, randomized characters, decent amount of supplies", "Deadlier enemies, randomized characters, scarce amount of supplies",
+            "Standard enemies, custom characters, decent amount of supplies", "Deadlier enemies, custom characters, scarce amount of supplies"
+        };
+
         // To track if character selection is for assigning or accessing
         public static bool assigningChar = false, assigningPartner = false;
 
@@ -85,26 +94,11 @@ namespace UI{
         /// Select a game mode
         /// </summary>
         public void SelectMode(int key){
-            switch(key){
-                case 1:
-                    gamemodeTitle.text = "Standard";
-                    gamemodeDesc.text = "Standard enemies, randomized characters, decent amount of supplies";
-                    break;
-                case 2:
-                    gamemodeTitle.text = "Deadlier";
-                    gamemodeDesc.text = "Deadlier enemies, randomized characters, scarce amount of supplies";
-                    break;
-                case 3:
-                    gamemodeTitle.text = "Standard Custom";
-                    gamemodeDesc.text = "Standard enemies, custom characters, decent amount of supplies";
-                    break;
-                case 4:
-                    gamemodeTitle.text = "Deadlier Custom";
-                    gamemodeDesc.text = "Deadlier enemies, custom characters, scarce amount of supplies";
-                    break;
-                default:
-                    return;
+            if(key <= 0 || key >= 5){
+                return;
             }
+            gamemodeTitle.text = modes[key-1];
+            gamemodeDesc.text = modeDescs[key-1];
             selectedMode = key;
         }
 
