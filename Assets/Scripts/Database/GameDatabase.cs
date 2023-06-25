@@ -48,7 +48,29 @@ namespace Database{
 
             // Create a table for the save files in the databases if it doesn't exist yet
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
-            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, inProgress INTEGER)";
+            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, charactersId INTEGER, distance INTEGER, difficulty INTEGER, " +
+                                               "location TEXT)";
+            dbCommandCreateTable.ExecuteReader();
+
+            return dbConnection;
+        }
+
+        /// <summary>
+        /// Create and open a connection to the database to access active players
+        /// </summary>
+        public static IDbConnection CreateActiveCharactersAndOpenDatabase(){
+            // Open connection to database
+            string dbUri = "URI=file:GameData.sqlite";
+            IDbConnection dbConnection = new SqliteConnection(dbUri);
+            dbConnection.Open();
+
+            // Create a table for the save files in the databases if it doesn't exist yet
+            IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
+            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS ActiveCharactersTable(id INTEGER PRIMARY KEY, " +
+                                               "leaderName TEXT(10), leaderPerk INTEGER, leaderTrait INTEGER, leaderAcc INTEGER, leaderOutfit INTEGER, leaderColor INTEGER, leaderHat INTEGER, leaderMorale INTEGER, leaderHealth INTEGER, " +
+                                               "friend1Name TEXT(10), friend1Perk INTEGER, friend1Trait INTEGER, friend1Acc INTEGER, friend1Outfit INTEGER, friend1Color INTEGER, friend1Hat INTEGER, friend1Morale INTEGER, friend1Health INTEGER," +
+                                               "friend2Name TEXT(10), friend2Perk INTEGER, friend2Trait INTEGER, friend2Acc INTEGER, friend2Outfit INTEGER, friend2Color INTEGER, friend2Hat INTEGER, friend2Morale INTEGER, friend2Health INTEGER," +
+                                               "friend3Name TEXT(10), friend3Perk INTEGER, friend3Trait INTEGER, friend3Acc INTEGER, friend3Outfit INTEGER, friend3Color INTEGER, friend3Hat INTEGER, friend3Morale INTEGER, friend3Health INTEGER)";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;

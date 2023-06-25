@@ -62,8 +62,13 @@ namespace UI{
         [SerializeField]
         private TextMeshProUGUI togglePartnerButtonText;
 
-        // To track selected and confirmed difficulties
-        private int selectedMode = 1, confirmedMode = 1;
+        // To track selected difficulties
+        private int selectedMode = 1;
+
+        // To track traits for the database
+        public static string LeaderName, PartnerName;
+        public static int LeaderPerk, LeaderTrait, LeaderColor, LeaderOutfit, LeaderAcc, LeaderHat, Difficulty = 1;
+        public static int PartnerPerk, PartnerTrait, PartnerColor, PartnerOutfit, PartnerAcc, PartnerHat;
 
         // For randomizing a character
         private List<string> randomNames = new List<string>(){
@@ -123,7 +128,7 @@ namespace UI{
                 default:
                     return;
             }
-            confirmedMode = selectedMode;
+            Difficulty = selectedMode;
         }
 
         /// <summary>
@@ -184,6 +189,26 @@ namespace UI{
         public void RandomizeCharacter(bool isPartner){
             string name = randomNames[Random.Range(0,49)];
             int perk = Random.Range(0,6), trait = Random.Range(0,6), hatNum = Random.Range(1,4), outfitNum = Random.Range(1,4), accNum = Random.Range(1,4), colorNum = Random.Range(1,10);
+            
+            if(isPartner){
+                PartnerName = name;
+                PartnerPerk = perk;
+                PartnerTrait = trait;
+                PartnerHat = hatNum;
+                PartnerOutfit = outfitNum;
+                PartnerAcc = accNum;
+                PartnerColor = colorNum;
+            }
+            else{
+                LeaderName = name;
+                LeaderPerk = perk;
+                LeaderTrait = trait;
+                LeaderHat = hatNum;
+                LeaderOutfit = outfitNum;
+                LeaderAcc = accNum;
+                LeaderColor = colorNum;
+            }
+            
             UpdateVisuals(perk, trait, colorNum, hatNum, outfitNum, accNum, name, isPartner);
         }
 
