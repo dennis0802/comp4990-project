@@ -124,12 +124,6 @@ namespace UI
                     dbConnection.Close();
                     return;
                 }
-
-                // Create file
-                IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-                dbCommandInsertValue.CommandText = "INSERT INTO SaveFilesTable(id, charactersId) VALUES (" + id + ", " + id + ")";
-                dbCommandInsertValue.ExecuteNonQuery();
-                fileDescriptors[id].text = "  File " + (id+1) + "\n  name here\n  distance here\t loc here\n  difficulty here";
                 deletionButtons[id].interactable = true;
 
                 // Change screens (not in replacingFile function due to single possible action)
@@ -227,6 +221,8 @@ namespace UI
             IDbCommand dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM SaveFilesTable WHERE id = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
+            dbCommandDeleteValue.CommandText = "DELETE FROM ActiveCharactersTable WHERE id = " + targetFile + ";";
+            dbCommandDeleteValue.ExecuteNonQuery();
             fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n\n  No save file";
             deletionButtons[targetFile].interactable = false;
             dbConnection.Close();
@@ -239,7 +235,7 @@ namespace UI
         public void StartGame(){
             Debug.Log("Game should be starting");
 
-            // Create table of active characters
+            // Create table of active characters as a separate table but 
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
             dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO ActiveCharactersTable(id, leaderName, leaderPerk, leaderTrait, leaderColor, leaderAcc, leaderHat, leaderOutfit, leaderMorale, leaderHealth, " +
@@ -253,7 +249,8 @@ namespace UI
 
             dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET difficulty = " + GamemodeSelect.Difficulty + ", distance = " + 0 + ", location = 'Montreal' WHERE id = " + targetFile + ";";
+            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, distance, difficulty, location) VALUES (" + targetFile + ", " + targetFile + ", " + 0 +
+                                                ", " + GamemodeSelect.Difficulty + ", 'Montreal');";
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 

@@ -254,6 +254,24 @@ namespace UI{
                 hatNum = dataReader.GetInt32(5);
                 colorNum = dataReader.GetInt32(6);
                 outfitNum = dataReader.GetInt32(7);
+                if(assigningPartner){
+                    PartnerName = name;
+                    PartnerPerk = perk;
+                    PartnerTrait = trait;
+                    PartnerHat = hatNum;
+                    PartnerOutfit = outfitNum;
+                    PartnerAcc = accNum;
+                    PartnerColor = colorNum;
+                }
+                else{
+                    LeaderName = name;
+                    LeaderPerk = perk;
+                    LeaderTrait = trait;
+                    LeaderHat = hatNum;
+                    LeaderOutfit = outfitNum;
+                    LeaderAcc = accNum;
+                    LeaderColor = colorNum;
+                }
                 UpdateVisuals(perk, trait, colorNum, hatNum, outfitNum, accNum, name, assigningPartner);
             }
             else{

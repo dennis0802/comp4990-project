@@ -16,6 +16,8 @@ namespace Database{
             dbConnection.Close();
             dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
+            dbConnection = CreateActiveCharactersAndOpenDatabase();
+            dbConnection.Close();
             DontDestroyOnLoad(this.gameObject);
         }
 
@@ -49,7 +51,7 @@ namespace Database{
             // Create a table for the save files in the databases if it doesn't exist yet
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, charactersId INTEGER, distance INTEGER, difficulty INTEGER, " +
-                                               "location TEXT)";
+                                               "location TEXT, FOREIGN KEY(charactersId) REFERENCES ActiveCharactersTable (id))";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;
