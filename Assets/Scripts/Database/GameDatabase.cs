@@ -31,6 +31,7 @@ namespace Database{
             dbConnection.Open();
 
             // Create a table for the save files in the databases if it doesn't exist yet
+            // Fields: id (character id), name, perk, trait, and physical attributes.
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CustomCharactersTable(id INTEGER PRIMARY KEY, name TEXT(10), perk INTEGER, trait INTEGER, " +
                                                "accessory INTEGER, hat INTEGER, color INTEGER, outfit INTEGER)";
@@ -49,9 +50,11 @@ namespace Database{
             dbConnection.Open();
 
             // Create a table for the save files in the databases if it doesn't exist yet
+            // Fields: id (file id), character id (character table for this file), distance travelled, difficulty played, current location, inPhase tracks if travelling (0),
+            //         resting (1), or in combat (2)
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, charactersId INTEGER, distance INTEGER, difficulty INTEGER, " +
-                                               "location TEXT, FOREIGN KEY(charactersId) REFERENCES ActiveCharactersTable (id))";
+                                               "location TEXT, inPhase INTEGER, FOREIGN KEY(charactersId) REFERENCES ActiveCharactersTable (id))";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;
@@ -67,6 +70,8 @@ namespace Database{
             dbConnection.Open();
 
             // Create a table for the save files in the databases if it doesn't exist yet
+            // Fields: id (character table for this file), leader's perk, leader's trait, leader's physical physical attributes, morale, and health.
+            //         Repeats for friends 1-3.
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS ActiveCharactersTable(id INTEGER PRIMARY KEY, " +
                                                "leaderName TEXT(10), leaderPerk INTEGER, leaderTrait INTEGER, leaderAcc INTEGER, leaderOutfit INTEGER, leaderColor INTEGER, leaderHat INTEGER, leaderMorale INTEGER, leaderHealth INTEGER, " +

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using Mono.Data.Sqlite;
 using TMPro;
 using Database;
@@ -55,6 +56,8 @@ namespace UI
         private int targetFile = -1;
         // To track if a file exists
         private bool idFound = false;
+        // To track file played - this will also be used to grab all player related content in the file
+        public static int FileNumberPlaying;
 
         public void Start(){
             DontDestroyOnLoad(this.gameObject);
@@ -138,7 +141,8 @@ namespace UI
             else{
                 // Open the game
                 if(idFound){
-                    Debug.Log("Game should be loaded");
+                    FileNumberPlaying = id;
+                    SceneManager.LoadScene(1);
                 }
             }
             dbConnection.Close();
@@ -169,7 +173,7 @@ namespace UI
                         diff = "Deadlier Custom";
                         break;
                 }
-                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(6) + 
+                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(7) + 
                                                                "\n  " + dataReader.GetInt32(2) + "km\t " + dataReader.GetString(4) + "\n  " + diff;
             }
 
@@ -232,7 +236,7 @@ namespace UI
             }
         }
 
-        public void StartGame(){
+        public void StartNewGame(){
             Debug.Log("Game should be starting");
 
             // Create table of active characters as a separate table but 
@@ -249,16 +253,13 @@ namespace UI
 
             dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, distance, difficulty, location) VALUES (" + targetFile + ", " + targetFile + ", " + 0 +
-                                                ", " + GamemodeSelect.Difficulty + ", 'Montreal');";
+            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, distance, difficulty, location, inPhase) VALUES (" + targetFile + ", " + targetFile + ", " + 0 +
+                                                ", " + GamemodeSelect.Difficulty + ", 'Montreal', 0);";
+            FileNumberPlaying = targetFile;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            /*
-            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET leaderName = " + GamemodeSelect.LeaderName + " WHERE id = " + targetFile + ";";
-            */
+            SceneManager.LoadScene(1);
         }
 
         /// <summary>

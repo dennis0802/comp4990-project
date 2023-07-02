@@ -93,7 +93,7 @@ namespace UI{
         };
 
         // To track if character selection is for assigning or accessing
-        public static bool assigningChar = false, assigningPartner = false;
+        public static bool AssigningChar = false, assigningPartner = false;
 
         /// <summary>
         /// Select a game mode
@@ -135,7 +135,7 @@ namespace UI{
         /// Toggle how characters will be selected - assign to a file or to access their database data
         /// </summary>
         public void ToggleCharAssignment(){
-            assigningChar = !assigningChar;
+            AssigningChar = !AssigningChar;
         }
 
         /// <summary>
@@ -243,6 +243,7 @@ namespace UI{
 
             // If id found, access character info
             if(idFound){
+                AssigningChar = !AssigningChar;
                 dbCommandReadValues = dbConnection.CreateCommand();
                 dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable WHERE id = " + accessId + ";";
                 dataReader = dbCommandReadValues.ExecuteReader();
