@@ -9,7 +9,7 @@ using TMPro;
 using Database;
 
 namespace UI{
-    public class CombatInstruction : MonoBehaviour{
+    public class MidgameUI : MonoBehaviour{
         
     }
 }

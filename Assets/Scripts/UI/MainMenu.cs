@@ -65,6 +65,8 @@ namespace UI
         private bool idFound = false;
         // To track file played - this will also be used to grab all player related content in the file
         public static int FileNumberPlaying;
+        // To track if in a file
+        public static bool FileBeingPlayed = false;
 
         public void Start(){
             DontDestroyOnLoad(this.gameObject);

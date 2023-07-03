@@ -1,18 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UI;
 
-public class PauseMenu : MonoBehaviour
-{
-    // Start is called before the first frame update
-    void Start()
+namespace UI{
+    public class PauseMenu : MainMenu
     {
-        
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }
+
