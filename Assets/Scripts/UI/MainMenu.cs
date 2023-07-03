@@ -56,6 +56,9 @@ namespace UI
         [SerializeField]
         private GameObject introWindow;
 
+        // Instance of the main menu;
+        private static MainMenu menuInstance;
+
         // To track which file is being marked for deletion/replacement
         private int targetFile = -1;
         // To track if a file exists
@@ -65,6 +68,13 @@ namespace UI
 
         public void Start(){
             DontDestroyOnLoad(this.gameObject);
+            if(menuInstance == null){
+                menuInstance = this;
+            }
+            else{
+                Destroy(gameObject);
+            }
+
             SetFileDesc();
         }
 

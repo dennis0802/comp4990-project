@@ -8,17 +8,29 @@ namespace Database{
     [DisallowMultipleComponent]
     public class GameDatabase : MonoBehaviour
     {
+        // Instance of the database
+        private static GameDatabase databaseInstance;
 
         // Start is called before the first frame update
         void Start()
         {
+            DontDestroyOnLoad(this.gameObject);
+            if(databaseInstance == null){
+                databaseInstance = this;
+            }
+            else{
+                Destroy(gameObject);
+            }
+
             IDbConnection dbConnection = CreateSavesAndOpenDatabase();
             dbConnection.Close();
             dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
             dbConnection = CreateActiveCharactersAndOpenDatabase();
             dbConnection.Close();
-            DontDestroyOnLoad(this.gameObject);
+            dbConnection = CreateLocalHighScoreAndOpenDatabase();
+            dbConnection.Close();
+
         }
 
         /// <summary>
@@ -79,6 +91,25 @@ namespace Database{
                                                "friend1Name TEXT(10), friend1Perk INTEGER, friend1Trait INTEGER, friend1Acc INTEGER, friend1Outfit INTEGER, friend1Color INTEGER, friend1Hat INTEGER, friend1Morale INTEGER, friend1Health INTEGER," +
                                                "friend2Name TEXT(10), friend2Perk INTEGER, friend2Trait INTEGER, friend2Acc INTEGER, friend2Outfit INTEGER, friend2Color INTEGER, friend2Hat INTEGER, friend2Morale INTEGER, friend2Health INTEGER," +
                                                "friend3Name TEXT(10), friend3Perk INTEGER, friend3Trait INTEGER, friend3Acc INTEGER, friend3Outfit INTEGER, friend3Color INTEGER, friend3Hat INTEGER, friend3Morale INTEGER, friend3Health INTEGER)";
+            dbCommandCreateTable.ExecuteReader();
+
+            return dbConnection;
+        }
+
+        
+        /// <summary>
+        /// Create and open a connection to the database to access local highscores
+        /// </summary>
+        public static IDbConnection CreateLocalHighScoreAndOpenDatabase(){
+            // Open connection to database
+            string dbUri = "URI=file:GameData.sqlite";
+            IDbConnection dbConnection = new SqliteConnection(dbUri);
+            dbConnection.Open();
+
+            // Create a table for local high scores
+            // Fields: id, the leader's name, the difficulty played, the distance travelled, the number of friends they survived with, and overall score.
+            IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
+            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS LocalHighscoreTable(id INTEGER PRIMARY KEY, leaderName TEXT(10), difficulty INTEGER, distance INTEGER, friends INTEGER, score INTEGER)";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;
