@@ -52,6 +52,10 @@ namespace UI
         [SerializeField]
         private GameObject fileDeleteWindow;
 
+        [Tooltip("Game object containing UI for beginning the game")]
+        [SerializeField]
+        private GameObject introWindow;
+
         // To track which file is being marked for deletion/replacement
         private int targetFile = -1;
         // To track if a file exists
@@ -142,6 +146,7 @@ namespace UI
                 // Open the game
                 if(idFound){
                     FileNumberPlaying = id;
+                    accessScreen.SetActive(false);
                     SceneManager.LoadScene(1);
                 }
             }
@@ -173,7 +178,7 @@ namespace UI
                         diff = "Deadlier Custom";
                         break;
                 }
-                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(7) + 
+                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(12) + 
                                                                "\n  " + dataReader.GetInt32(2) + "km\t " + dataReader.GetString(4) + "\n  " + diff;
             }
 
@@ -237,7 +242,15 @@ namespace UI
         }
 
         public void StartNewGame(){
-            Debug.Log("Game should be starting");
+            int startingFood = 100, startingGas = 50, startingScrap = 25, startingMoney = 30, startingMedkit = 1;
+
+            if(GamemodeSelect.Difficulty == 2 || GamemodeSelect.Difficulty == 4){
+                startingFood = 50; 
+                startingGas = 25;
+                startingScrap = 12; 
+                startingMoney = 15; 
+                startingMedkit = 0;
+            }
 
             // Create table of active characters as a separate table but 
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
@@ -253,12 +266,15 @@ namespace UI
 
             dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, distance, difficulty, location, inPhase) VALUES (" + targetFile + ", " + targetFile + ", " + 0 +
-                                                ", " + GamemodeSelect.Difficulty + ", 'Montreal', 0);";
+            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, distance, difficulty, location, inPhase, food, gas, scrap, money, medkit) VALUES (" + targetFile + ", " + targetFile + ", " + 0 +
+                                                ", " + GamemodeSelect.Difficulty + ", 'Montreal', 0, " + startingFood + ", " + startingGas + ", " + startingScrap + ", " + 
+                                                startingMoney + ", " + startingMedkit + ");";
             FileNumberPlaying = targetFile;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
+            accessScreen.SetActive(false);
+            introWindow.SetActive(true);
             SceneManager.LoadScene(1);
         }
 

@@ -50,11 +50,12 @@ namespace Database{
             dbConnection.Open();
 
             // Create a table for the save files in the databases if it doesn't exist yet
-            // Fields: id (file id), character id (character table for this file), distance travelled, difficulty played, current location, inPhase tracks if travelling (0),
-            //         resting (1), or in combat (2)
+            // Fields: id (file id), character id (character table for this file), distance travelled, difficulty played, current location, inPhase tracks if resting (0),
+            //         travelling (1), or in combat (2)
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, charactersId INTEGER, distance INTEGER, difficulty INTEGER, " +
-                                               "location TEXT, inPhase INTEGER, FOREIGN KEY(charactersId) REFERENCES ActiveCharactersTable (id))";
+                                               "location TEXT, inPhase INTEGER, food INTEGER, gas INTEGER, scrap INTEGER, money INTEGER, medkit INTEGER, " + 
+                                               "FOREIGN KEY(charactersId) REFERENCES ActiveCharactersTable (id))";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;

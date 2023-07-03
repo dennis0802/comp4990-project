@@ -9,6 +9,6 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: 5bb459c63a284a6478fcc5cebde07563
   - enabled: 1
-    path: Assets/Scenes/TravellingPhase.unity
-    guid: 95d226bf0d80fe8459b15c7d4a0427d5
+    path: Assets/Scenes/RestPhase.unity
+    guid: ad90576cdad4e114cac34ad163a4d87e
   m_configObjects: {}
