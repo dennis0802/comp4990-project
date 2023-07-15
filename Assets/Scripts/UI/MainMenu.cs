@@ -253,6 +253,9 @@ namespace UI
             }
         }
 
+        /// <summary>
+        /// Start a new game
+        /// </summary>
         public void StartNewGame(){
             int startingFood = 100, startingGas = 50, startingScrap = 25, startingMoney = 30, startingMedkit = 1;
 
@@ -264,7 +267,7 @@ namespace UI
                 startingMedkit = 0;
             }
 
-            // Create table of active characters as a separate table but 
+            // Create table of active characters as a separate table
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
             dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO ActiveCharactersTable(id, leaderName, leaderPerk, leaderTrait, leaderColor, leaderAcc, leaderHat, leaderOutfit, leaderMorale, leaderHealth, " +
