@@ -18,6 +18,8 @@ namespace UI{
         public static int Activity = 1;
         // To track the pace of the car; 1 = slow, 2 = medium, 3 = fast
         public static int Pace = 2;
+        // To track the file data in the database.
+        public static int FileId;
 
         private void Update(){
             if(Hour >= 21 || Hour <= 5){

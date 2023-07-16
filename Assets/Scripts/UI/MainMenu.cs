@@ -56,6 +56,22 @@ namespace UI
         [SerializeField]
         private GameObject introWindow;
 
+        [Tooltip("Game object containing UI for the main game components.")]
+        [SerializeField]
+        private GameObject mainGameUI;
+
+        [Tooltip("Game object containing the main menu screen.")]
+        [SerializeField]
+        private GameObject mainMenuScreen;
+
+        [Tooltip("Game object containing UI for the main menu components.")]
+        [SerializeField]
+        private GameObject mainMenuUI;
+
+        [Tooltip("Game object containing UI for the rest menu components.")]
+        [SerializeField]
+        private GameObject restMenuUI;
+
         // Instance of the main menu;
         private static MainMenu menuInstance;
 
@@ -63,10 +79,6 @@ namespace UI
         private int targetFile = -1;
         // To track if a file exists
         private bool idFound = false;
-        // To track file played - this will also be used to grab all player related content in the file
-        public static int FileNumberPlaying;
-        // To track if in a file
-        public static bool FileBeingPlayed = false;
 
         public void Start(){
             DontDestroyOnLoad(this.gameObject);
@@ -157,9 +169,13 @@ namespace UI
             else{
                 // Open the game
                 if(idFound){
-                    FileNumberPlaying = id;
                     accessScreen.SetActive(false);
                     SceneManager.LoadScene(1);
+                    mainGameUI.SetActive(true);
+                    mainMenuScreen.SetActive(true);
+                    mainMenuUI.SetActive(false);
+                    restMenuUI.SetActive(true);
+                    GameLoop.FileId = id;
                 }
             }
             dbConnection.Close();
@@ -176,7 +192,7 @@ namespace UI
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
 
             while(dataReader.Read()){
-                switch(dataReader.GetInt32(3)){
+                switch(dataReader.GetInt32(4)){
                     case 1:
                         diff = "Standard";
                         break;
@@ -190,8 +206,8 @@ namespace UI
                         diff = "Deadlier Custom";
                         break;
                 }
-                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(12) + 
-                                                               "\n  " + dataReader.GetInt32(2) + "km\t " + dataReader.GetString(4) + "\n  " + diff;
+                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(14) + 
+                                                               "\n  " + dataReader.GetInt32(3) + "km\t " + dataReader.GetString(5) + "\n  " + diff;
             }
 
             dbConnection.Close();
@@ -281,14 +297,14 @@ namespace UI
 
             dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, distance, difficulty, location, inPhase, food, gas, scrap, money, medkit) VALUES (" + targetFile + ", " + targetFile + ", " + 0 +
-                                                ", " + GamemodeSelect.Difficulty + ", 'Montreal', 0, " + startingFood + ", " + startingGas + ", " + startingScrap + ", " + 
-                                                startingMoney + ", " + startingMedkit + ");";
-            FileNumberPlaying = targetFile;
+            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, carId, distance, difficulty, location, inPhase, food, gas, scrap, money, medkit, time) VALUES (" + targetFile + ", " + targetFile + ", 0, 0, " + 
+                                                GamemodeSelect.Difficulty + ", 'Montreal', 0, " + startingFood + ", " + startingGas + ", " + startingScrap + ", " + startingMoney + ", " + startingMedkit + ", 12);";
+            GameLoop.FileId = targetFile;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
             accessScreen.SetActive(false);
+            mainGameUI.SetActive(true);
             introWindow.SetActive(true);
             SceneManager.LoadScene(1);
         }

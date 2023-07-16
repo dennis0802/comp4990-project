@@ -30,6 +30,8 @@ namespace Database{
             dbConnection.Close();
             dbConnection = CreateLocalHighScoreAndOpenDatabase();
             dbConnection.Close();
+            dbConnection = CreateCarsAndOpenDatabase();
+            dbConnection.Close();
 
         }
 
@@ -62,11 +64,11 @@ namespace Database{
             dbConnection.Open();
 
             // Create a table for the save files in the databases if it doesn't exist yet
-            // Fields: id (file id), character id (character table for this file), distance travelled, difficulty played, current location, inPhase tracks if resting (0),
-            //         travelling (1), or in combat (2)
+            // Fields: id (file id), character id (character table for this file), car id (table for this file)distance travelled, difficulty played, current location, 
+            // inPhase tracks if resting (0), travelling (1), or in combat (2)
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
-            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, charactersId INTEGER, distance INTEGER, difficulty INTEGER, " +
-                                               "location TEXT, inPhase INTEGER, food INTEGER, gas INTEGER, scrap INTEGER, money INTEGER, medkit INTEGER, " + 
+            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, charactersId INTEGER, carId INTEGER, distance INTEGER, difficulty INTEGER, " +
+                                               "location TEXT, inPhase INTEGER, food INTEGER, gas INTEGER, scrap INTEGER, money INTEGER, medkit INTEGER, time INTEGER, " + 
                                                "FOREIGN KEY(charactersId) REFERENCES ActiveCharactersTable (id))";
             dbCommandCreateTable.ExecuteReader();
 
@@ -96,6 +98,24 @@ namespace Database{
             return dbConnection;
         }
 
+        /// <summary>
+        /// Create and open a connection to the database to access active cars
+        /// </summary>
+        public static IDbConnection CreateCarsAndOpenDatabase(){
+            // Open connection to database
+            string dbUri = "URI=file:GameData.sqlite";
+            IDbConnection dbConnection = new SqliteConnection(dbUri);
+            dbConnection.Open();
+
+            // Create a table for the save files in the databases if it doesn't exist yet
+            // Fields: id (character table for this file), leader's perk, leader's trait, leader's physical physical attributes, morale, and health.
+            //         Repeats for friends 1-3.
+            IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
+            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CarsTable(id INTEGER PRIMARY KEY)";
+            dbCommandCreateTable.ExecuteReader();
+
+            return dbConnection;
+        }
         
         /// <summary>
         /// Create and open a connection to the database to access local highscores

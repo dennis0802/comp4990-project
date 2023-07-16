@@ -30,6 +30,14 @@ namespace UI{
         [SerializeField]
         private TextMeshProUGUI restHoursText;
 
+        [Tooltip("Rest description text")]
+        [SerializeField]
+        private TextMeshProUGUI restDescText;
+
+        [Tooltip("Location text")]
+        [SerializeField]
+        private TextMeshProUGUI locationText;
+
         [Header("Buttons")]
         [Tooltip("Accept trade offer button")]
         [SerializeField]
@@ -47,12 +55,24 @@ namespace UI{
         [SerializeField]
         private Button tradeReturnButton;
 
+        [Tooltip("Return from resting button")]
+        [SerializeField]
+        private Button restReturnButton;
+
+        [Tooltip("Initiate rest button")]
+        [SerializeField]
+        private Button restStartButton;
+
+        [Tooltip("Cancel rest button")]
+        [SerializeField]
+        private Button restCancelButton;
+
         [Tooltip("Rest hours slider")]
         [SerializeField]
         private Slider restHoursSlider;
 
         private float restHours = 1;
-        private bool coroutineStarted = false;
+        private Coroutine coroutine;
 
         /// <summary>
         /// Refresh the screen upon loading the rest menu.
@@ -61,6 +81,22 @@ namespace UI{
             ToggleRations();
         }
 
+        private void Start(){
+            // Populate fields
+            Debug.Log(GameLoop.FileId);
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
+                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            locationText.text = dataReader.GetString(5);
+        }
+
+        /// <summary>
+        /// Change selected hours based on the slider
+        /// </summary>
         public void ChangeSelectedHours(){
             restHours = restHoursSlider.value;
             restHoursText.text = restHours > 1 ? restHours + " hours" : restHours + " hour";
@@ -101,7 +137,6 @@ namespace UI{
         /// Wait for a trader
         /// </summary>
         public void WaitForTrader(){
-            traderText.text = "Waiting for trader...";
             StartCoroutine(Delay(1));
         }
 
@@ -109,7 +144,7 @@ namespace UI{
         /// Let the party rest.
         /// </summary>
         public void RestParty(){
-            Debug.Log("to be implemented.");
+            coroutine = StartCoroutine(Delay(2));
         }
 
         /// <summary>
@@ -144,19 +179,32 @@ namespace UI{
             traderText.text = "No one appeared.";
         }
 
+        public void CancelRest(){
+            StopCoroutine(coroutine);
+            restCancelButton.interactable = false;
+            restReturnButton.interactable = true;
+            restStartButton.interactable = true;
+            restHoursSlider.interactable = true;
+            restDescText.text = "How long would you like to rest for? Supplies will be consumed per hour.";
+        }
+
         /// <summary>
         /// Delay after a button press
         /// </summary>
         /// <param name="mode">The mode/menu to interact with after the delay</param>
         private IEnumerator Delay(int mode){
-            waitButton.interactable = false;
-            tradeReturnButton.interactable = false;
-            yield return new WaitForSeconds(3.0f);
-            waitButton.interactable = true;
-            tradeReturnButton.interactable = true;
-            coroutineStarted = true;
-
+            // Trading
             if(mode == 1){
+                waitButton.interactable = false;
+                tradeReturnButton.interactable = false;
+                traderText.text = "Waiting for trader.";
+                yield return new WaitForSeconds(1.0f);
+                traderText.text = "Waiting for trader..";
+                yield return new WaitForSeconds(1.0f);
+                traderText.text = "Waiting for trader...";
+                yield return new WaitForSeconds(1.0f);
+                ChangeTime();
+
                 int traderChange = Random.Range(1,6);
                 if(traderChange <= 2){
                     acceptButton.interactable = true;
@@ -164,17 +212,46 @@ namespace UI{
                     waitButton.interactable = false;
                     tradeReturnButton.interactable = false;
                 }
+                else{
+                    waitButton.interactable = true;
+                    tradeReturnButton.interactable = true;
+                }
                 traderText.text = traderChange <= 2 ? "A trader appeared making the following offer:" : "No one appeared.";
             }
-            if(mode == 2){
-                // Heal the party
-                restHours--;
-                if(restHours > 1){
-                    restHoursText.text = restHours > 1 ? restHours + " hours" : restHours + " hour";
+            // Resting
+            else if(mode == 2){
+                restCancelButton.interactable = true;
+                restReturnButton.interactable = false;
+                restStartButton.interactable = false;
+                restHoursSlider.interactable = false;
+
+                while(restHoursSlider.value > 1){
+                    restDescText.text = "Resting.";
+                    yield return new WaitForSeconds(1.0f);
+                    restDescText.text = "Resting..";
+                    yield return new WaitForSeconds(1.0f);
+                    restDescText.text = "Resting...";
+                    yield return new WaitForSeconds(1.0f);
+                    restHoursSlider.value--;
+                    ChangeTime();
                 }
+
+                if(restHoursSlider.value == 1){
+                    restDescText.text = "Resting.";
+                    yield return new WaitForSeconds(1.0f);
+                    restDescText.text = "Resting..";
+                    yield return new WaitForSeconds(1.0f);
+                    restDescText.text = "Resting...";
+                    yield return new WaitForSeconds(1.0f);
+                    ChangeTime();
+                }
+
+                restCancelButton.interactable = false;
+                restReturnButton.interactable = true;
+                restStartButton.interactable = true;
+                restHoursSlider.interactable = true;
+                restDescText.text = "How long would you like to rest for? Supplies will be consumed per hour.";
             }
-            ChangeTime();
-            coroutineStarted = false;
         }
     }
 }
