@@ -21,6 +21,16 @@ namespace UI{
         // To track the file data in the database.
         public static int FileId;
 
+        // List of perks (mechanic, sharpshooter, health care, surgeon, programmer, musician)
+        public static List<string> Perks = new List<string>(){
+            "Mechanic", "Sharpshooter", "Health Care", "Surgeon", "Programmer", "Musician"
+        };
+
+        // List of traits (charming, paranoid, civilized, bandit, hot headed, creative)
+        public static List<string> Traits = new List<string>(){
+            "Charming", "Paranoid", "Civilized", "Bandit", "Hot Headed", "Creative"  
+        };
+
         private void Update(){
             if(Hour >= 21 || Hour <= 5){
                 Activity = 4;

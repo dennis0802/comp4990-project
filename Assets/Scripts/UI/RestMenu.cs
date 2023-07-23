@@ -38,6 +38,51 @@ namespace UI{
         [SerializeField]
         private TextMeshProUGUI locationText;
 
+        [Tooltip("Supplies text")]
+        [SerializeField]
+        private TextMeshProUGUI suppliesText1;
+
+        [Tooltip("Supplies text")]
+        [SerializeField]
+        private TextMeshProUGUI suppliesText2;
+
+        [Header("Party Members")]
+        [Tooltip("Leader text")]
+        [SerializeField]
+        private TextMeshProUGUI leaderText;
+
+        [Tooltip("Leader health")]
+        [SerializeField]
+        private Slider leaderHealth;
+
+        [Tooltip("Heal leader button")]
+        [SerializeField]
+        private Button healLeaderButton;
+
+        [Tooltip("Friend text")]
+        [SerializeField]
+        private TextMeshProUGUI friend1Text;
+
+        [Tooltip("Friend health")]
+        [SerializeField]
+        private Slider friend1Health;
+
+        [Tooltip("Friend text")]
+        [SerializeField]
+        private TextMeshProUGUI friend2Text;
+
+        [Tooltip("Friend health")]
+        [SerializeField]
+        private Slider friend2Health;
+
+        [Tooltip("Friend text")]
+        [SerializeField]
+        private TextMeshProUGUI friend3Text;
+
+        [Tooltip("Friend health")]
+        [SerializeField]
+        private Slider friend3Health;
+
         [Header("Buttons")]
         [Tooltip("Accept trade offer button")]
         [SerializeField]
@@ -74,16 +119,14 @@ namespace UI{
         private float restHours = 1;
         private Coroutine coroutine;
 
+        private void Start(){
+            RefreshScreen();
+        }
+
         /// <summary>
         /// Refresh the screen upon loading the rest menu.
         /// </summary>
-        private void RefreshScreen(){
-            ToggleRations();
-        }
-
-        private void Start(){
-            // Populate fields
-            Debug.Log(GameLoop.FileId);
+        public void RefreshScreen(){
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
@@ -91,7 +134,19 @@ namespace UI{
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
+            suppliesText1.text = "Food: " + dataReader.GetInt32(7) + "kg\n\nGas: " + dataReader.GetInt32(8) + "L\n\nScrap: " + dataReader.GetInt32(9) + "\n\nMoney: $" +
+                                 dataReader.GetInt32(10) + "\n\nMedkit: " + dataReader.GetInt32(11);
+            suppliesText2.text = "Tires: " + dataReader.GetInt32(12) + "\n\nBatteries: " + dataReader.GetInt32(13) + "\n\nAmmo: " + dataReader.GetInt32(14);
             locationText.text = dataReader.GetString(5);
+
+            string morale = dataReader.GetInt32(25) >= 20 ? dataReader.GetInt32(25) >= 40 ? dataReader.GetInt32(25) >= 60 ? dataReader.GetInt32(25) >= 80 
+                            ? "Hopeful" : "placeholder" : "Elated" : "Glum" : "Despairing";
+            leaderText.text = dataReader.GetString(18) + "\n" + GameLoop.Perks[dataReader.GetInt32(19)] + "\n" + GameLoop.Traits[dataReader.GetInt32(20)];
+            leaderHealth.value = dataReader.GetInt32(26);
+
+            healLeaderButton.interactable = leaderHealth.value != 100;
+
+            SetTime();
         }
 
         /// <summary>
@@ -157,6 +212,24 @@ namespace UI{
                 GameLoop.Hour = 1;
             }
 
+            SetTime();
+
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+            int overallTime = dataReader.GetInt32(16);
+            
+            //dbConnection.Close();
+            //dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
+        }
+
+        private void SetTime(){
             int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour;
             string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
 
