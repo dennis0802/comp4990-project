@@ -47,41 +47,25 @@ namespace UI{
         private TextMeshProUGUI suppliesText2;
 
         [Header("Party Members")]
-        [Tooltip("Leader text")]
-        [SerializeField]
-        private TextMeshProUGUI leaderText;
-
-        [Tooltip("Leader health")]
-        [SerializeField]
-        private Slider leaderHealth;
-
-        [Tooltip("Heal leader button")]
-        [SerializeField]
-        private Button healLeaderButton;
-
         [Tooltip("Friend text")]
         [SerializeField]
-        private TextMeshProUGUI friend1Text;
+        private TextMeshProUGUI[] playerText;
 
         [Tooltip("Friend health")]
         [SerializeField]
-        private Slider friend1Health;
+        private Slider[] playerHealth;
 
-        [Tooltip("Friend text")]
+        [Tooltip("Heal friend button")]
         [SerializeField]
-        private TextMeshProUGUI friend2Text;
+        private Button[] healButton;
 
-        [Tooltip("Friend health")]
+        [Tooltip("Friend models")]
         [SerializeField]
-        private Slider friend2Health;
+        private GameObject[] playerModel;
 
-        [Tooltip("Friend text")]
+        [Tooltip("Colors for players")]
         [SerializeField]
-        private TextMeshProUGUI friend3Text;
-
-        [Tooltip("Friend health")]
-        [SerializeField]
-        private Slider friend3Health;
+        private Material[] playerColors;
 
         [Header("Buttons")]
         [Tooltip("Accept trade offer button")]
@@ -139,14 +123,83 @@ namespace UI{
             suppliesText2.text = "Tires: " + dataReader.GetInt32(12) + "\n\nBatteries: " + dataReader.GetInt32(13) + "\n\nAmmo: " + dataReader.GetInt32(14);
             locationText.text = dataReader.GetString(5);
 
-            string morale = dataReader.GetInt32(25) >= 20 ? dataReader.GetInt32(25) >= 40 ? dataReader.GetInt32(25) >= 60 ? dataReader.GetInt32(25) >= 80 
-                            ? "Hopeful" : "placeholder" : "Elated" : "Glum" : "Despairing";
-            leaderText.text = dataReader.GetString(18) + "\n" + GameLoop.Perks[dataReader.GetInt32(19)] + "\n" + GameLoop.Traits[dataReader.GetInt32(20)];
-            leaderHealth.value = dataReader.GetInt32(26);
+            for(int i = 0; i < 4; i++){
+                int index = 18 + 9 * i;
+                if(!dataReader.IsDBNull(index)){
+                    DisplayCharacter(index, i, dataReader);
+                }
+                else{
+                    healButton[i].interactable = false;
+                    playerText[i].text = "";
+                    playerHealth[i].gameObject.SetActive(false);
+                    playerModel[i].SetActive(false);
+                }
+            }
 
-            healLeaderButton.interactable = leaderHealth.value != 100;
-
+            dbConnection.Close();
             SetTime();
+        }
+
+        private void DisplayCharacter(int index, int charNumber, IDataReader dataReader){
+            string morale = dataReader.GetInt32(index+7) >= 20 ? dataReader.GetInt32(index+7) >= 40 ? dataReader.GetInt32(index+7) >= 60 ? dataReader.GetInt32(index+7) >= 80 
+                ? "Hopeful" : "Elated" : "Indifferent" : "Glum" : "Despairing";
+
+            playerModel[charNumber].SetActive(true);
+            playerText[charNumber].text = dataReader.GetString(index) + "\n" + GameLoop.Perks[dataReader.GetInt32(index+1)] + "\n" + GameLoop.Traits[dataReader.GetInt32(index+2)] + "\n" + morale;
+            playerHealth[charNumber].gameObject.SetActive(true);
+            playerHealth[charNumber].value = dataReader.GetInt32(index+8);
+            healButton[charNumber].interactable = playerHealth[charNumber].value != 100;
+
+            GameObject model = playerModel[charNumber];
+
+            // Color
+            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[dataReader.GetInt32(index + 5)-1];
+            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[dataReader.GetInt32(index + 5)-1];
+
+            switch(dataReader.GetInt32(index + 6)){
+                case 1:
+                    model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 2:
+                    model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(true);
+                    model.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 3:
+                    model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(true);
+                    break;
+            }
+
+            switch(dataReader.GetInt32(index + 4)){
+                case 1:
+                    model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 2:
+                    model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(true);
+                    model.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 3:
+                    model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(true);
+                    break;
+            }
+
+            switch(dataReader.GetInt32(index + 3)){
+                case 1:
+                    model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 2:
+                    model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(true);
+                    model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 3:
+                    model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(true);
+                    break;
+            }
         }
 
         /// <summary>
@@ -237,7 +290,7 @@ namespace UI{
         }
 
         /// <summary>
-        /// Create and open a connection to the database to access active players
+        /// Perform the trade action displayed.
         /// </summary>
         /// <param name="button">The button id pressed - 0 for decline, 1 for accept</param>
         public void TradeAction(int button){
