@@ -31,6 +31,14 @@ namespace UI{
             "Charming", "Paranoid", "Civilized", "Bandit", "Hot Headed", "Creative"  
         };
 
+        private void Start(){
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+        }
+
         private void Update(){
             if(Hour >= 21 || Hour <= 5){
                 Activity = 4;

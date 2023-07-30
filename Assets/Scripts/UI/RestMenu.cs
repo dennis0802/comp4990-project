@@ -118,13 +118,13 @@ namespace UI{
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            suppliesText1.text = "Food: " + dataReader.GetInt32(7) + "kg\n\nGas: " + dataReader.GetInt32(8) + "L\n\nScrap: " + dataReader.GetInt32(9) + "\n\nMoney: $" +
+            suppliesText1.text = "Food: " + dataReader.GetInt32(7) + "kg\n\nGas: " + dataReader.GetFloat(8) + "L\n\nScrap: " + dataReader.GetInt32(9) + "\n\nMoney: $" +
                                  dataReader.GetInt32(10) + "\n\nMedkit: " + dataReader.GetInt32(11);
             suppliesText2.text = "Tires: " + dataReader.GetInt32(12) + "\n\nBatteries: " + dataReader.GetInt32(13) + "\n\nAmmo: " + dataReader.GetInt32(14);
             locationText.text = dataReader.GetString(5);
 
             for(int i = 0; i < 4; i++){
-                int index = 18 + 9 * i;
+                int index = 20 + 9 * i;
                 if(!dataReader.IsDBNull(index)){
                     DisplayCharacter(index, i, dataReader);
                 }
@@ -136,8 +136,18 @@ namespace UI{
                 }
             }
 
+            GameLoop.RationsMode = dataReader.GetInt32(17);
+            GameLoop.Hour = dataReader.GetInt32(15);
+            GameLoop.Pace = dataReader.GetInt32(18);
+            
+            rationsText.text = GameLoop.RationsMode == 1 ? "Current Rations: Low" : GameLoop.RationsMode == 2 ?  "Current Rations: Medium" : "Current Rations: High";
+            paceText.text = GameLoop.Pace== 1 ? "Slow\n40km/h" : GameLoop.Pace == 2 ?  "Average\n50km/h" : "Fast\n60km/h";
+            int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour;
+            string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
+
+            timeActivityText.text = "Current Time: " + time + timing + "; Activity: " + activity;
+
             dbConnection.Close();
-            SetTime();
         }
 
         private void DisplayCharacter(int index, int charNumber, IDataReader dataReader){
@@ -148,7 +158,7 @@ namespace UI{
             playerText[charNumber].text = dataReader.GetString(index) + "\n" + GameLoop.Perks[dataReader.GetInt32(index+1)] + "\n" + GameLoop.Traits[dataReader.GetInt32(index+2)] + "\n" + morale;
             playerHealth[charNumber].gameObject.SetActive(true);
             playerHealth[charNumber].value = dataReader.GetInt32(index+8);
-            healButton[charNumber].interactable = playerHealth[charNumber].value != 100;
+            healButton[charNumber].interactable = playerHealth[charNumber].value != 100 && dataReader.GetInt32(11) != 0;
 
             GameObject model = playerModel[charNumber];
 
@@ -156,6 +166,7 @@ namespace UI{
             model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[dataReader.GetInt32(index + 5)-1];
             model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[dataReader.GetInt32(index + 5)-1];
 
+            // Hat
             switch(dataReader.GetInt32(index + 6)){
                 case 1:
                     model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(false);
@@ -171,6 +182,7 @@ namespace UI{
                     break;
             }
 
+            // Outfit
             switch(dataReader.GetInt32(index + 4)){
                 case 1:
                     model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(false);
@@ -186,6 +198,7 @@ namespace UI{
                     break;
             }
 
+            // Accessory
             switch(dataReader.GetInt32(index + 3)){
                 case 1:
                     model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(false);
@@ -218,8 +231,14 @@ namespace UI{
             if(GameLoop.RationsMode > 3){
                 GameLoop.RationsMode = 1;
             }
+            
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET rations = " + GameLoop.RationsMode + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
 
-            rationsText.text = GameLoop.RationsMode == 1 ? "Current Rations: Low" : GameLoop.RationsMode == 2 ?  "Current Rations: Medium" : "Current Rations: High";
+            RefreshScreen();
         }
 
         /// <summary>
@@ -231,7 +250,13 @@ namespace UI{
                 GameLoop.Pace = 1;
             }
 
-            paceText.text = GameLoop.Pace== 1 ? "Slow\n40km/h" : GameLoop.Pace == 2 ?  "Average\n50km/h" : "Fast\n60km/h";
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET speed = " + GameLoop.Pace + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
+
+            RefreshScreen();
         }
 
         /// <summary>
@@ -252,7 +277,20 @@ namespace UI{
         /// Let the party rest.
         /// </summary>
         public void RestParty(){
-            coroutine = StartCoroutine(Delay(2));
+            StartCoroutine(Delay(2));
+        }
+
+        /// <summary>
+        /// Heal a party member using a medkit.
+        /// </summary>
+        public void UseMedkit(int id){
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET medkit = medkit - 1 WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
+
+            RefreshScreen();
         }
 
         /// <summary>
@@ -265,28 +303,19 @@ namespace UI{
                 GameLoop.Hour = 1;
             }
 
-            SetTime();
-
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
             int overallTime = dataReader.GetInt32(16);
-            
-            //dbConnection.Close();
-            //dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
-        }
 
-        private void SetTime(){
-            int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour;
-            string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
-
-            timeActivityText.text = "Current Time: " + time + timing + "; Activity: " + activity;
+            RefreshScreen();
         }
 
         /// <summary>
@@ -305,6 +334,9 @@ namespace UI{
             traderText.text = "No one appeared.";
         }
 
+        /// <summary>
+        /// Cancel resting action.
+        /// </summary>
         public void CancelRest(){
             StopCoroutine(coroutine);
             restCancelButton.interactable = false;
@@ -312,6 +344,33 @@ namespace UI{
             restStartButton.interactable = true;
             restHoursSlider.interactable = true;
             restDescText.text = "How long would you like to rest for? Supplies will be consumed per hour.";
+        }
+
+        /// <summary>
+        /// Decrement food while performing waiting actions.
+        /// </summary>
+        private void DecrementFood(){
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
+                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            int overallFood = dataReader.GetInt32(7);
+
+            // For each living character on the team, they consume 1, 2, or 3 units of food each hour depending on the ration mode.
+            for(int i = 0; i < 4; i++){
+                int index = 20 + 9 * i;
+                if(!dataReader.IsDBNull(index)){
+                    overallFood = GameLoop.RationsMode == 1 ? overallFood - 1 : GameLoop.RationsMode == 2 ? overallFood - 2 : overallFood - 3;
+                }
+            }
+
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = " + overallFood + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
         }
 
         /// <summary>
@@ -359,6 +418,7 @@ namespace UI{
                     restDescText.text = "Resting...";
                     yield return new WaitForSeconds(1.0f);
                     restHoursSlider.value--;
+                    DecrementFood();
                     ChangeTime();
                 }
 
@@ -369,6 +429,7 @@ namespace UI{
                     yield return new WaitForSeconds(1.0f);
                     restDescText.text = "Resting...";
                     yield return new WaitForSeconds(1.0f);
+                    DecrementFood();
                     ChangeTime();
                 }
 
@@ -380,4 +441,6 @@ namespace UI{
             }
         }
     }
+
 }
+

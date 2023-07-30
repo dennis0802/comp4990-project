@@ -206,7 +206,7 @@ namespace UI
                         diff = "Deadlier Custom";
                         break;
                 }
-                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(18) + 
+                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(20) + 
                                                                "\n  " + dataReader.GetInt32(3) + "km\t " + dataReader.GetString(5) + "\n  " + diff;
             }
 
@@ -301,9 +301,9 @@ namespace UI
             dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, carId, distance, difficulty, location, inPhase, food, gas, scrap, " +
-                                               "money, medkit, tire, battery, ammo, time, overallTime) VALUES (" + targetFile + ", " + targetFile + ", 0, 0, " + 
+                                               "money, medkit, tire, battery, ammo, time, overallTime, rations, speed) VALUES (" + targetFile + ", " + targetFile + ", 0, 0, " + 
                                                 GamemodeSelect.Difficulty + ", 'Montreal', 0, " + startingFood + ", " + startingGas + ", " + startingScrap + ", " + startingMoney + 
-                                                ", " + startingMedkit + ", " + startingTire + ", " + startingBattery + ", " + startingAmmo + ", 12, 0);";
+                                                ", " + startingMedkit + ", " + startingTire + ", " + startingBattery + ", " + startingAmmo + ", 12, 0, 2, 2);";
             GameLoop.FileId = targetFile;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();

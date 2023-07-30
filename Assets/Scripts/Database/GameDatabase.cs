@@ -68,8 +68,8 @@ namespace Database{
             // inPhase tracks if resting (0), travelling (1), or in combat (2)
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, charactersId INTEGER, carId INTEGER, distance INTEGER, difficulty INTEGER, " +
-                                               "location TEXT, inPhase INTEGER, food INTEGER, gas INTEGER, scrap INTEGER, money INTEGER, medkit INTEGER, tire INTEGER, battery INTEGER, " + 
-                                               "ammo INTEGER, time INTEGER, overallTime INTEGER, FOREIGN KEY(charactersId) REFERENCES ActiveCharactersTable (id))";
+                                               "location TEXT, inPhase INTEGER, food INTEGER, gas REAL, scrap INTEGER, money INTEGER, medkit INTEGER, tire INTEGER, battery INTEGER, " + 
+                                               "ammo INTEGER, time INTEGER, overallTime INTEGER, rations INTEGER, speed INTEGER, FOREIGN KEY(charactersId) REFERENCES ActiveCharactersTable (id))";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;
