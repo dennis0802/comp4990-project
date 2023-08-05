@@ -139,6 +139,19 @@ namespace UI{
             GameLoop.RationsMode = dataReader.GetInt32(17);
             GameLoop.Hour = dataReader.GetInt32(15);
             GameLoop.Pace = dataReader.GetInt32(18);
+
+            if(GameLoop.Hour >= 21 || GameLoop.Hour <= 5){
+                GameLoop.Activity = 4;
+            }
+            else if(GameLoop.Hour >= 18 || GameLoop.Hour <= 8){
+                GameLoop.Activity = 3;
+            }
+            else if(GameLoop.Hour >= 16 || GameLoop.Hour <= 10){
+                GameLoop.Activity = 2;
+            }
+            else{
+                GameLoop.Activity = 1;
+            }
             
             rationsText.text = GameLoop.RationsMode == 1 ? "Current Rations: Low" : GameLoop.RationsMode == 2 ?  "Current Rations: Medium" : "Current Rations: High";
             paceText.text = GameLoop.Pace== 1 ? "Slow\n40km/h" : GameLoop.Pace == 2 ?  "Average\n50km/h" : "Fast\n60km/h";
@@ -285,8 +298,37 @@ namespace UI{
         /// </summary>
         public void UseMedkit(int id){
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
+                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET medkit = medkit - 1 WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText =  "UPDATE SaveFilesTable SET medkit = medkit - 1 WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            
+            int curHealth = dataReader.GetInt32(28 + 9 * id);
+
+            // Change player health value, max at 100.
+            string updateCommand = "UPDATE ActiveCharactersTable SET ";
+            switch(id){
+                case 0:
+                    updateCommand += curHealth + 15 > 100 ? "leaderHealth = 100" : "leaderHealth = leaderHealth + 15";
+                    break;
+                case 1:
+                    updateCommand += curHealth + 15 > 100 ? "friend1Health = 100" : "friend1Health = friend1Health + 15";
+                    break;
+                case 2:
+                    updateCommand += curHealth + 15 > 100 ? "friend2Health = 100" : "friend2Health = friend2Health + 15";
+                    break;
+                case 3:
+                    updateCommand += curHealth + 15 > 100 ? "friend3Health = 100" : "friend3Health = friend3Health + 15";
+                    break;
+            }
+            updateCommand += " WHERE id = " + GameLoop.FileId;
+
+            dbCommandUpdateValue.CommandText = updateCommand;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -388,6 +430,7 @@ namespace UI{
                 yield return new WaitForSeconds(1.0f);
                 traderText.text = "Waiting for trader...";
                 yield return new WaitForSeconds(1.0f);
+                DecrementFood();
                 ChangeTime();
 
                 int traderChange = Random.Range(1,6);

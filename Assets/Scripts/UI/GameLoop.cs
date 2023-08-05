@@ -40,18 +40,7 @@ namespace UI{
         }
 
         private void Update(){
-            if(Hour >= 21 || Hour <= 5){
-                Activity = 4;
-            }
-            else if(Hour >= 18 || Hour <= 8){
-                Activity = 3;
-            }
-            else if(Hour >= 16 || Hour <= 10){
-                Activity = 2;
-            }
-            else{
-                Activity = 1;
-            }
+
         }
     }
 }
