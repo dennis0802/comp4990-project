@@ -260,6 +260,10 @@ namespace UI
             dbCommandDeleteValue.ExecuteNonQuery();
             dbCommandDeleteValue.CommandText = "DELETE FROM ActiveCharactersTable WHERE id = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
+            dbCommandDeleteValue.CommandText = "DELETE FROM CarsTable WHERE id = " + targetFile + ";";
+            dbCommandDeleteValue.ExecuteNonQuery();
+            dbCommandDeleteValue.CommandText = "DELETE FROM TownTable WHERE id = " + targetFile + ";";
+            dbCommandDeleteValue.ExecuteNonQuery();
             fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n\n  No save file";
             deletionButtons[targetFile].interactable = false;
             dbConnection.Close();
@@ -301,10 +305,22 @@ namespace UI
             dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, carId, distance, difficulty, location, inPhase, food, gas, scrap, " +
-                                               "money, medkit, tire, battery, ammo, time, overallTime, rations, speed) VALUES (" + targetFile + ", " + targetFile + ", 0, 0, " + 
+                                                "money, medkit, tire, battery, ammo, time, overallTime, rations, speed) VALUES (" + targetFile + ", " + targetFile + ", " + targetFile + ", 0, " + 
                                                 GamemodeSelect.Difficulty + ", 'Montreal', 0, " + startingFood + ", " + startingGas + ", " + startingScrap + ", " + startingMoney + 
                                                 ", " + startingMedkit + ", " + startingTire + ", " + startingBattery + ", " + startingAmmo + ", 12, 0, 2, 2);";
             GameLoop.FileId = targetFile;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
+
+            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO TownTable(id, foodPrice, gasPrice, scrapPrice, medkitPrice, tirePrice, batteryPrice, ammoPrice, " +
+                                               "foodStock, gasStock, scrapStock, medkitStock, tireStock, batteryStock, ammoStock) VALUES" +
+                                               "(" + targetFile + ", " + Random.Range(4,9) + ", " +  + Random.Range(10,16) + ", " + Random.Range(5,15) + ", " + 
+                                                Random.Range(16,30) + ", " + Random.Range(20,30) + ", " + Random.Range(25,40) + ", " +  + Random.Range(15,30) + ", " +
+                                                GameLoop.RoundTo10(100, 301) +  ", " + Random.Range(6,15) +  ", "  + Random.Range(10,20) +  ", " + 
+                                                Random.Range(1, 4) + ", " + Random.Range(1, 4) + ", " + Random.Range(1, 4) + ", " + GameLoop.RoundTo10(50, 151) +
+                                                ")";
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 

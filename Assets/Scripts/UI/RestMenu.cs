@@ -99,11 +99,54 @@ namespace UI{
         [Tooltip("Rest hours slider")]
         [SerializeField]
         private Slider restHoursSlider;
+        
+        [Header("Town Shop Components")]
+        [Tooltip("Button text for buying/selling")]
+        [SerializeField]
+        private TextMeshProUGUI[] shopButtonTexts;
 
+        [Tooltip("Buttons for buying/selling")]
+        [SerializeField]
+        private Button[] shopButtons;
+
+        [Tooltip("Food row")]
+        [SerializeField]
+        private TextMeshProUGUI foodRowText;
+
+        [Tooltip("Gas row")]
+        [SerializeField]
+        private TextMeshProUGUI gasRowText;
+
+        [Tooltip("Scrap row")]
+        [SerializeField]
+        private TextMeshProUGUI scrapRowText;        
+
+        [Tooltip("Medkit row")]
+        [SerializeField]
+        private TextMeshProUGUI medRowText;
+
+        [Tooltip("Tire row")]
+        [SerializeField]
+        private TextMeshProUGUI tireRowText;
+
+        [Tooltip("Battery row")]
+        [SerializeField]
+        private TextMeshProUGUI batteryRowText;
+
+        [Tooltip("Ammo row")]
+        [SerializeField]
+        private TextMeshProUGUI ammoRowText;
+
+        [Tooltip("Money text")]
+        [SerializeField]
+        private TextMeshProUGUI moneyAmtText;
+        
         private float restHours = 1;
         private Coroutine coroutine;
+        private int[] sellingPrices = new int[7];
+        private int[] buyingPrices = new int[7];
 
-        private void Start(){
+        void Start(){
             RefreshScreen();
         }
 
@@ -111,6 +154,7 @@ namespace UI{
         /// Refresh the screen upon loading the rest menu.
         /// </summary>
         public void RefreshScreen(){
+            // Main menus
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
@@ -118,9 +162,13 @@ namespace UI{
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            suppliesText1.text = "Food: " + dataReader.GetInt32(7) + "kg\n\nGas: " + dataReader.GetFloat(8) + "L\n\nScrap: " + dataReader.GetInt32(9) + "\n\nMoney: $" +
-                                 dataReader.GetInt32(10) + "\n\nMedkit: " + dataReader.GetInt32(11);
-            suppliesText2.text = "Tires: " + dataReader.GetInt32(12) + "\n\nBatteries: " + dataReader.GetInt32(13) + "\n\nAmmo: " + dataReader.GetInt32(14);
+            int money = dataReader.GetInt32(10), food = dataReader.GetInt32(7), scrap = dataReader.GetInt32(9), medkit = dataReader.GetInt32(11), 
+                tires = dataReader.GetInt32(12), batteries = dataReader.GetInt32(13), ammo = dataReader.GetInt32(14);
+            float gas = dataReader.GetFloat(8);
+
+            suppliesText1.text = "Food: " +  food + "kg\n\nGas: " + gas + "L\n\nScrap: " + scrap + "\n\nMoney: $" +
+                                 money + "\n\nMedkit: " + medkit;
+            suppliesText2.text = "Tires: " + tires + "\n\nBatteries: " + batteries + "\n\nAmmo: " + ammo;
             locationText.text = dataReader.GetString(5);
 
             for(int i = 0; i < 4; i++){
@@ -161,71 +209,41 @@ namespace UI{
             timeActivityText.text = "Current Time: " + time + timing + "; Activity: " + activity;
 
             dbConnection.Close();
-        }
 
-        private void DisplayCharacter(int index, int charNumber, IDataReader dataReader){
-            string morale = dataReader.GetInt32(index+7) >= 20 ? dataReader.GetInt32(index+7) >= 40 ? dataReader.GetInt32(index+7) >= 60 ? dataReader.GetInt32(index+7) >= 80 
-                ? "Hopeful" : "Elated" : "Indifferent" : "Glum" : "Despairing";
+            // Town shop menus
+            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
+            dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
 
-            playerModel[charNumber].SetActive(true);
-            playerText[charNumber].text = dataReader.GetString(index) + "\n" + GameLoop.Perks[dataReader.GetInt32(index+1)] + "\n" + GameLoop.Traits[dataReader.GetInt32(index+2)] + "\n" + morale;
-            playerHealth[charNumber].gameObject.SetActive(true);
-            playerHealth[charNumber].value = dataReader.GetInt32(index+8);
-            healButton[charNumber].interactable = playerHealth[charNumber].value != 100 && dataReader.GetInt32(11) != 0;
-
-            GameObject model = playerModel[charNumber];
-
-            // Color
-            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[dataReader.GetInt32(index + 5)-1];
-            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[dataReader.GetInt32(index + 5)-1];
-
-            // Hat
-            switch(dataReader.GetInt32(index + 6)){
-                case 1:
-                    model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(false);
-                    model.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(false);
-                    break;
-                case 2:
-                    model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(true);
-                    model.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(false);
-                    break;
-                case 3:
-                    model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(false);
-                    model.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(true);
-                    break;
+            foreach (TextMeshProUGUI text in shopButtonTexts)
+            {
+                text.text = GameLoop.IsSelling ? "Sell" : "Buy";
             }
 
-            // Outfit
-            switch(dataReader.GetInt32(index + 4)){
-                case 1:
-                    model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(false);
-                    model.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(false);
-                    break;
-                case 2:
-                    model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(true);
-                    model.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(false);
-                    break;
-                case 3:
-                    model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(false);
-                    model.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(true);
-                    break;
+            // Change rate based on distance later, should get lower
+            GameLoop.SellRate = 0.4f;
+
+            for(int i = 0; i < 7; i++){
+                buyingPrices[i] = dataReader.GetInt32(i+1);
+                sellingPrices[i] = (int)((float)(buyingPrices[i]) * GameLoop.SellRate);
             }
 
-            // Accessory
-            switch(dataReader.GetInt32(index + 3)){
-                case 1:
-                    model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(false);
-                    model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(false);
-                    break;
-                case 2:
-                    model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(true);
-                    model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(false);
-                    break;
-                case 3:
-                    model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(false);
-                    model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(true);
-                    break;
+            foodRowText.text = "Food\t\t\t" + dataReader.GetInt32(8) + "\t\t       $" + buyingPrices[0] + "\t$" + sellingPrices[0] + "\t\t" + food;
+            gasRowText.text = "Gas\t\t\t" + dataReader.GetInt32(9) + "\t\t       $" + buyingPrices[1] + "\t$" + sellingPrices[1] + "\t\t" + gas;
+            scrapRowText.text = "Scrap\t\t\t" + dataReader.GetInt32(10) + "\t\t       $" + buyingPrices[2] + "\t$" + sellingPrices[2] + "\t\t" + scrap;
+            medRowText.text = "Medkit\t\t" + dataReader.GetInt32(11) + "\t\t       $" + buyingPrices[3] + "\t$" + sellingPrices[3] + "\t\t" + medkit;
+            tireRowText.text = "Tire\t\t\t" + dataReader.GetInt32(12) + "\t\t       $" + buyingPrices[4] + "\t$" + sellingPrices[4] + "\t\t" + tires;
+            batteryRowText.text = "Battery\t\t" + dataReader.GetInt32(13) + "\t\t       $" + buyingPrices[5] + "\t$" + sellingPrices[5] + "\t\t" + batteries;
+            ammoRowText.text = "Ammo\t\t" + dataReader.GetInt32(14) + "\t\t       $" + buyingPrices[6] + "\t$" + sellingPrices[6] + "\t\t" + ammo;
+            moneyAmtText.text= "You have $" + money;
+
+            for(int i = 0; i < shopButtons.Length; i++){
+                shopButtons[i].interactable = !(money < dataReader.GetInt32(i+1));
             }
+
+            dbConnection.Close();
         }
 
         /// <summary>
@@ -336,29 +354,8 @@ namespace UI{
         }
 
         /// <summary>
-        /// Change the ingame time
+        /// Complete a purchase in the town shop.
         /// </summary>
-        private void ChangeTime(){
-            GameLoop.Hour++;
-
-            if(GameLoop.Hour == 25){
-                GameLoop.Hour = 1;
-            }
-
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
-            int overallTime = dataReader.GetInt32(16);
-
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + " WHERE id = " + GameLoop.FileId;
-            dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
-
-            RefreshScreen();
-        }
 
         /// <summary>
         /// Perform the trade action displayed.
@@ -389,6 +386,89 @@ namespace UI{
         }
 
         /// <summary>
+        /// Cancel resting action.
+        /// </summary>
+        /// <param name="id">Button id - 1 = buy, 2 = sell, 3 = return</param>
+        public void ToggleSelling(int id){
+            GameLoop.IsSelling = id == 2;
+            RefreshScreen();
+        }
+
+        /// <summary>
+        /// Complete a buy/sell action in the town shop.
+        /// </summary>
+        /// <param name="id">The button that was clicked (1 = food, 2 = gas, 3 = scrap, 4 = medkit, 5 = tire, 6 = battery, 7 = ammo)</param>
+        public void CompleteTownTransaction(int id){
+            int money, onHand;
+            float gasTemp;
+
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN TownTable ON SaveFilesTable.id = TownTable.id " + 
+                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            money = dataReader.GetInt32(10);
+
+            switch(id){
+                // Food
+                case 1:
+                    onHand = dataReader.GetInt32(7);
+                    break;
+                // Gas
+                case 2:
+                    gasTemp = dataReader.GetFloat(8);
+                    break;
+                // Scrap
+                case 3:
+                    onHand = dataReader.GetInt32(9);
+                    break;
+                // Medkit
+                case 4:
+                    onHand = dataReader.GetInt32(11);
+                    break;
+                // Tire
+                case 5:
+                    onHand = dataReader.GetInt32(12);
+                    break;
+                // Battery
+                case 6:
+                    onHand = dataReader.GetInt32(13);
+                    break;
+                // Ammo
+                case 7:
+                    onHand = dataReader.GetInt32(14);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Change the ingame time
+        /// </summary>
+        private void ChangeTime(){
+            GameLoop.Hour++;
+
+            if(GameLoop.Hour == 25){
+                GameLoop.Hour = 1;
+            }
+
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+            int overallTime = dataReader.GetInt32(16);
+
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
+
+            RefreshScreen();
+        }
+
+        /// <summary>
         /// Decrement food while performing waiting actions.
         /// </summary>
         private void DecrementFood(){
@@ -413,6 +493,77 @@ namespace UI{
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = " + overallFood + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
+        }
+
+        /// <summary>
+        /// Display party members in the menu.
+        /// </summary>
+        /// <param name="index">The index to start at in the left joined table</param>
+        /// <param name="charNumber">Character number to distinguish leader / friend #</param>
+        /// <param name="dataReader">Data reader actively reading from database</param>
+        private void DisplayCharacter(int index, int charNumber, IDataReader dataReader){
+            string morale = dataReader.GetInt32(index+7) >= 20 ? dataReader.GetInt32(index+7) >= 40 ? dataReader.GetInt32(index+7) >= 60 ? dataReader.GetInt32(index+7) >= 80 
+                ? "Hopeful" : "Elated" : "Indifferent" : "Glum" : "Despairing";
+
+            playerModel[charNumber].SetActive(true);
+            playerText[charNumber].text = dataReader.GetString(index) + "\n" + GameLoop.Perks[dataReader.GetInt32(index+1)] + "\n" + GameLoop.Traits[dataReader.GetInt32(index+2)] + "\n" + morale;
+            playerHealth[charNumber].gameObject.SetActive(true);
+            playerHealth[charNumber].value = dataReader.GetInt32(index+8);
+            healButton[charNumber].interactable = playerHealth[charNumber].value != 100 && dataReader.GetInt32(11) != 0;
+
+            GameObject model = playerModel[charNumber];
+
+            // Color
+            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[dataReader.GetInt32(index + 5)-1];
+            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[dataReader.GetInt32(index + 5)-1];
+
+            // Hat
+            switch(dataReader.GetInt32(index + 6)){
+                case 1:
+                    model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 2:
+                    model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(true);
+                    model.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 3:
+                    model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(true);
+                    break;
+            }
+
+            // Outfit
+            switch(dataReader.GetInt32(index + 4)){
+                case 1:
+                    model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 2:
+                    model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(true);
+                    model.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 3:
+                    model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(true);
+                    break;
+            }
+
+            // Accessory
+            switch(dataReader.GetInt32(index + 3)){
+                case 1:
+                    model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 2:
+                    model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(true);
+                    model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(false);
+                    break;
+                case 3:
+                    model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(false);
+                    model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(true);
+                    break;
+            }
         }
 
         /// <summary>

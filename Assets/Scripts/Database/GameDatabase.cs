@@ -32,7 +32,8 @@ namespace Database{
             dbConnection.Close();
             dbConnection = CreateCarsAndOpenDatabase();
             dbConnection.Close();
-
+            dbConnection = CreateTownAndOpenDatabase();
+            dbConnection.Close();
         }
 
         /// <summary>
@@ -69,7 +70,8 @@ namespace Database{
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS SaveFilesTable(id INTEGER PRIMARY KEY, charactersId INTEGER, carId INTEGER, distance INTEGER, difficulty INTEGER, " +
                                                "location TEXT, inPhase INTEGER, food INTEGER, gas REAL, scrap INTEGER, money INTEGER, medkit INTEGER, tire INTEGER, battery INTEGER, " + 
-                                               "ammo INTEGER, time INTEGER, overallTime INTEGER, rations INTEGER, speed INTEGER, FOREIGN KEY(charactersId) REFERENCES ActiveCharactersTable (id))";
+                                               "ammo INTEGER, time INTEGER, overallTime INTEGER, rations INTEGER, speed INTEGER, FOREIGN KEY(charactersId) REFERENCES ActiveCharactersTable (id), " +
+                                               "FOREIGN KEY(carId) REFERENCES CarsTable(id))";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;
@@ -112,6 +114,23 @@ namespace Database{
             //         Repeats for friends 1-3.
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CarsTable(id INTEGER PRIMARY KEY)";
+            dbCommandCreateTable.ExecuteReader();
+
+            return dbConnection;
+        }
+
+        public static IDbConnection CreateTownAndOpenDatabase(){
+            // Open connection to database
+            string dbUri = "URI=file:GameData.sqlite";
+            IDbConnection dbConnection = new SqliteConnection(dbUri);
+            dbConnection.Open();
+
+            // Create a table for town data (shop prices [selling to towns will be the ceiling 40% of the buy price])
+            IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
+            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS TownTable(id INTEGER PRIMARY KEY, foodPrice INTEGER, gasPrice INTEGER, scrapPrice INTEGER, " + 
+                                               "medkitPrice INTEGER, tirePrice INTEGER, batteryPrice INTEGER, ammoPrice INTEGER, foodStock INTEGER, gasStock INTEGER, " +
+                                               "scrapStock INTEGER, medkitStock INTEGER, tireStock INTEGER, batteryStock INTEGER, ammoStock INTEGER, side1Reward, side1Qty, " +
+                                               "side2Reward, side2Qty, side3Reward, side3Qty)";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;

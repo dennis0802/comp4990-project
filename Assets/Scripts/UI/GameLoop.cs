@@ -20,6 +20,10 @@ namespace UI{
         public static int Pace = 2;
         // To track the file data in the database.
         public static int FileId;
+        // To track if buying/selling
+        public static bool IsSelling = false;
+        // To track selling rate
+        public static float SellRate;
 
         // List of perks (mechanic, sharpshooter, health care, surgeon, programmer, musician)
         public static List<string> Perks = new List<string>(){
@@ -41,6 +45,17 @@ namespace UI{
 
         private void Update(){
 
+        }
+
+        /// <summary>
+        /// Utility to generate random numbers and round to the nearest ten
+        /// </summary>
+        /// <param name="lower">The lower bound</param>
+        /// <param name="upper">The upper bound</param>
+        public static int RoundTo10(int lower, int upper){
+            float gen = (float)(Random.Range(lower, upper))/10;
+            gen = Mathf.Round(gen);
+            return (int)(gen)*10;
         }
     }
 }
