@@ -19728,7 +19728,7 @@ GameObject:
   - component: {fileID: 430323357}
   - component: {fileID: 430323356}
   m_Layer: 5
-  m_Name: Text (TMP) (1)
+  m_Name: ScrapText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -55859,7 +55859,7 @@ GameObject:
   - component: {fileID: 1176372103}
   - component: {fileID: 1176372102}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: DistanceText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -90395,6 +90395,12 @@ MonoBehaviour:
   batteryRowText: {fileID: 333490045}
   ammoRowText: {fileID: 89076773}
   moneyAmtText: {fileID: 1989825835}
+  distanceText: {fileID: 1176372102}
+  scrapRepairText: {fileID: 430323356}
+  scrapButtons:
+  - {fileID: 1213958502}
+  - {fileID: 63206563}
+  - {fileID: 1782823845}
 --- !u!1 &1989825833
 GameObject:
   m_ObjectHideFlags: 0

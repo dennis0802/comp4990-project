@@ -140,11 +140,25 @@ namespace UI{
         [Tooltip("Money text")]
         [SerializeField]
         private TextMeshProUGUI moneyAmtText;
+
+        [Tooltip("Distance text")]
+        [SerializeField]
+        private TextMeshProUGUI distanceText;
+
+        [Header("Car Repair Components")]
+        [Tooltip("Scrap repair text")]
+        [SerializeField]
+        private TextMeshProUGUI scrapRepairText;
+
+        [Tooltip("Buttons for scrap use")]
+        [SerializeField]
+        private Button[] scrapButtons;
         
         private float restHours = 1;
         private Coroutine coroutine;
         private int[] sellingPrices = new int[7];
         private int[] buyingPrices = new int[7];
+        private int[] shopStocks = new int[7];
 
         void Start(){
             RefreshScreen();
@@ -207,6 +221,17 @@ namespace UI{
             string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
 
             timeActivityText.text = "Current Time: " + time + timing + "; Activity: " + activity;
+            
+            // Map
+            distanceText.text = "Distance Travelled: " + dataReader.GetInt32(3) + " km\nDistance to Next Stop: # km";
+
+            // Car
+            scrapRepairText.text = "You have " + scrap + " scrap.";
+
+            // Enable buttons based on scrap 
+            for(int i = 0; i < 3; i++){
+                scrapButtons[i].interactable = scrap >= Mathf.Pow(2, i);
+            }
 
             dbConnection.Close();
 
@@ -225,9 +250,15 @@ namespace UI{
             // Change rate based on distance later, should get lower
             GameLoop.SellRate = 0.4f;
 
+            int[] teamStocks = {food, (int)gas, scrap, medkit, tires, batteries, ammo};
+
             for(int i = 0; i < 7; i++){
                 buyingPrices[i] = dataReader.GetInt32(i+1);
                 sellingPrices[i] = (int)((float)(buyingPrices[i]) * GameLoop.SellRate);
+                shopStocks[i] = dataReader.GetInt32(i+8);
+                if(i == 0 || i == 6){
+                    shopButtonTexts[i].text += " 10";
+                }
             }
 
             foodRowText.text = "Food\t\t\t" + dataReader.GetInt32(8) + "\t\t       $" + buyingPrices[0] + "\t$" + sellingPrices[0] + "\t\t" + food;
@@ -239,8 +270,19 @@ namespace UI{
             ammoRowText.text = "Ammo\t\t" + dataReader.GetInt32(14) + "\t\t       $" + buyingPrices[6] + "\t$" + sellingPrices[6] + "\t\t" + ammo;
             moneyAmtText.text= "You have $" + money;
 
+            // Enable buttons depending on stock and money
+            // Disable buying if shop stock is empty or you have insufficient money
+            // Disable selling if your stock is empty
             for(int i = 0; i < shopButtons.Length; i++){
-                shopButtons[i].interactable = !(money < dataReader.GetInt32(i+1));
+                if(GameLoop.IsSelling && teamStocks[i] <= 0){
+                    shopButtons[i].interactable = false;
+                }
+                else if(!GameLoop.IsSelling && money < dataReader.GetInt32(i+1) || shopStocks[i] <= 0){
+                    shopButtons[i].interactable = false;
+                }
+                else{
+                    shopButtons[i].interactable = true;
+                }
             }
 
             dbConnection.Close();
@@ -354,10 +396,6 @@ namespace UI{
         }
 
         /// <summary>
-        /// Complete a purchase in the town shop.
-        /// </summary>
-
-        /// <summary>
         /// Perform the trade action displayed.
         /// </summary>
         /// <param name="button">The button id pressed - 0 for decline, 1 for accept</param>
@@ -399,8 +437,11 @@ namespace UI{
         /// </summary>
         /// <param name="id">The button that was clicked (1 = food, 2 = gas, 3 = scrap, 4 = medkit, 5 = tire, 6 = battery, 7 = ammo)</param>
         public void CompleteTownTransaction(int id){
-            int money, onHand;
+            int money = 0, onHand = 0, cost = 0, inStock = 0, qty = 1, sellFactor;
             float gasTemp;
+            string updateCommandText = "", updateStockText = "";
+            
+            sellFactor = GameLoop.IsSelling ? -1 : 1;
 
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
@@ -414,33 +455,76 @@ namespace UI{
             switch(id){
                 // Food
                 case 1:
-                    onHand = dataReader.GetInt32(7);
+                    qty = 10;
+                    onHand = dataReader.GetInt32(7) + qty * sellFactor;
+                    cost = dataReader.GetInt32(20);
+                    inStock = dataReader.GetInt32(27) - qty * sellFactor;
+                    updateCommandText = "food = ";
+                    updateStockText = "foodStock = ";
                     break;
                 // Gas
                 case 2:
-                    gasTemp = dataReader.GetFloat(8);
+                    gasTemp = dataReader.GetFloat(8) + qty * sellFactor;
+                    cost = dataReader.GetInt32(21);
+                    inStock = dataReader.GetInt32(28) - qty * sellFactor;
+                    updateCommandText = "gas = ";
+                    updateStockText = "gasStock = ";
                     break;
                 // Scrap
                 case 3:
-                    onHand = dataReader.GetInt32(9);
+                    onHand = dataReader.GetInt32(9) + qty * sellFactor;
+                    cost = dataReader.GetInt32(22);
+                    updateCommandText = "scrap = ";
+                    updateStockText = "scrapStock = ";
+                    inStock = dataReader.GetInt32(29) - qty * sellFactor;
                     break;
                 // Medkit
                 case 4:
-                    onHand = dataReader.GetInt32(11);
+                    onHand = dataReader.GetInt32(11) + qty * sellFactor;
+                    cost = dataReader.GetInt32(23);
+                    inStock = dataReader.GetInt32(30) - qty * sellFactor;
+                    updateCommandText = "medkit = ";
+                    updateStockText = "medkitStock = ";
                     break;
                 // Tire
                 case 5:
-                    onHand = dataReader.GetInt32(12);
+                    onHand = dataReader.GetInt32(12) + qty * sellFactor;
+                    cost = dataReader.GetInt32(24);
+                    inStock = dataReader.GetInt32(31) - qty * sellFactor;
+                    updateCommandText = "tire = ";
+                    updateStockText = "tireStock = ";
                     break;
                 // Battery
                 case 6:
-                    onHand = dataReader.GetInt32(13);
+                    onHand = dataReader.GetInt32(13) + qty * sellFactor;
+                    cost = dataReader.GetInt32(25);
+                    inStock = dataReader.GetInt32(32) - qty * sellFactor;
+                    updateCommandText = "battery = ";
+                    updateStockText = "batteryStock = ";
                     break;
                 // Ammo
                 case 7:
-                    onHand = dataReader.GetInt32(14);
+                    qty = 10;
+                    onHand = dataReader.GetInt32(14) + qty * sellFactor;
+                    cost = dataReader.GetInt32(26);
+                    updateCommandText = "ammo = ";
+                    updateStockText = "ammoStock = ";
+                    inStock = dataReader.GetInt32(33) - qty * sellFactor;
                     break;
             }
+
+            money += GameLoop.IsSelling ? sellingPrices[id-1] : cost * -sellFactor;
+            
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText =  "UPDATE SaveFilesTable SET " + updateCommandText + onHand + ", " + "money = " + money + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+
+            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            dbCommandUpdateValue.CommandText =  "UPDATE TownTable SET " + updateStockText + inStock + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
+
+            RefreshScreen();
         }
 
         /// <summary>
@@ -481,18 +565,25 @@ namespace UI{
 
             int overallFood = dataReader.GetInt32(7);
 
-            // For each living character on the team, they consume 1, 2, or 3 units of food each hour depending on the ration mode.
-            for(int i = 0; i < 4; i++){
-                int index = 20 + 9 * i;
-                if(!dataReader.IsDBNull(index)){
-                    overallFood = GameLoop.RationsMode == 1 ? overallFood - 1 : GameLoop.RationsMode == 2 ? overallFood - 2 : overallFood - 3;
+            // Decrement food if available, otherwise health and morale decrease.
+            if(overallFood > 0){
+                // For each living character on the team, they consume 1, 2, or 3 units of food each hour depending on the ration mode.
+                for(int i = 0; i < 4; i++){
+                    int index = 20 + 9 * i;
+                    if(!dataReader.IsDBNull(index)){
+                        overallFood = GameLoop.RationsMode == 1 ? overallFood - 1 : GameLoop.RationsMode == 2 ? overallFood - 2 : overallFood - 3;
+                    }
                 }
-            }
 
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = " + overallFood + " WHERE id = " + GameLoop.FileId;
-            dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = " + overallFood + " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValue.ExecuteNonQuery();
+                dbConnection.Close();
+            }
+            else{
+                // For each living character, their morale and health decrease.
+                
+            }
         }
 
         /// <summary>
