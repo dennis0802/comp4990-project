@@ -109,11 +109,11 @@ namespace Database{
             IDbConnection dbConnection = new SqliteConnection(dbUri);
             dbConnection.Open();
 
-            // Create a table for the save files in the databases if it doesn't exist yet
-            // Fields: id (character table for this file), leader's perk, leader's trait, leader's physical physical attributes, morale, and health.
-            //         Repeats for friends 1-3.
+            // Create a table for the cars in the database if it doesn't exist yet
+            // Fields: id (car table for this file), wheel upgrade, battery upgrade, engine upgrade, tool upgrade, misc 1, misc 2.
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
-            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CarsTable(id INTEGER PRIMARY KEY)";
+            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CarsTable(id INTEGER PRIMARY KEY, wheelUpgrade INTEGER, batteryUpgrade INTEGER, engineUpgrade INTEGER, " +
+                                               "toolUpgrade INTEGER, miscUpgrade1 INTEGER, miscUpgrade2 INTEGER)";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;

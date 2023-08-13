@@ -324,6 +324,13 @@ namespace UI
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
+            dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO CarsTable(id, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2) VALUES" +
+                                               "(" + targetFile + ", 0, 0, 0, 0, 0, 0)";
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
+
             accessScreen.SetActive(false);
             mainGameUI.SetActive(true);
             introWindow.SetActive(true);

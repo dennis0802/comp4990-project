@@ -46,6 +46,10 @@ namespace UI{
         [SerializeField]
         private TextMeshProUGUI suppliesText2;
 
+        [Tooltip("Current food text")]
+        [SerializeField]
+        private TextMeshProUGUI curFoodText;
+
         [Header("Party Members")]
         [Tooltip("Friend text")]
         [SerializeField]
@@ -154,6 +158,31 @@ namespace UI{
         [SerializeField]
         private Button[] scrapButtons;
         
+        [Header("Upgrades")]
+        [Tooltip("Wheel upgrade text.")]
+        [SerializeField]
+        private TextMeshProUGUI wheelText;
+
+        [Tooltip("Battery upgrade text.")]
+        [SerializeField]
+        private TextMeshProUGUI batteryText;
+
+        [Tooltip("Engine upgrade text.")]
+        [SerializeField]
+        private TextMeshProUGUI engineText;
+
+        [Tooltip("Tool upgrade text.")]
+        [SerializeField]
+        private TextMeshProUGUI toolText;
+
+        [Tooltip("Misc 1 upgrade text.")]
+        [SerializeField]
+        private TextMeshProUGUI misc1Text;
+
+        [Tooltip("Misc 2 upgrade text.")]
+        [SerializeField]
+        private TextMeshProUGUI misc2Text;
+
         private float restHours = 1;
         private Coroutine coroutine;
         private int[] sellingPrices = new int[7];
@@ -183,6 +212,7 @@ namespace UI{
             suppliesText1.text = "Food: " +  food + "kg\n\nGas: " + gas + "L\n\nScrap: " + scrap + "\n\nMoney: $" +
                                  money + "\n\nMedkit: " + medkit;
             suppliesText2.text = "Tires: " + tires + "\n\nBatteries: " + batteries + "\n\nAmmo: " + ammo;
+            curFoodText.text = "You have " + food + "kg of food";
             locationText.text = dataReader.GetString(5);
 
             for(int i = 0; i < 4; i++){
@@ -286,12 +316,64 @@ namespace UI{
             }
 
             dbConnection.Close();
+
+            // Upgrades
+            dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+            dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            // Wheel
+            switch(dataReader.GetInt32(1)){
+                default:
+                    wheelText.text = "No wheel upgrade available to list.";
+                    break;
+            }
+
+            // Battery
+            switch(dataReader.GetInt32(2)){
+                default:
+                    batteryText.text = "No battery upgrade available to list.";
+                    break;                
+            }
+
+            // Engine
+            switch(dataReader.GetInt32(3)){
+                default:
+                    engineText.text = "No engine upgrade available to list.";
+                    break;
+            }
+
+            // Tool
+            switch(dataReader.GetInt32(4)){
+                default:
+                    toolText.text = "No tool upgrade available to list.";
+                    break;
+            }
+
+            // Misc 1
+            switch(dataReader.GetInt32(5)){
+                default:
+                    misc1Text.text = "No misc upgrade available to list.";
+                    break;
+            }
+
+            // Misc 2
+            switch(dataReader.GetInt32(6)){
+                default:
+                    misc2Text.text = "No misc upgrade available to list.";
+                    break;
+            }
+
+            dbConnection.Close();
         }
 
         /// <summary>
         /// Change selected hours based on the slider
         /// </summary>
         public void ChangeSelectedHours(){
+            RefreshScreen();
             restHours = restHoursSlider.value;
             restHoursText.text = restHours > 1 ? restHours + " hours" : restHours + " hour";
         }
@@ -330,6 +412,18 @@ namespace UI{
             dbConnection.Close();
 
             RefreshScreen();
+        }
+
+        /// <summary>
+        /// Toggle current food text
+        /// </summary>
+        public void ToggleFoodText(){
+            if(curFoodText.gameObject.activeInHierarchy){
+                curFoodText.gameObject.SetActive(false);
+            }
+            else{
+                curFoodText.gameObject.SetActive(true);
+            }
         }
 
         /// <summary>
@@ -409,6 +503,7 @@ namespace UI{
             waitButton.interactable = true;
             tradeReturnButton.interactable = true;
             traderText.text = "No one appeared.";
+            curFoodText.gameObject.SetActive(true);
         }
 
         /// <summary>
@@ -673,6 +768,7 @@ namespace UI{
                 traderText.text = "Waiting for trader...";
                 yield return new WaitForSeconds(1.0f);
                 DecrementFood();
+                RefreshScreen();
                 ChangeTime();
 
                 int traderChange = Random.Range(1,6);
@@ -681,6 +777,7 @@ namespace UI{
                     declineButton.interactable = true;
                     waitButton.interactable = false;
                     tradeReturnButton.interactable = false;
+                    curFoodText.gameObject.SetActive(false);
                 }
                 else{
                     waitButton.interactable = true;
@@ -715,6 +812,7 @@ namespace UI{
                     restDescText.text = "Resting...";
                     yield return new WaitForSeconds(1.0f);
                     DecrementFood();
+                    RefreshScreen();
                     ChangeTime();
                 }
 

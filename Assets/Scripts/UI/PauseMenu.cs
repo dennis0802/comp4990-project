@@ -4,7 +4,7 @@ using UnityEngine;
 using UI;
 
 namespace UI{
-    public class PauseMenu : MainMenu
+    public class PauseMenu : MonoBehaviour
     {
 
     }
