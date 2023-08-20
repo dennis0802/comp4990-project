@@ -5339,7 +5339,7 @@ MonoBehaviour:
     m_Flags: 0
   playerInput: {fileID: 99840284}
   mainGameUI: {fileID: 803635375}
-  mainMenuUI: {fileID: 487509743}
+  mainMenuUI: {fileID: 2009570008}
   pauseMenuUI: {fileID: 2000010307}
   activeUI: {fileID: 1848782353}
   settingsUI: {fileID: 686684852}
@@ -37827,7 +37827,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &803635376
 RectTransform:
   m_ObjectHideFlags: 0
