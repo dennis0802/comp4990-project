@@ -8,6 +8,7 @@ using TMPro;
 using Database;
 
 namespace UI{
+    [DisallowMultipleComponent]
     public class RestMenu : MonoBehaviour{
         [Header("Descriptions")]
         [Tooltip("Rations mode text")]

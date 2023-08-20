@@ -9,6 +9,7 @@ using TMPro;
 using Database;
 
 namespace UI{
+    [DisallowMultipleComponent]
     public class GameLoop : MonoBehaviour{
         // To track rations; 1 = low, 2 = medium, 3 = high
         public static int RationsMode = 2;
@@ -24,6 +25,7 @@ namespace UI{
         public static bool IsSelling = false;
         // To track selling rate
         public static float SellRate;
+        public static bool CanPause = false;
 
         // List of perks (mechanic, sharpshooter, health care, surgeon, programmer, musician)
         public static List<string> Perks = new List<string>(){
@@ -41,10 +43,6 @@ namespace UI{
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
-        }
-
-        private void Update(){
-
         }
 
         /// <summary>
