@@ -169,16 +169,23 @@ namespace UI
             else{
                 // Open the game
                 if(idFound){
-                    accessScreen.SetActive(false);
-                    SceneManager.LoadScene(1);
-                    mainGameUI.SetActive(true);
-                    mainMenuScreen.SetActive(true);
-                    mainMenuUI.SetActive(false);
+                    TransitionMenu(id);
                     restMenuUI.SetActive(true);
-                    GameLoop.FileId = id;
                 }
             }
             dbConnection.Close();
+        }
+
+        /// <summary> 
+        /// Transition main menu to main game
+        /// </summary>
+        /// <param name="id">The id of the file played.</param>
+        private void TransitionMenu(int id){
+            accessScreen.SetActive(false);
+            mainGameUI.SetActive(true);
+            mainMenuScreen.SetActive(false);
+            SceneManager.LoadScene(1);
+            GameLoop.FileId = id;
         }
 
         /// <summary> 
@@ -308,19 +315,53 @@ namespace UI
                                                 "money, medkit, tire, battery, ammo, time, overallTime, rations, speed) VALUES (" + targetFile + ", " + targetFile + ", " + targetFile + ", 0, " + 
                                                 GamemodeSelect.Difficulty + ", 'Montreal', 0, " + startingFood + ", " + startingGas + ", " + startingScrap + ", " + startingMoney + 
                                                 ", " + startingMedkit + ", " + startingTire + ", " + startingBattery + ", " + startingAmmo + ", 12, 0, 2, 2);";
-            GameLoop.FileId = targetFile;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
+
+            List<int> missionDiff = new List<int>();
+            List<int> missionReward = new List<int>();
+            List<int> missionQty = new List<int>();
+            List<int> missionType = new List<int>();
+
+            // Generate the missions in towns
+            for(int i = 0; i < 3; i++){
+                // Generate a difficulty - 20% each for easy, normal, hard, 40% for no mission to generate
+                // 1-20 = easy, 21-40 = medium, 41-60 = hard, 61-100 = no mission
+                int diff = Random.Range(1,101);
+                // 1-3 = food, 4-6 = gas, 7-9 = scrap, 10-12 = money, 13 = medkit, 14 = tire, 15 = battery, 16-18 = ammo
+                int reward = Random.Range(1, 19);
+                // 1 = combat, 2 = find a collectible
+                int type = Random.Range(1,3);
+
+                if(diff <= 60){
+                    missionDiff.Add(diff);
+                    missionReward.Add(reward);
+                    missionType.Add(type);
+
+                    // Generate quantity based on reward
+                    int qty = (reward >= 13 && reward <= 15) || (reward >= 4 && reward <= 6) ? Random.Range(2,6) : Random.Range(10,21);
+                    missionQty.Add(qty);
+                }
+                else{
+                    missionDiff.Add(0);
+                    missionReward.Add(0);
+                    missionType.Add(0);
+                    missionQty.Add(0);
+                }
+            }
 
             dbConnection = GameDatabase.CreateTownAndOpenDatabase();
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO TownTable(id, foodPrice, gasPrice, scrapPrice, medkitPrice, tirePrice, batteryPrice, ammoPrice, " +
-                                               "foodStock, gasStock, scrapStock, medkitStock, tireStock, batteryStock, ammoStock) VALUES" +
+                                               "foodStock, gasStock, scrapStock, medkitStock, tireStock, batteryStock, ammoStock, side1Reward, side1Qty, side1Diff, side1Type, " +
+                                               "side2Reward, side2Qty, side2Diff, side2Type, side3Reward, side3Qty, side3Diff, side3Type) VALUES" +
                                                "(" + targetFile + ", " + Random.Range(4,9) + ", " +  + Random.Range(10,16) + ", " + Random.Range(5,15) + ", " + 
                                                 Random.Range(16,30) + ", " + Random.Range(20,30) + ", " + Random.Range(25,40) + ", " +  + Random.Range(15,30) + ", " +
                                                 GameLoop.RoundTo10(100, 301) +  ", " + Random.Range(6,15) +  ", "  + Random.Range(10,20) +  ", " + 
                                                 Random.Range(1, 4) + ", " + Random.Range(1, 4) + ", " + Random.Range(1, 4) + ", " + GameLoop.RoundTo10(50, 151) +
-                                                ")";
+                                                ", " + missionReward[0] + ", " + missionQty[0] + ", " + missionDiff[0] + ", " + missionType[0] + ", " + 
+                                                missionReward[1] + ", " + missionQty[1] + ", " + missionDiff[1] + ", " + missionType[1] + ", " + 
+                                                missionReward[2] + ", " + missionQty[2] + ", " + missionDiff[2] + ", " + missionType[2] + ")";
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -331,10 +372,8 @@ namespace UI
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            accessScreen.SetActive(false);
-            mainGameUI.SetActive(true);
+            TransitionMenu(targetFile);
             introWindow.SetActive(true);
-            SceneManager.LoadScene(1);
         }
 
         /// <summary>

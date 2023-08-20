@@ -129,8 +129,9 @@ namespace Database{
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS TownTable(id INTEGER PRIMARY KEY, foodPrice INTEGER, gasPrice INTEGER, scrapPrice INTEGER, " + 
                                                "medkitPrice INTEGER, tirePrice INTEGER, batteryPrice INTEGER, ammoPrice INTEGER, foodStock INTEGER, gasStock INTEGER, " +
-                                               "scrapStock INTEGER, medkitStock INTEGER, tireStock INTEGER, batteryStock INTEGER, ammoStock INTEGER, side1Reward, side1Qty, " +
-                                               "side2Reward, side2Qty, side3Reward, side3Qty)";
+                                               "scrapStock INTEGER, medkitStock INTEGER, tireStock INTEGER, batteryStock INTEGER, ammoStock INTEGER, side1Reward INTEGER, side1Qty INTEGER, " +
+                                               "side1Diff INTEGER, side1Type INTEGER, side2Reward INTEGER, side2Qty INTEGER, side2Diff INTEGER, side2Type INTEGER, side3Reward INTEGER, " +
+                                               "side3Qty INTEGER, side3Diff INTEGER, side3Type INTEGER)";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;

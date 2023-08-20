@@ -32,6 +32,10 @@ namespace UI{
         [Tooltip("Active game UI")]
         [SerializeField]
         private GameObject activeUI;
+
+        [Tooltip("Settings UI")]
+        [SerializeField]
+        private GameObject settingsUI;
         
         [Tooltip("Pause menu UI object")]
         [SerializeField]
@@ -88,6 +92,14 @@ namespace UI{
             SceneManager.LoadScene(0);
             mainGameUI.SetActive(false);
             mainMenuUI.SetActive(true);
+        }
+
+        /// <sumamry>
+        /// Load settings
+        /// </sumamry>
+        public void LoadSettings(){
+            pauseMenuUI.SetActive(false);
+            settingsUI.SetActive(true);
         }
 
         /// <summary>

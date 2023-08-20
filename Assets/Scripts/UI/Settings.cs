@@ -17,6 +17,18 @@ namespace UI{
         [SerializeField]
         private Slider volumeSlider;
 
+        [Tooltip("Options UI object")]
+        [SerializeField]
+        private GameObject optionsUI;
+
+        [Tooltip("Pause UI object")]
+        [SerializeField]
+        private GameObject pauseUI;
+
+        [Tooltip("Main Menu UI object")]
+        [SerializeField]
+        private GameObject mainMenuUI;
+
         // Flag variables for muting and full screen
         private bool isMuted, isFullScreen;
 
@@ -110,6 +122,19 @@ namespace UI{
                     return;
             }
             SetResolutionText();
+        }
+
+        /// <sumamry>
+        /// Exit the settings menu
+        /// </sumamry>
+        public void ExitSettings(){
+            if(PauseMenu.IsPaused){
+                pauseUI.SetActive(true);
+            }
+            else{
+                mainMenuUI.SetActive(true);
+            }
+            optionsUI.SetActive(false);
         }
 
         /// <sumamry>

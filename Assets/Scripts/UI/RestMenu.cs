@@ -104,6 +104,19 @@ namespace UI{
         [Tooltip("Rest hours slider")]
         [SerializeField]
         private Slider restHoursSlider;
+
+        [Header("Town Components")]
+        [Tooltip("Town button")]
+        [SerializeField]
+        private Button townButton;
+
+        [Tooltip("Job buttons")]
+        [SerializeField]
+        private Button[] jobButtons;
+        
+        [Tooltip("Job button descriptions")]
+        [SerializeField]
+        private TextMeshProUGUI[] jobButtonDescs;
         
         [Header("Town Shop Components")]
         [Tooltip("Button text for buying/selling")]
@@ -216,6 +229,8 @@ namespace UI{
             curFoodText.text = "You have " + food + "kg of food";
             locationText.text = dataReader.GetString(5);
 
+            townButton.interactable = dataReader.GetInt32(6) == 0;
+
             for(int i = 0; i < 4; i++){
                 int index = 20 + 9 * i;
                 if(!dataReader.IsDBNull(index)){
@@ -313,6 +328,53 @@ namespace UI{
                 }
                 else{
                     shopButtons[i].interactable = true;
+                }
+            }
+
+            // Job listings
+            for(int i = 0; i < 3; i++){
+                if(dataReader.GetInt32(15+4*i) != 0){
+                    jobButtons[i].interactable = true;
+                    string type = dataReader.GetInt32(18+4*i) == 1 ? "Defence" : "Collect";
+                    string typeDesc = dataReader.GetInt32(18+4*i) == 1 ? "Those creatures are out wandering by my house again. Any travellers willing to defend me will be paid." 
+                                                                       : "I dropped something precious to me in no man's land. Any travellers willing to find and return it for me will be paid.";
+                    string reward = "";
+                    
+                    switch(dataReader.GetInt32(15+4*i)){
+                        case 1:
+                            reward = dataReader.GetInt32(16+4*i) + "kg food";
+                            break;
+                        case 2:
+                            reward = dataReader.GetInt32(16+4*i) + "L gas";
+                            break;
+                        case 3:
+                            reward = dataReader.GetInt32(16+4*i) + " scrap";
+                            break;
+                        case 4:
+                            reward = "$" + dataReader.GetInt32(16+4*i);
+                            break;
+                        case 5:
+                            reward = dataReader.GetInt32(16+4*i) + " medkits";
+                            break;
+                        case 6:
+                            reward = dataReader.GetInt32(16+4*i) + " tires";
+                            break;
+                        case 7:
+                            reward = dataReader.GetInt32(16+4*i) + " batteries";
+                            break;
+                        case 8:
+                            reward = dataReader.GetInt32(16+4*i) + " ammo shells";
+                            break;
+                    }
+
+                    string difficulty = dataReader.GetInt32(17+4*i) <= 20 ? "Simple" : dataReader.GetInt32(17+4*i) <= 40 ? "Dangerous" : "Fatal!";
+                    string jobDesc = type + "\nReward: " + reward + "\nDifficulty: " + difficulty + "\n\n" + typeDesc;
+                    jobButtonDescs[i].text = jobDesc;
+
+                }
+                else{
+                    jobButtons[i].interactable = false;
+                    jobButtonDescs[i].text = "No job available.";
                 }
             }
 
@@ -670,6 +732,8 @@ namespace UI{
                         overallFood = GameLoop.RationsMode == 1 ? overallFood - 1 : GameLoop.RationsMode == 2 ? overallFood - 2 : overallFood - 3;
                     }
                 }
+
+                // For each living character, if they are hurt, consuming food will heal them a small amount
 
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = " + overallFood + " WHERE id = " + GameLoop.FileId;

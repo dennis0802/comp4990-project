@@ -25,7 +25,6 @@ namespace UI{
         public static bool IsSelling = false;
         // To track selling rate
         public static float SellRate;
-        public static bool CanPause = false;
 
         // List of perks (mechanic, sharpshooter, health care, surgeon, programmer, musician)
         public static List<string> Perks = new List<string>(){
@@ -43,6 +42,8 @@ namespace UI{
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
+
+            dbConnection.Close();
         }
 
         /// <summary>
