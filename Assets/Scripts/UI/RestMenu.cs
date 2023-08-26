@@ -51,6 +51,14 @@ namespace UI{
         [SerializeField]
         private TextMeshProUGUI curFoodText;
 
+        [Tooltip("Popup to confirm messages")]
+        [SerializeField]
+        private GameObject confirmPopup;
+
+        [Tooltip("Popup text")]
+        [SerializeField]
+        private TextMeshProUGUI popupText;
+
         [Header("Party Members")]
         [Tooltip("Friend text")]
         [SerializeField]
@@ -196,6 +204,11 @@ namespace UI{
         [Tooltip("Misc 2 upgrade text.")]
         [SerializeField]
         private TextMeshProUGUI misc2Text;
+
+        [Header("Screens")]
+        [Tooltip("Game over screen components")]
+        [SerializeField]
+        private GameObject gameOverScreen;
 
         private float restHours = 1;
         private Coroutine coroutine;
@@ -500,14 +513,14 @@ namespace UI{
         /// Wait for a trader
         /// </summary>
         public void WaitForTrader(){
-            StartCoroutine(Delay(1));
+            coroutine = StartCoroutine(Delay(1));
         }
 
         /// <summary>
         /// Let the party rest.
         /// </summary>
         public void RestParty(){
-            StartCoroutine(Delay(2));
+            coroutine = StartCoroutine(Delay(2));
         }
 
         /// <summary>
@@ -676,6 +689,7 @@ namespace UI{
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText =  "UPDATE SaveFilesTable SET " + updateCommandText + onHand + ", " + "money = " + money + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
 
             dbConnection = GameDatabase.CreateTownAndOpenDatabase();
             dbCommandUpdateValue.CommandText =  "UPDATE TownTable SET " + updateStockText + inStock + " WHERE id = " + GameLoop.FileId;
@@ -722,28 +736,157 @@ namespace UI{
             dataReader.Read();
 
             int overallFood = dataReader.GetInt32(7);
+            List<int> teamHealth = new List<int>();
+            List<int> teamMorale = new List<int>();
 
             // Decrement food if available, otherwise health and morale decrease.
             if(overallFood > 0){
                 // For each living character on the team, they consume 1, 2, or 3 units of food each hour depending on the ration mode.
                 for(int i = 0; i < 4; i++){
-                    int index = 20 + 9 * i;
+                    int index = 20 + 9 * i, curHp = dataReader.IsDBNull(index) ? 0 :dataReader.GetInt32(28 + 9 * i),
+                        curMorale = dataReader.IsDBNull(index) ? 0 : dataReader.GetInt32(27 + 9 * i);
                     if(!dataReader.IsDBNull(index)){
                         overallFood = GameLoop.RationsMode == 1 ? overallFood - 1 : GameLoop.RationsMode == 2 ? overallFood - 2 : overallFood - 3;
+                        int hpRestore = GameLoop.RationsMode == 1 ? 5 : GameLoop.RationsMode == 2 ? 10 : 15;
+                        
+                        // If the character is hurt, recover a little health based on ration mode
+                        if(curHp > 0 && curHp < 100){
+                            curHp = curHp + hpRestore > 100 ? 100 : curHp + hpRestore;
+                            curMorale = curMorale + 3 > 100 ? 100 : curMorale + 3;
+                        }
+                        teamHealth.Add(curHp);
+                        teamMorale.Add(curMorale);
+                    }
+                    // Character is dead.
+                    else{
+                        teamHealth.Add(0);
+                        teamMorale.Add(0);
                     }
                 }
-
-                // For each living character, if they are hurt, consuming food will heal them a small amount
 
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = " + overallFood + " WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
+
+                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
+                                                    ", friend2Health = " + teamHealth[2] + ", friend2Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
+                                                    ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3]; 
+                dbCommandUpdateValue.ExecuteNonQuery();
+                dbConnection.Close();
             }
+            // For each living character, their morale and health decrease.
             else{
-                // For each living character, their morale and health decrease.
+                List<string> names = new List<string>();
                 
+                for(int i = 0; i < 4; i++){
+                    int index = 20 + 9 * i, curHp = dataReader.IsDBNull(index) ? 0 :dataReader.GetInt32(28 + 9 * i),
+                        curMorale = dataReader.IsDBNull(index) ? 0 : dataReader.GetInt32(27 + 9 * i);
+                    if(!dataReader.IsDBNull(index)){
+                        if(curHp > 0){
+                            curHp = curHp - 5 < 0 ? 0: curHp - 5;
+                            curMorale = curMorale - 5 < 0 ? 0 : curMorale - 5;
+                            teamHealth.Add(curHp);
+                            teamMorale.Add(curMorale);
+                        }
+                        names.Add(dataReader.GetString(index));
+                    }
+                    // Character is dead, they have 0hp.
+                    else{
+                        teamHealth.Add(0);
+                        teamMorale.Add(0);
+                        names.Add("_____TEMPNULL");
+                    }
+                }
+                dbConnection.Close();
+
+                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
+                        ", friend2Health = " + teamHealth[2] + ", friend2Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
+                        ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3]; 
+
+                // Check if any character has died.
+                string tempDisplayText = "";
+
+                bool flag = false;
+                List<string> deadCharacters = new List<string>();
+
+                for(int i = 0; i < teamHealth.Count; i++){
+                    int index = 20 + 9 * i;
+
+                    // A recently dead player will have their no hp but their name wasn't recorded as _____TEMPNULL
+                    if(teamHealth[i] == 0 && !Equals(names[i], "_____TEMPNULL")){
+                        flag = true;
+                        deadCharacters.Add(names[i]);
+
+                        // Leader died = game over
+                        if(i == 0){
+                            tempDisplayText += names[0] + " has died.";
+                            tempCommand += ", leaderName = null";
+
+                            CancelRest();
+
+                            popupText.text = tempDisplayText;
+                            confirmPopup.SetActive(true);
+                            this.gameObject.SetActive(false);
+
+                            dbCommandUpdateValue.CommandText = tempCommand;
+                            dbCommandUpdateValue.ExecuteNonQuery();
+                            dbConnection.Close();
+                            return; 
+                        }
+                        tempCommand += ", friend" + i + "Name = null";
+                    }
+                }
+
+                // Display characters that have died.
+                if(flag){
+                    for(int i = 0; i < deadCharacters.Count; i++){
+                        if(deadCharacters.Count == 1 && !Equals(deadCharacters[i], "_____TEMPNULL")){
+                            tempDisplayText += deadCharacters[i];
+                        }
+                        else if(i == deadCharacters.Count - 1 && !Equals(deadCharacters[i], "_____TEMPNULL")){
+                            tempDisplayText += "and " + deadCharacters[i];
+                        }
+                        else if(!Equals(deadCharacters[i], "_____TEMPNULL")){
+                            tempDisplayText += deadCharacters[i] + ", ";
+                        }
+                    }
+
+                    tempDisplayText += deadCharacters.Count > 1 ? " have died." : " has died.";
+                    CancelRest();
+
+                    popupText.text = tempDisplayText;
+                    confirmPopup.SetActive(true);
+                    this.gameObject.SetActive(false);
+                }
+
+                dbCommandUpdateValue.CommandText = tempCommand;
+                dbCommandUpdateValue.ExecuteNonQuery();
+                dbConnection.Close();                
             }
+        }
+
+        /// <summary>
+        /// Check leader status.
+        /// </summary>
+        public void CheckLeaderStatus(){
+            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            // If leader name is null, they are dead. Bring to game over screen. Otherwise visibilities are toggled by the engine.
+            if(dataReader.IsDBNull(1)){
+                this.gameObject.SetActive(false);
+                gameOverScreen.SetActive(true);
+            }
+
+            dbConnection.Close();
         }
 
         /// <summary>
