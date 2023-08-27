@@ -21,6 +21,10 @@ namespace UI{
         [SerializeField]
         private GameObject mainGameUI;
 
+        [Tooltip("Main rest UI object")]
+        [SerializeField]
+        private GameObject mainRestUI;
+
         [Tooltip("Main menu UI object")]
         [SerializeField]
         private GameObject mainMenuUI;
@@ -87,10 +91,10 @@ namespace UI{
         public void LoadMenu(){
             IsPaused = false;
             pauseMenuUI.SetActive(false);
-            activeUI.SetActive(true);
             Time.timeScale = 1.0f;
             SceneManager.LoadScene(0);
             mainGameUI.SetActive(false);
+            mainRestUI.SetActive(false);
             mainMenuUI.SetActive(true);
         }
 

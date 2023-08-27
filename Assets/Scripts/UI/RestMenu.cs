@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Mono.Data.Sqlite;
@@ -216,7 +217,10 @@ namespace UI{
         private int[] buyingPrices = new int[7];
         private int[] shopStocks = new int[7];
 
-        void Start(){
+        public static string LeaderName = "";
+        public static int FriendsAlive = 0;
+
+        void OnEnable(){
             RefreshScreen();
         }
 
@@ -832,8 +836,10 @@ namespace UI{
                             popupText.text = tempDisplayText;
                             confirmPopup.SetActive(true);
                             this.gameObject.SetActive(false);
+                            LeaderName = names[0];
+                            FriendsAlive = names.Where(s => !Equals(s, "_____TEMPNULL") && !Equals(s, names[0])).Count();
 
-                            dbCommandUpdateValue.CommandText = tempCommand;
+                            dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
                             dbCommandUpdateValue.ExecuteNonQuery();
                             dbConnection.Close();
                             return; 
@@ -864,7 +870,7 @@ namespace UI{
                     this.gameObject.SetActive(false);
                 }
 
-                dbCommandUpdateValue.CommandText = tempCommand;
+                dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();                
             }

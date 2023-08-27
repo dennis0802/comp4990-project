@@ -64,13 +64,17 @@ namespace UI
         [SerializeField]
         private GameObject mainMenuScreen;
 
-        [Tooltip("Game object containing UI for the main menu components.")]
+        [Tooltip("Game object containing UI for active components.")]
         [SerializeField]
-        private GameObject mainMenuUI;
+        private GameObject activeUI;
 
         [Tooltip("Game object containing UI for the rest menu components.")]
         [SerializeField]
         private GameObject restMenuUI;
+
+        [Tooltip("Rest menu script")]
+        [SerializeField]
+        private RestMenu restMenu;
 
         // Instance of the main menu;
         private static MainMenu menuInstance;
@@ -171,6 +175,8 @@ namespace UI
                 if(idFound){
                     TransitionMenu(id);
                     restMenuUI.SetActive(true);
+                    //restMenuUI.GetComponent<RestMenu>().enabled = true;
+                    activeUI.SetActive(true);
                 }
             }
             dbConnection.Close();
@@ -261,19 +267,34 @@ namespace UI
         /// Delete the file
         /// </summary>
         public void DeleteFile(){
-            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            targetFile = GameLoop.FileId == -1 ? targetFile : GameLoop.FileId;
+
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM SaveFilesTable WHERE id = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
+            dbConnection.Close();
+
+            dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM ActiveCharactersTable WHERE id = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
+            dbConnection.Close();
+
+            dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM CarsTable WHERE id = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
+            dbConnection.Close();
+
+            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM TownTable WHERE id = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
+            dbConnection.Close();
+
             fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n\n  No save file";
             deletionButtons[targetFile].interactable = false;
-            dbConnection.Close();
 
             if(!isCreatingNewFile){
                 fileButtons[targetFile].interactable = false;
@@ -374,6 +395,8 @@ namespace UI
 
             TransitionMenu(targetFile);
             introWindow.SetActive(true);
+            //restMenuUI.GetComponent<RestMenu>().enabled = true;
+            activeUI.SetActive(true);
         }
 
         /// <summary>

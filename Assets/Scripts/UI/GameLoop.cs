@@ -20,7 +20,7 @@ namespace UI{
         // To track the pace of the car; 1 = slow, 2 = medium, 3 = fast
         public static int Pace = 2;
         // To track the file data in the database.
-        public static int FileId;
+        public static int FileId = -1;
         // To track if buying/selling
         public static bool IsSelling = false;
         // To track selling rate
