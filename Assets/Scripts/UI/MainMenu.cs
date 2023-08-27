@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using Mono.Data.Sqlite;
 using TMPro;
+using RestPhase;
 using Database;
 
 namespace UI
@@ -175,7 +176,6 @@ namespace UI
                 if(idFound){
                     TransitionMenu(id);
                     restMenuUI.SetActive(true);
-                    //restMenuUI.GetComponent<RestMenu>().enabled = true;
                     activeUI.SetActive(true);
                 }
             }
@@ -395,7 +395,6 @@ namespace UI
 
             TransitionMenu(targetFile);
             introWindow.SetActive(true);
-            //restMenuUI.GetComponent<RestMenu>().enabled = true;
             activeUI.SetActive(true);
         }
 

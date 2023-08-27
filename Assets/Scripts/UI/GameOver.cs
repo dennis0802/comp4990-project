@@ -8,6 +8,7 @@ using TMPro;
 using Database;
 using UnityEngine.SceneManagement;
 using System;
+using RestPhase;
 
 namespace UI{
     [DisallowMultipleComponent]
@@ -77,28 +78,8 @@ namespace UI{
         /// Confirm that score was viewed.
         /// </summary>
         public void ConfirmView(){
+            GameLoop.FileId = -1;
             SceneManager.LoadScene(0);
         }
-
-        // Use for score window
-        /// <summary>
-        /// Display scores in the database
-        /// </summary>
-        /*private void DisplayScores(){
-            IDbConnection dbConnection = GameDatabase.CreateLocalHighScoreAndOpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM LocalHighscoreTable ORDER BY score LIMIT 10";
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            string scoreDisplay = "";
-            
-            while(dataReader.Read()){
-                int difficulty = dataReader.GetInt32(2);
-                string difficultyText = difficulty == 1 ? "Standard" : difficulty == 2 ? "Deadlier" : difficulty == 3 ? "Standard Custom" : "Deadlier Custom";
-
-                scoreDisplay += dataReader.GetInt32(0) + "\t" + dataReader.GetString(1) + "\t" + difficultyText + "\t" + dataReader.GetInt32(3) + "\t" + "\t" + 
-                                dataReader.GetInt32(4) + "\t" + dataReader.GetInt32(5) + "\n";
-            }
-            scoreText.text = scoreDisplay;
-        }*/
     }
 }

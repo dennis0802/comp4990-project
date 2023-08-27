@@ -6,9 +6,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using Mono.Data.Sqlite;
 using TMPro;
+using UI;
 using Database;
 
-namespace UI{
+namespace RestPhase{
     [DisallowMultipleComponent]
     public class RestMenu : MonoBehaviour{
         [Header("Descriptions")]
@@ -23,6 +24,10 @@ namespace UI{
         [Tooltip("Trader text")]
         [SerializeField]
         private TextMeshProUGUI traderText;
+
+        [Tooltip("Trader text offer details")]
+        [SerializeField]
+        private TextMeshProUGUI traderOfferText;
         
         [Tooltip("Pace text")]
         [SerializeField]
@@ -211,13 +216,17 @@ namespace UI{
         [SerializeField]
         private GameObject gameOverScreen;
 
+        // To track rest hours on the slider
         private float restHours = 1;
+        // To track the coroutine running for waiting actions
         private Coroutine coroutine;
-        private int[] sellingPrices = new int[7];
-        private int[] buyingPrices = new int[7];
-        private int[] shopStocks = new int[7];
-
+        // To track prices in town shops
+        private int[] sellingPrices = new int[7], buyingPrices = new int[7], shopStocks = new int[7];
+        // For supply trading (not towns)
+        private int tradeOffer, tradeDemand, tradeOfferQty, tradeDemandQty;
+        // To track leader name for game over
         public static string LeaderName = "";
+        // To track friends alive for game over
         public static int FriendsAlive = 0;
 
         void OnEnable(){
@@ -514,17 +523,11 @@ namespace UI{
         }
 
         /// <summary>
-        /// Wait for a trader
+        /// Start a delay for waiting actions (resting, waiting for a trader)
         /// </summary>
-        public void WaitForTrader(){
-            coroutine = StartCoroutine(Delay(1));
-        }
-
-        /// <summary>
-        /// Let the party rest.
-        /// </summary>
-        public void RestParty(){
-            coroutine = StartCoroutine(Delay(2));
+        /// <param name="id">The id of the action; 1 = trading, 2 = resting</param>
+        public void PerformWaitingAction(int id){
+            coroutine = StartCoroutine(Delay(id));
         }
 
         /// <summary>
@@ -576,13 +579,26 @@ namespace UI{
         public void TradeAction(int button){
             // Accept trade
             if(button == 1){
+                string offered = "", received = "", commandText = "";
 
+                IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+                dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+                dataReader.Read();
+
+                // Adjust stocks accordingly
+                int curPartyStock = 6 + tradeDemand == 8 ? (int)(dataReader.GetFloat(8)) - tradeDemandQty : dataReader.GetInt32(6 + tradeDemand) - tradeDemandQty;
+                int receivedStock = 6 + tradeOffer == 8 ? (int)(dataReader.GetFloat(8)) + tradeOfferQty : dataReader.GetInt32(6 + tradeOffer) + tradeOfferQty;
+
+                dbConnection.Close();
             }
             acceptButton.interactable = false;
             declineButton.interactable = false;
             waitButton.interactable = true;
             tradeReturnButton.interactable = true;
             traderText.text = "No one appeared.";
+            traderOfferText.text = "";
             curFoodText.gameObject.SetActive(true);
         }
 
@@ -896,6 +912,13 @@ namespace UI{
         }
 
         /// <summary>
+        /// Leave town, going to the travel phase
+        /// </summary>
+        public void LeaveTown(){
+            Debug.Log("To be implemented.");
+        }
+
+        /// <summary>
         /// Display party members in the menu.
         /// </summary>
         /// <param name="index">The index to start at in the left joined table</param>
@@ -967,6 +990,97 @@ namespace UI{
         }
 
         /// <summary>
+        /// Generate a trade
+        /// </summary>
+        private void GenerateTrade(){
+            string demandItem = "", offerItem = "";
+            int curPartyStock = 0;
+
+            // Continue to randomize until offer and demand are different
+            do
+            {
+                tradeDemand = Random.Range(1,9);
+                tradeOffer = Random.Range(1,9);
+            } while (tradeDemand == tradeOffer);
+
+            tradeDemandQty = tradeDemand >= 5 && tradeDemand <= 7 ? Random.Range(2,4) : Random.Range(1,20);
+            tradeOfferQty = tradeOffer >= 5 && tradeOffer <= 7 ? Random.Range(2,4) : Random.Range(1,20);
+
+            switch(tradeOffer){
+                case 1:
+                    offerItem = "kg of food";
+                    break;
+                case 2:
+                    offerItem = "L of gas";
+                    break;
+                case 3:
+                    offerItem = "scrap";
+                    break;
+                case 4:
+                    offerItem = "dollars";
+                    break;
+                case 5:
+                    offerItem = "medkits";
+                    break;
+                case 6:
+                    offerItem = "tires";
+                    break;
+                case 7:
+                    offerItem = "batteries";
+                    break;
+                case 8:
+                    offerItem = "ammo";
+                    break;
+            }
+
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            switch(tradeDemand){
+                case 1:
+                    demandItem = "kg of food";
+                    curPartyStock = dataReader.GetInt32(7);
+                    break;
+                case 2:
+                    demandItem = "L of gas";
+                    curPartyStock = (int)(dataReader.GetFloat(8));
+                    break;
+                case 3:
+                    demandItem = "scrap";
+                    curPartyStock = dataReader.GetInt32(9);
+                    break;
+                case 4:
+                    demandItem = "dollars";
+                    curPartyStock = dataReader.GetInt32(10);
+                    break;
+                case 5:
+                    demandItem = "medkits";
+                    curPartyStock = dataReader.GetInt32(11);
+                    break;
+                case 6:
+                    demandItem = "tires";
+                    curPartyStock = dataReader.GetInt32(12);
+                    break;
+                case 7:
+                    demandItem = "batteries";
+                    curPartyStock = dataReader.GetInt32(13);
+                    break;
+                case 8:
+                    demandItem = "ammo";
+                    curPartyStock = dataReader.GetInt32(14);
+                    break;
+            }
+            dbConnection.Close();
+            traderOfferText.text = "I request your " + tradeDemandQty + " " + demandItem + " in return for " + tradeOfferQty + " " + offerItem;
+
+            // Check current stock and update the accept button accordingly.
+            acceptButton.interactable = curPartyStock >= tradeDemandQty;
+        }
+
+        /// <summary>
         /// Delay after a button press
         /// </summary>
         /// <param name="mode">The mode/menu to interact with after the delay</param>
@@ -992,6 +1106,7 @@ namespace UI{
                     waitButton.interactable = false;
                     tradeReturnButton.interactable = false;
                     curFoodText.gameObject.SetActive(false);
+                    GenerateTrade();
                 }
                 else{
                     waitButton.interactable = true;
@@ -999,6 +1114,7 @@ namespace UI{
                 }
                 traderText.text = traderChange <= 2 ? "A trader appeared making the following offer:" : "No one appeared.";
             }
+
             // Resting
             else if(mode == 2){
                 restCancelButton.interactable = true;
