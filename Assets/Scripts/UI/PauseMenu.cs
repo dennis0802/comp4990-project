@@ -9,10 +9,6 @@ namespace UI{
     [DisallowMultipleComponent]
     public class PauseMenu : MonoBehaviour
     {
-        [Tooltip("Pause action as an input action")]
-        [SerializeField]
-        private InputAction pauseAction;
-
         [Tooltip("Player input object")]
         [SerializeField]
         private PlayerInput playerInput;
@@ -41,12 +37,13 @@ namespace UI{
         [SerializeField]
         private GameObject settingsUI;
         
-        [Tooltip("Pause menu UI object")]
+        [Tooltip("Button click audio")]
         [SerializeField]
         private AudioSource buttonClick;
 
         // To track if the game is paused.
         public static bool IsPaused = false;
+        private InputAction pauseAction;
 
         void Start(){
             pauseAction = playerInput.actions["Pause"];

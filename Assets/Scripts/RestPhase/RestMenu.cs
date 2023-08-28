@@ -119,6 +119,10 @@ namespace RestPhase{
         [SerializeField]
         private Slider restHoursSlider;
 
+        [Tooltip("Car health slider")]
+        [SerializeField]
+        private Slider carHPSlider;
+
         [Header("Town Components")]
         [Tooltip("Town button")]
         [SerializeField]
@@ -414,45 +418,52 @@ namespace RestPhase{
             dataReader.Read();
 
             // Wheel
-            switch(dataReader.GetInt32(1)){
+            switch(dataReader.GetInt32(2)){
                 default:
                     wheelText.text = "No wheel upgrade available to list.";
                     break;
             }
 
             // Battery
-            switch(dataReader.GetInt32(2)){
+            switch(dataReader.GetInt32(3)){
                 default:
                     batteryText.text = "No battery upgrade available to list.";
                     break;                
             }
 
             // Engine
-            switch(dataReader.GetInt32(3)){
+            switch(dataReader.GetInt32(4)){
                 default:
                     engineText.text = "No engine upgrade available to list.";
                     break;
             }
 
             // Tool
-            switch(dataReader.GetInt32(4)){
+            switch(dataReader.GetInt32(5)){
                 default:
                     toolText.text = "No tool upgrade available to list.";
                     break;
             }
 
             // Misc 1
-            switch(dataReader.GetInt32(5)){
+            switch(dataReader.GetInt32(6)){
                 default:
                     misc1Text.text = "No misc upgrade available to list.";
                     break;
             }
 
             // Misc 2
-            switch(dataReader.GetInt32(6)){
+            switch(dataReader.GetInt32(7)){
                 default:
                     misc2Text.text = "No misc upgrade available to list.";
                     break;
+            }
+            int carHP = dataReader.GetInt32(1);
+            carHPSlider.value = carHP;
+
+            // Enable buttons depending on car HP and amount of scrap
+            for(int i = 0; i < scrapButtons.Length; i++){
+                scrapButtons[i].interactable = carHP != 100 && scrap >= (int)(Mathf.Pow(2,i));
             }
 
             dbConnection.Close();
@@ -519,13 +530,20 @@ namespace RestPhase{
         /// Go to scavenging mode
         /// </summary>
         public void GoScavenge(){
-            Debug.Log("To be implemented.");
+            Debug.Log("Scavenging to be implemented.");
+        }
+
+        /// <summary>
+        /// Leave town, going to the travel phase
+        /// </summary>
+        public void LeaveTown(){
+            Debug.Log("Leavving town to be implemented.");
         }
 
         /// <summary>
         /// Start a delay for waiting actions (resting, waiting for a trader)
         /// </summary>
-        /// <param name="id">The id of the action; 1 = trading, 2 = resting</param>
+        /// <param name="id">The id of the action; 1 = trading, 2 = resting, 3 = repairing</param>
         public void PerformWaitingAction(int id){
             coroutine = StartCoroutine(Delay(id));
         }
@@ -579,7 +597,7 @@ namespace RestPhase{
         public void TradeAction(int button){
             // Accept trade
             if(button == 1){
-                string offered = "", received = "", commandText = "";
+                string offered = "", demanded = "";
 
                 IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                 IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
@@ -591,7 +609,15 @@ namespace RestPhase{
                 int curPartyStock = 6 + tradeDemand == 8 ? (int)(dataReader.GetFloat(8)) - tradeDemandQty : dataReader.GetInt32(6 + tradeDemand) - tradeDemandQty;
                 int receivedStock = 6 + tradeOffer == 8 ? (int)(dataReader.GetFloat(8)) + tradeOfferQty : dataReader.GetInt32(6 + tradeOffer) + tradeOfferQty;
 
+                offered = FilterItem(tradeOffer);
+                demanded = FilterItem(tradeDemand);
+
+                IDbCommand dbCommandUpdateValues = dbConnection.CreateCommand();
+                dbCommandUpdateValues.CommandText = "UPDATE SaveFilesTable SET " + offered + receivedStock + ", " + demanded + curPartyStock + " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValues.ExecuteNonQuery();
                 dbConnection.Close();
+
+                RefreshScreen();
             }
             acceptButton.interactable = false;
             declineButton.interactable = false;
@@ -720,6 +746,50 @@ namespace RestPhase{
         }
 
         /// <summary>
+        /// Filter the trade item.
+        /// </summary>
+        /// <param name="id">Item id</param>
+        /// <returns>The string of the item to use to update the database</returns>
+        private string FilterItem(int id){
+            string updateCommandText = "";
+            switch(id){
+                // Food
+                case 1:
+                    updateCommandText = "food = ";
+                    break;
+                // Gas
+                case 2:
+                    updateCommandText = "gas = ";
+                    break;
+                // Scrap
+                case 3:
+                    updateCommandText = "scrap = ";
+                    break;
+                // Money
+                case 4:
+                    updateCommandText = "money = ";
+                    break;
+                // Medkit
+                case 5:
+                    updateCommandText = "medkit = ";
+                    break;
+                // Tire
+                case 6:
+                    updateCommandText = "tire = ";
+                    break;
+                // Battery
+                case 7:
+                    updateCommandText = "battery = ";
+                    break;
+                // Ammo
+                case 8:
+                    updateCommandText = "ammo = ";
+                    break;
+            }
+            return updateCommandText;
+        }
+
+        /// <summary>
         /// Change the ingame time
         /// </summary>
         private void ChangeTime(){
@@ -767,7 +837,7 @@ namespace RestPhase{
                         curMorale = dataReader.IsDBNull(index) ? 0 : dataReader.GetInt32(27 + 9 * i);
                     if(!dataReader.IsDBNull(index)){
                         overallFood = GameLoop.RationsMode == 1 ? overallFood - 1 : GameLoop.RationsMode == 2 ? overallFood - 2 : overallFood - 3;
-                        int hpRestore = GameLoop.RationsMode == 1 ? 5 : GameLoop.RationsMode == 2 ? 10 : 15;
+                        int hpRestore = GameLoop.RationsMode == 1 ? 3 : GameLoop.RationsMode == 2 ? 5 : 7;
                         
                         // If the character is hurt, recover a little health based on ration mode
                         if(curHp > 0 && curHp < 100){
@@ -909,13 +979,6 @@ namespace RestPhase{
             }
 
             dbConnection.Close();
-        }
-
-        /// <summary>
-        /// Leave town, going to the travel phase
-        /// </summary>
-        public void LeaveTown(){
-            Debug.Log("To be implemented.");
         }
 
         /// <summary>
@@ -1151,6 +1214,12 @@ namespace RestPhase{
                 restStartButton.interactable = true;
                 restHoursSlider.interactable = true;
                 restDescText.text = "How long would you like to rest for? Supplies will be consumed per hour.";
+            }
+            // Repairs
+            else if(mode == 3){
+                DecrementFood();
+                RefreshScreen();
+                ChangeTime();
             }
         }
     }

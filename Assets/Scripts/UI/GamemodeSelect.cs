@@ -274,8 +274,10 @@ namespace UI{
                     LeaderColor = colorNum;
                 }
                 UpdateVisuals(perk, trait, colorNum, hatNum, outfitNum, accNum, name, assigningPartner);
+                dbConnection.Close();
             }
             else{
+                dbConnection.Close();
                 return;
             }
         }

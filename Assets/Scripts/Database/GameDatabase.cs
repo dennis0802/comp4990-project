@@ -112,7 +112,7 @@ namespace Database{
             // Create a table for the cars in the database if it doesn't exist yet
             // Fields: id (car table for this file), wheel upgrade, battery upgrade, engine upgrade, tool upgrade, misc 1, misc 2.
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
-            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CarsTable(id INTEGER PRIMARY KEY, wheelUpgrade INTEGER, batteryUpgrade INTEGER, engineUpgrade INTEGER, " +
+            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS CarsTable(id INTEGER PRIMARY KEY, carHp INTEGER, wheelUpgrade INTEGER, batteryUpgrade INTEGER, engineUpgrade INTEGER, " +
                                                "toolUpgrade INTEGER, miscUpgrade1 INTEGER, miscUpgrade2 INTEGER)";
             dbCommandCreateTable.ExecuteReader();
 
