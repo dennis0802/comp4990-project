@@ -11,4 +11,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/RestPhase.unity
     guid: ad90576cdad4e114cac34ad163a4d87e
+  - enabled: 1
+    path: Assets/Scenes/TravellingPhase.unity
+    guid: 95d226bf0d80fe8459b15c7d4a0427d5
+  - enabled: 1
+    path: Assets/Scenes/CombatPhase.unity
+    guid: 741cd5539aecaf34cb5cda662ab43cb6
   m_configObjects: {}

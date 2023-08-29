@@ -375,14 +375,14 @@ namespace UI
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO TownTable(id, foodPrice, gasPrice, scrapPrice, medkitPrice, tirePrice, batteryPrice, ammoPrice, " +
                                                "foodStock, gasStock, scrapStock, medkitStock, tireStock, batteryStock, ammoStock, side1Reward, side1Qty, side1Diff, side1Type, " +
-                                               "side2Reward, side2Qty, side2Diff, side2Type, side3Reward, side3Qty, side3Diff, side3Type) VALUES" +
+                                               "side2Reward, side2Qty, side2Diff, side2Type, side3Reward, side3Qty, side3Diff, side3Type, curTown) VALUES" +
                                                "(" + targetFile + ", " + Random.Range(4,9) + ", " +  + Random.Range(10,16) + ", " + Random.Range(5,15) + ", " + 
                                                 Random.Range(16,30) + ", " + Random.Range(20,30) + ", " + Random.Range(25,40) + ", " +  + Random.Range(15,30) + ", " +
                                                 GameLoop.RoundTo10(100, 301) +  ", " + Random.Range(6,15) +  ", "  + Random.Range(10,20) +  ", " + 
                                                 Random.Range(1, 4) + ", " + Random.Range(1, 4) + ", " + Random.Range(1, 4) + ", " + GameLoop.RoundTo10(50, 151) +
                                                 ", " + missionReward[0] + ", " + missionQty[0] + ", " + missionDiff[0] + ", " + missionType[0] + ", " + 
                                                 missionReward[1] + ", " + missionQty[1] + ", " + missionDiff[1] + ", " + missionType[1] + ", " + 
-                                                missionReward[2] + ", " + missionQty[2] + ", " + missionDiff[2] + ", " + missionType[2] + ")";
+                                                missionReward[2] + ", " + missionQty[2] + ", " + missionDiff[2] + ", " + missionType[2] + ", 0)";
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 

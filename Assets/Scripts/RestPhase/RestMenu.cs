@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using Mono.Data.Sqlite;
 using TMPro;
 using UI;
@@ -64,6 +65,10 @@ namespace RestPhase{
         [Tooltip("Popup text")]
         [SerializeField]
         private TextMeshProUGUI popupText;
+
+        [Tooltip("Popup to decide whether to leave")]
+        [SerializeField]
+        private GameObject leavePopup;
 
         [Header("Party Members")]
         [Tooltip("Friend text")]
@@ -220,6 +225,18 @@ namespace RestPhase{
         [SerializeField]
         private GameObject gameOverScreen;
 
+        [Tooltip("Travel screen components")]
+        [SerializeField]
+        private GameObject travelScreen;
+
+        [Tooltip("Travel window components")]
+        [SerializeField]
+        private GameObject travelWindow;
+
+        [Tooltip("Background used throughout the screens")]
+        [SerializeField]
+        private GameObject backgroundPanel;
+
         // To track rest hours on the slider
         private float restHours = 1;
         // To track the coroutine running for waiting actions
@@ -228,6 +245,8 @@ namespace RestPhase{
         private int[] sellingPrices = new int[7], buyingPrices = new int[7], shopStocks = new int[7];
         // For supply trading (not towns)
         private int tradeOffer, tradeDemand, tradeOfferQty, tradeDemandQty;
+        // To track game phase (travel, combat, rest)
+        private int phaseNum;
         // To track leader name for game over
         public static string LeaderName = "";
         // To track friends alive for game over
@@ -251,15 +270,16 @@ namespace RestPhase{
 
             int money = dataReader.GetInt32(10), food = dataReader.GetInt32(7), scrap = dataReader.GetInt32(9), medkit = dataReader.GetInt32(11), 
                 tires = dataReader.GetInt32(12), batteries = dataReader.GetInt32(13), ammo = dataReader.GetInt32(14);
+            phaseNum = dataReader.GetInt32(6);
             float gas = dataReader.GetFloat(8);
 
             suppliesText1.text = "Food: " +  food + "kg\n\nGas: " + gas + "L\n\nScrap: " + scrap + "\n\nMoney: $" +
                                  money + "\n\nMedkit: " + medkit;
             suppliesText2.text = "Tires: " + tires + "\n\nBatteries: " + batteries + "\n\nAmmo: " + ammo;
             curFoodText.text = "You have " + food + "kg of food";
-            locationText.text = dataReader.GetString(5);
+            locationText.text = phaseNum == 0 ? dataReader.GetString(5) : "The Road";
 
-            townButton.interactable = dataReader.GetInt32(6) == 0;
+            townButton.interactable = phaseNum == 0;
 
             for(int i = 0; i < 4; i++){
                 int index = 20 + 9 * i;
@@ -537,7 +557,18 @@ namespace RestPhase{
         /// Leave town, going to the travel phase
         /// </summary>
         public void LeaveTown(){
-            Debug.Log("Leavving town to be implemented.");
+            if(phaseNum == 0){
+                SceneManager.LoadScene(2);
+                this.gameObject.SetActive(false);
+                leavePopup.SetActive(true);
+            }
+            else{
+                SceneManager.LoadScene(2);
+                this.gameObject.SetActive(false);
+                travelScreen.SetActive(true);
+                travelWindow.SetActive(true);
+                backgroundPanel.SetActive(false);
+            }
         }
 
         /// <summary>
@@ -825,7 +856,7 @@ namespace RestPhase{
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            int overallFood = dataReader.GetInt32(7);
+            int overallFood = dataReader.GetInt32(7), phase = dataReader.GetInt32(6);
             List<int> teamHealth = new List<int>();
             List<int> teamMorale = new List<int>();
 
@@ -838,6 +869,8 @@ namespace RestPhase{
                     if(!dataReader.IsDBNull(index)){
                         overallFood = GameLoop.RationsMode == 1 ? overallFood - 1 : GameLoop.RationsMode == 2 ? overallFood - 2 : overallFood - 3;
                         int hpRestore = GameLoop.RationsMode == 1 ? 3 : GameLoop.RationsMode == 2 ? 5 : 7;
+                        // Heal more in town than on the road
+                        hpRestore += phase == 0 ? 3 : 0;
                         
                         // If the character is hurt, recover a little health based on ration mode
                         if(curHp > 0 && curHp < 100){
