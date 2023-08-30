@@ -110,7 +110,6 @@ namespace RestPhase{
         /// Conclude the game by calculating the score
         /// </summary>
         private IEnumerator ConcludeGame(){
-            Debug.Log("Game ended.");
             int amountRecovered = 0;
 
             // Calculate the score and text to display the status of each target hit and total car hp restored.

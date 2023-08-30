@@ -6,10 +6,7 @@ using UI;
 namespace TravelPhase{
     public class Town{
         // To track resources to generate
-        List<int> missionDiff = new List<int>();
-        List<int> missionReward = new List<int>();
-        List<int> missionQty = new List<int>();
-        List<int> missionType = new List<int>();
+        List<Mission> missions = new List<Mission>();
         private int foodStock, foodPrice, gasStock, gasPrice, scrapStock, scrapPrice, medkitStock, medkitPrice, tireStock, tirePrice, batteryStock, batteryPrice,
                     ammoStock, ammoPrice;
 
@@ -35,29 +32,7 @@ namespace TravelPhase{
 
             // Generate the missions in towns
             for(int i = 0; i < 3; i++){
-                // Generate a difficulty - 20% each for easy, normal, hard, 40% for no mission to generate
-                // 1-20 = easy, 21-40 = medium, 41-60 = hard, 61-100 = no mission
-                int diff = Random.Range(1,101);
-                // 1-3 = food, 4-6 = gas, 7-9 = scrap, 10-12 = money, 13 = medkit, 14 = tire, 15 = battery, 16-18 = ammo
-                int reward = Random.Range(1, 19);
-                // 1 = combat, 2 = find a collectible
-                int type = Random.Range(1,3);
-
-                if(diff <= 60){
-                    missionDiff.Add(diff);
-                    missionReward.Add(reward);
-                    missionType.Add(type);
-
-                    // Generate quantity based on reward
-                    int qty = (reward >= 13 && reward <= 15) || (reward >= 4 && reward <= 6) ? Random.Range(2,6) : Random.Range(10,21);
-                    missionQty.Add(qty);
-                }
-                else{
-                    missionDiff.Add(0);
-                    missionReward.Add(0);
-                    missionType.Add(0);
-                    missionQty.Add(0);
-                }
+                missions.Add(new Mission());
             }
         }
 
@@ -182,35 +157,66 @@ namespace TravelPhase{
         }
 
         /// <summary>
-        /// Get mission difficulties in town
+        /// Get missions in town
         /// </summary>
-        /// <returns>The mission difficulty</returns>
-        public List<int> GetMissionDifficulties(){
-            return missionDiff;            
+        /// <returns>The missions in town</returns>
+        public List<Mission> GetMissions(){
+            return missions;
+        }
+    }
+
+    /// <summary>
+    /// Utility class to track missions
+    /// </summary>
+    public class Mission{
+        private int missionType, missionQty, missionReward, missionDiff;
+
+        /// <summary>
+        /// Create a new mission instance.
+        /// </summary>
+        public Mission(){
+            // Generate a difficulty - 20% each for easy, normal, hard, 40% for no mission to generate
+            // 1-20 = easy, 21-40 = medium, 41-60 = hard, 61-100 = no mission
+            missionDiff = Random.Range(1,101);
+            missionDiff = missionDiff <= 60 ? missionDiff : 0;
+            // 1-3 = food, 4-6 = gas, 7-9 = scrap, 10-12 = money, 13 = medkit, 14 = tire, 15 = battery, 16-18 = ammo
+            missionReward = missionDiff != 0 ? Random.Range(1, 19) : 0;
+            // 1 = combat, 2 = find a collectible
+            missionType = missionDiff != 0 ? Random.Range(1,3) : 0;
+            // Generate quantity based on reward
+            missionQty = missionDiff != 0 ? (missionReward >= 13 && missionReward <= 15) || (missionReward >= 4 && missionReward <= 6) ? Random.Range(2,6) : Random.Range(10,21) : 0;
         }
 
         /// <summary>
-        /// Get mission types in town
+        /// Get mission type in town
         /// </summary>
         /// <returns>The mission type</returns>
-        public List<int> GetMissionTypes(){
-            return missionType;           
+        public int GetMissionType(){
+            return missionType;
         }
 
         /// <summary>
-        /// Get mission rewards in town
-        /// </summary>
-        /// <returns>The reward type</returns>
-        public List<int> GetMissionRewards(){
-            return missionReward;           
-        }
-
-        /// <summary>
-        /// Get mission quantities in town
+        /// Get mission quantity in town
         /// </summary>
         /// <returns>The reward quantity</returns>
-        public List<int> GetMissionQty(){
-            return missionQty;            
+        public int GetMissionQty(){
+            return missionQty;
+        }
+
+        /// <summary>
+        /// Get mission reward in town
+        /// </summary>
+        /// <returns>The reward type</returns>
+        public int GetMissionReward(){
+            return missionReward;
+        }
+
+        /// <summary>
+        /// Get mission difficulty in town
+        /// </summary>
+        /// <returns>The mission difficulty</returns>
+        public int GetMissionDifficulty(){
+            return missionDiff;
         }
     }
 }
