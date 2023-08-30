@@ -2301,7 +2301,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &33002617
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2418,6 +2418,18 @@ MonoBehaviour:
       - m_Target: {fileID: 1762978118}
         m_TargetAssemblyTypeName: UnityEngine.AudioSource, UnityEngine
         m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 1667640213}
+        m_TargetAssemblyTypeName: TravelPhase.MoveEnvironment, Assembly-CSharp
+        m_MethodName: ResumeTravel
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -6336,10 +6348,12 @@ MonoBehaviour:
   mainGameUI: {fileID: 803635375}
   mainRestUI: {fileID: 1986573147}
   mainMenuUI: {fileID: 2009570008}
+  mainMenu: {fileID: 1762978116}
   pauseMenuUI: {fileID: 2000010307}
   activeUI: {fileID: 1848782353}
   settingsUI: {fileID: 686684852}
   buttonClick: {fileID: 1762978118}
+  backgroundPanel: {fileID: 835228556}
 --- !u!114 &99840284
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -85639,6 +85653,7 @@ MonoBehaviour:
   - {fileID: 1719773760}
   - {fileID: 10658659}
   popupText: {fileID: 786378273}
+  popup: {fileID: 33002616}
 --- !u!1 &1668688020
 GameObject:
   m_ObjectHideFlags: 0
@@ -90448,6 +90463,10 @@ MonoBehaviour:
   mainMenuScreen: {fileID: 2009570008}
   activeUI: {fileID: 1848782353}
   restMenuUI: {fileID: 1986573147}
+  travelMenuUI:
+  - {fileID: 1667640211}
+  - {fileID: 1573380716}
+  - {fileID: 835228556}
   restMenu: {fileID: 1986573149}
 --- !u!114 &1762978117
 MonoBehaviour:
@@ -93548,18 +93567,6 @@ MonoBehaviour:
         m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
         m_MethodName: SetActive
         m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
-        m_CallState: 2
-      - m_Target: {fileID: 1667640213}
-        m_TargetAssemblyTypeName: TravelPhase.MoveEnvironment, Assembly-CSharp
-        m_MethodName: GenerateTowns
-        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine

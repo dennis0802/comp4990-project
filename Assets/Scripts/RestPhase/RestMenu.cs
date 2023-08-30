@@ -9,6 +9,7 @@ using Mono.Data.Sqlite;
 using TMPro;
 using UI;
 using Database;
+using TravelPhase;
 
 namespace RestPhase{
     [DisallowMultipleComponent]
@@ -389,32 +390,32 @@ namespace RestPhase{
                     string typeDesc = dataReader.GetInt32(18+4*i) == 1 ? "Those creatures are out wandering by my house again. Any travellers willing to defend me will be paid." 
                                                                        : "I dropped something precious to me in no man's land. Any travellers willing to find and return it for me will be paid.";
                     string reward = "";
-                    
-                    switch(dataReader.GetInt32(15+4*i)){
-                        case 1:
-                            reward = dataReader.GetInt32(16+4*i) + "kg food";
-                            break;
-                        case 2:
-                            reward = dataReader.GetInt32(16+4*i) + "L gas";
-                            break;
-                        case 3:
-                            reward = dataReader.GetInt32(16+4*i) + " scrap";
-                            break;
-                        case 4:
-                            reward = "$" + dataReader.GetInt32(16+4*i);
-                            break;
-                        case 5:
-                            reward = dataReader.GetInt32(16+4*i) + " medkits";
-                            break;
-                        case 6:
-                            reward = dataReader.GetInt32(16+4*i) + " tires";
-                            break;
-                        case 7:
-                            reward = dataReader.GetInt32(16+4*i) + " batteries";
-                            break;
-                        case 8:
-                            reward = dataReader.GetInt32(16+4*i) + " ammo shells";
-                            break;
+
+                    int rewardType = dataReader.GetInt32(15+4*i);
+                                // 1-3 = food, 4-6 = gas, 7-9 = scrap, 10-12 = money, 13 = medkit, 14 = tire, 15 = battery, 16-18 = ammo
+                    if(rewardType >= 1 && rewardType <= 3){
+                        reward = dataReader.GetInt32(16+4*i) + "kg food";
+                    }
+                    else if(rewardType >= 4 && rewardType <= 6){
+                        reward = dataReader.GetInt32(16+4*i) + "L gas";
+                    }
+                    else if(rewardType >= 7 && rewardType <= 9){
+                        reward = dataReader.GetInt32(16+4*i) + " scrap";
+                    }
+                    else if(rewardType >= 10 && rewardType <= 12){
+                        reward = "$" + dataReader.GetInt32(16+4*i);
+                    }
+                    else if(rewardType == 13){
+                        reward = dataReader.GetInt32(16+4*i) + " medkits";
+                    }
+                    else if(rewardType == 14){
+                        reward = dataReader.GetInt32(16+4*i) + " tires";
+                    }
+                    else if(rewardType == 15){
+                        reward = dataReader.GetInt32(16+4*i) + " batteries";
+                    }
+                    else if(rewardType >= 16 && rewardType <= 18){
+                        reward = dataReader.GetInt32(16+4*i) + " ammo shells";
                     }
 
                     string difficulty = dataReader.GetInt32(17+4*i) <= 20 ? "Simple" : dataReader.GetInt32(17+4*i) <= 40 ? "Dangerous" : "Fatal!";
@@ -560,6 +561,7 @@ namespace RestPhase{
             if(phaseNum == 0){
                 SceneManager.LoadScene(2);
                 this.gameObject.SetActive(false);
+                MoveEnvironment.PopupActive = true;
                 leavePopup.SetActive(true);
             }
             else{
@@ -568,6 +570,13 @@ namespace RestPhase{
                 travelScreen.SetActive(true);
                 travelWindow.SetActive(true);
                 backgroundPanel.SetActive(false);
+
+                IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 1 WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValue.ExecuteNonQuery();
+
+                dbConnection.Close();
             }
         }
 

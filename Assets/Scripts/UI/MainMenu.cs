@@ -8,6 +8,7 @@ using Mono.Data.Sqlite;
 using TMPro;
 using RestPhase;
 using Database;
+using TravelPhase;
 
 namespace UI
 {
@@ -72,6 +73,10 @@ namespace UI
         [Tooltip("Game object containing UI for the rest menu components.")]
         [SerializeField]
         private GameObject restMenuUI;
+
+        [Tooltip("Game objects containing for the travel screen.")]
+        [SerializeField]
+        private GameObject[] travelMenuUI;
 
         [Tooltip("Rest menu script")]
         [SerializeField]
@@ -175,7 +180,21 @@ namespace UI
                 // Open the game
                 if(idFound){
                     TransitionMenu(id);
-                    restMenuUI.SetActive(true);
+                    dbCommandReadValues = dbConnection.CreateCommand();
+                    dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                    IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+                    dataReader.Read();
+
+                    int phase = dataReader.GetInt32(6);
+                    
+                    if(phase == 0 || phase == 2){
+                        restMenuUI.SetActive(true);
+                    }
+                    else if(phase == 1){
+                        travelMenuUI[0].SetActive(true);
+                        travelMenuUI[1].SetActive(true);
+                        travelMenuUI[2].SetActive(false);
+                    }
                     activeUI.SetActive(true);
                 }
             }
@@ -197,7 +216,7 @@ namespace UI
         /// <summary> 
         /// Set the file descriptor of each save file
         /// </summary>
-        private void SetFileDesc(){
+        public void SetFileDesc(){
             string diff = "";
             IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
@@ -267,8 +286,6 @@ namespace UI
         /// Delete the file
         /// </summary>
         public void DeleteFile(){
-            targetFile = GameLoop.FileId == -1 ? targetFile : GameLoop.FileId;
-
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM SaveFilesTable WHERE id = " + targetFile + ";";
@@ -344,45 +361,24 @@ namespace UI
             List<int> missionQty = new List<int>();
             List<int> missionType = new List<int>();
 
-            // Generate the missions in towns
-            for(int i = 0; i < 3; i++){
-                // Generate a difficulty - 20% each for easy, normal, hard, 40% for no mission to generate
-                // 1-20 = easy, 21-40 = medium, 41-60 = hard, 61-100 = no mission
-                int diff = Random.Range(1,101);
-                // 1-3 = food, 4-6 = gas, 7-9 = scrap, 10-12 = money, 13 = medkit, 14 = tire, 15 = battery, 16-18 = ammo
-                int reward = Random.Range(1, 19);
-                // 1 = combat, 2 = find a collectible
-                int type = Random.Range(1,3);
-
-                if(diff <= 60){
-                    missionDiff.Add(diff);
-                    missionReward.Add(reward);
-                    missionType.Add(type);
-
-                    // Generate quantity based on reward
-                    int qty = (reward >= 13 && reward <= 15) || (reward >= 4 && reward <= 6) ? Random.Range(2,6) : Random.Range(10,21);
-                    missionQty.Add(qty);
-                }
-                else{
-                    missionDiff.Add(0);
-                    missionReward.Add(0);
-                    missionType.Add(0);
-                    missionQty.Add(0);
-                }
-            }
+            Town start = new Town();
 
             dbConnection = GameDatabase.CreateTownAndOpenDatabase();
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO TownTable(id, foodPrice, gasPrice, scrapPrice, medkitPrice, tirePrice, batteryPrice, ammoPrice, " +
                                                "foodStock, gasStock, scrapStock, medkitStock, tireStock, batteryStock, ammoStock, side1Reward, side1Qty, side1Diff, side1Type, " +
                                                "side2Reward, side2Qty, side2Diff, side2Type, side3Reward, side3Qty, side3Diff, side3Type, curTown) VALUES" +
-                                               "(" + targetFile + ", " + Random.Range(4,9) + ", " +  + Random.Range(10,16) + ", " + Random.Range(5,15) + ", " + 
-                                                Random.Range(16,30) + ", " + Random.Range(20,30) + ", " + Random.Range(25,40) + ", " +  + Random.Range(15,30) + ", " +
-                                                GameLoop.RoundTo10(100, 301) +  ", " + Random.Range(6,15) +  ", "  + Random.Range(10,20) +  ", " + 
-                                                Random.Range(1, 4) + ", " + Random.Range(1, 4) + ", " + Random.Range(1, 4) + ", " + GameLoop.RoundTo10(50, 151) +
-                                                ", " + missionReward[0] + ", " + missionQty[0] + ", " + missionDiff[0] + ", " + missionType[0] + ", " + 
-                                                missionReward[1] + ", " + missionQty[1] + ", " + missionDiff[1] + ", " + missionType[1] + ", " + 
-                                                missionReward[2] + ", " + missionQty[2] + ", " + missionDiff[2] + ", " + missionType[2] + ", 0)";
+                                               "(" + targetFile + ", " + start.GetFoodPrice() + ", " +  + start.GetGasPrice() + ", " + start.GetScrapPrice() + ", " + 
+                                                start.GetMedkitPrice() + ", " + start.GetTirePrice() + ", " + start.GetBatteryPrice() + ", " + start.GetAmmoPrice() + ", " +
+                                                start.GetFoodStock() +  ", " + start.GetGasStock() +  ", "  + start.GetScrapStock() +  ", " + 
+                                                start.GetMedkitStock() + ", " + start.GetTireStock() + ", " + start.GetBatteryStock() + ", " + start.GetAmmoStock() + ", " + 
+                                                start.GetMissions()[0].GetMissionReward() + ", " + start.GetMissions()[0].GetMissionQty() + ", " + 
+                                                start.GetMissions()[0].GetMissionDifficulty()  + ", " + start.GetMissions()[0].GetMissionType() + ", " + 
+                                                start.GetMissions()[1].GetMissionReward() + ", " + start.GetMissions()[1].GetMissionQty() + ", " + 
+                                                start.GetMissions()[1].GetMissionDifficulty()  + ", " + start.GetMissions()[1].GetMissionType() + ", " + 
+                                                start.GetMissions()[2].GetMissionReward() + ", " + start.GetMissions()[2].GetMissionQty() + ", " + 
+                                                start.GetMissions()[2].GetMissionDifficulty()  + ", " + start.GetMissions()[2].GetMissionType() + ", 0)";
+
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -393,9 +389,13 @@ namespace UI
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
+            travelMenuUI[0].SetActive(false);
+            travelMenuUI[1].SetActive(false);
+            
             TransitionMenu(targetFile);
             introWindow.SetActive(true);
             activeUI.SetActive(true);
+
         }
 
         /// <summary>

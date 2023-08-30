@@ -25,6 +25,10 @@ namespace UI{
         [SerializeField]
         private GameObject mainMenuUI;
 
+        [Tooltip("Main menu script")]
+        [SerializeField]
+        private MainMenu mainMenu;
+
         [Tooltip("Pause menu UI object")]
         [SerializeField]
         private GameObject pauseMenuUI;
@@ -40,6 +44,10 @@ namespace UI{
         [Tooltip("Button click audio")]
         [SerializeField]
         private AudioSource buttonClick;
+
+        [Tooltip("Background used throughout the screens")]
+        [SerializeField]
+        private GameObject backgroundPanel;
 
         // To track if the game is paused.
         public static bool IsPaused = false;
@@ -88,6 +96,9 @@ namespace UI{
         public void LoadMenu(){
             IsPaused = false;
             pauseMenuUI.SetActive(false);
+            mainMenu.SetFileDesc();
+            backgroundPanel.SetActive(true);
+            GameLoop.FileId = -1;
             Time.timeScale = 1.0f;
             SceneManager.LoadScene(0);
             mainGameUI.SetActive(false);
