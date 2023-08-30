@@ -55,13 +55,14 @@ namespace TravelPhase{
         public void GenerateTowns(){
             towns.Add(new Town());
             towns.Add(new Town());
+            UpdateButtons();
         }
 
         /// <summary>
-        /// Select a destination
+        /// Confirm a destination
         /// </summary>
         /// <param name="id">Id of the button that was clicked.</param>
-        public void SelectDestination(int id){
+        public void ConfirmDestination(int id){
             // Update save file
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
@@ -79,7 +80,6 @@ namespace TravelPhase{
 
             newTown = dataReader.GetInt32(27) + id;
 
-            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE TownTable SET curTown = " + newTown + ", foodPrice = " + towns[id-1].GetFoodPrice() + ", gasPrice = " +  towns[id-1].GetGasPrice() +
                                                 ", scrapPrice = " + towns[id-1].GetScrapPrice()  + ", medkitPrice = " +  towns[id-1].GetMedkitPrice()  + ", tirePrice = " +  towns[id-1].GetTirePrice()  +
@@ -97,6 +97,48 @@ namespace TravelPhase{
             towns.Clear();
 
             RefreshScreen();
+        }
+
+        /// <summary>
+        /// Select a destination
+        /// </summary>
+        /// <param name="id">Id of the button that was clicked.</param>
+        private void UpdateButtons(){
+            IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            int townNum = dataReader.GetInt32(27), distanceToGo = 0;
+            string destination = "", supplies = "";
+
+            // If the current town number has only one way to go, disable the 2nd option
+            destinationButton2.interactable = !(townNum == 0);
+            dbConnection.Close();
+
+            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            // Determine distance based on town #
+            for(int i = 1; i <= 2; i++){
+                if(i == 2 && !destinationButton2.interactable){
+                    destinationTexts[i-1].text = "";
+                    break;
+                }
+                switch(townNum+i){
+                    case 1:
+                        destination = "Ottawa";
+                        distanceToGo = 198;
+                        break;
+                }
+                supplies = towns[i-1].SumTownResources() <= 330 ? "Light Supplies" : "Decent Supplies";
+                destinationTexts[i-1].text = destination + "\n" + distanceToGo + "km\n" + supplies;
+            }
+            dbConnection.Close();
         }
 
         /// <summary>
@@ -145,10 +187,11 @@ namespace TravelPhase{
             dataReader.Read();
 
             int townNum = dataReader.GetInt32(27);
-            string destination = "", supplies = "";
+            string destination = "";
 
             // If the current town number has only one way to go, disable the 2nd option
             destinationButton2.interactable = !(townNum == 0);
+            dbConnection.Close();
 
             dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
@@ -160,19 +203,17 @@ namespace TravelPhase{
             
             // Determine distance based on town #
             for(int i = 1; i <= 2; i++){
-                if(i == 1 && !destinationButton2.interactable){
+                if(i == 2 && !destinationButton2.interactable){
                     destinationTexts[i-1].text = "";
                     break;
                 }
-                switch(townNum+i){
+
+                switch(townNum){
                     case 1:
                         destination = "Ottawa";
                         distanceToGo = 198;
                         break;
                 }
-                Debug.Log(newTown);
-                supplies = towns[i-1].SumTownResources() <= 330 ? "Light Supplies" : "Decent Supplies";
-                destinationTexts[i-1].text = destination + "\n" + distanceToGo + "km\n" + supplies;
             }
 
             int distanceLeft = distanceToGo - dataReader.GetInt32(3);
@@ -180,9 +221,7 @@ namespace TravelPhase{
 
             supplyText.text = "Food: " + dataReader.GetInt32(7) + "\nGas: " +  dataReader.GetFloat(8) + "\nDistance to Destination: " +  distanceLeft
                             + "km\nDistance Travelled: " + dataReader.GetInt32(3) + "km\nTime: " + time + timing + "\nActivity: " + activity;
-                    
             popupText.text = distanceLeft.ToString() + " km to " + destination;
-
             dbConnection.Close();
         }
 
