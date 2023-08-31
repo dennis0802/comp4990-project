@@ -565,18 +565,18 @@ namespace RestPhase{
                 leavePopup.SetActive(true);
             }
             else{
-                SceneManager.LoadScene(2);
-                this.gameObject.SetActive(false);
-                travelScreen.SetActive(true);
-                travelWindow.SetActive(true);
-                backgroundPanel.SetActive(false);
-
                 IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 1 WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
 
                 dbConnection.Close();
+
+                SceneManager.LoadScene(2);
+                this.gameObject.SetActive(false);
+                travelScreen.SetActive(true);
+                travelWindow.SetActive(true);
+                backgroundPanel.SetActive(false);
             }
         }
 
@@ -873,13 +873,17 @@ namespace RestPhase{
             if(overallFood > 0){
                 // For each living character on the team, they consume 1, 2, or 3 units of food each hour depending on the ration mode.
                 for(int i = 0; i < 4; i++){
-                    int index = 20 + 9 * i, curHp = dataReader.IsDBNull(index) ? 0 :dataReader.GetInt32(28 + 9 * i),
-                        curMorale = dataReader.IsDBNull(index) ? 0 : dataReader.GetInt32(27 + 9 * i);
+                    int index = 20 + 9 * i;
+
                     if(!dataReader.IsDBNull(index)){
+                        int curHp = dataReader.GetInt32(28 + 9 * i),
+                            curMorale = dataReader.GetInt32(27 + 9 * i);
+                        
                         overallFood = GameLoop.RationsMode == 1 ? overallFood - 1 : GameLoop.RationsMode == 2 ? overallFood - 2 : overallFood - 3;
+                        overallFood = overallFood <= 0 ? 0 : overallFood;
                         int hpRestore = GameLoop.RationsMode == 1 ? 3 : GameLoop.RationsMode == 2 ? 5 : 7;
                         // Heal more in town than on the road
-                        hpRestore += phase == 0 ? 3 : 0;
+                        hpRestore += phase == 0 ? 4 : 1;
                         
                         // If the character is hurt, recover a little health based on ration mode
                         if(curHp > 0 && curHp < 100){
@@ -904,7 +908,7 @@ namespace RestPhase{
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
-                                                    ", friend2Health = " + teamHealth[2] + ", friend2Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
+                                                    ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
                                                     ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3]; 
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
@@ -914,9 +918,10 @@ namespace RestPhase{
                 List<string> names = new List<string>();
                 
                 for(int i = 0; i < 4; i++){
-                    int index = 20 + 9 * i, curHp = dataReader.IsDBNull(index) ? 0 :dataReader.GetInt32(28 + 9 * i),
-                        curMorale = dataReader.IsDBNull(index) ? 0 : dataReader.GetInt32(27 + 9 * i);
+                    int index = 20 + 9 * i;
                     if(!dataReader.IsDBNull(index)){
+                        int curHp = dataReader.GetInt32(28 + 9 * i),
+                            curMorale = dataReader.GetInt32(27 + 9 * i);
                         if(curHp > 0){
                             curHp = curHp - 5 < 0 ? 0: curHp - 5;
                             curMorale = curMorale - 5 < 0 ? 0 : curMorale - 5;
@@ -937,7 +942,7 @@ namespace RestPhase{
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
-                        ", friend2Health = " + teamHealth[2] + ", friend2Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
+                        ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
                         ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3]; 
 
                 // Check if any character has died.
