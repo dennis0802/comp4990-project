@@ -13,7 +13,7 @@ using RestPhase;
 
 namespace TravelPhase{
     [DisallowMultipleComponent]
-    public class MoveEnvironment : MonoBehaviour
+    public class TravelLoop : MonoBehaviour
     {
         [Header("Screen Components")]
         [Tooltip("List of player health bars")]
@@ -48,14 +48,39 @@ namespace TravelPhase{
         [SerializeField]
         private GameObject popup;
 
-        private Coroutine coroutine;
-        public static bool PopupActive = false;
+        [Tooltip("Destination popup window object")]
+        [SerializeField]
+        private GameObject destinationPopup;
 
+        [Tooltip("Destination popup text")]
+        [SerializeField]
+        private TextMeshProUGUI destinationPopupText;
+
+        [Tooltip("Travel view object")]
+        [SerializeField]
+        private GameObject travelViewObject;
+
+        [Tooltip("Background panel object")]
+        [SerializeField]
+        private GameObject backgroundPanel;
+
+        [Tooltip("Rest menu screens - element 0 will be kept active in the background")]
+        [SerializeField]
+        private GameObject[] restScreens;
+
+        // To track if a popup is active, will restrict when driving loop occurs.
+        public static bool PopupActive = false;
+        // To track the new town number and the distance away
         private int newTown, targetTownDistance = 0;
-        private bool coroutineRunning = false, logInitialized = false;
+        // To track if the log of destinations has been initialized
+        private bool logInitialized = false;
+        // To track generated towns
         private List<Town> towns = new List<Town>();
+        // To manage destinations
         private Dictionary<int, List<int>> distanceLog = new Dictionary<int, List<int>>();
         private Dictionary<int, List<string>> nextDestinationLog = new Dictionary<int, List<string>>();
+        // To time the driving loop
+        private float timer = 0.0f;
 
         void OnEnable(){
             if(!logInitialized){
@@ -63,17 +88,32 @@ namespace TravelPhase{
             }
             GenerateTowns();
             RefreshScreen();
-
-            if(!coroutineRunning){
-                coroutine = StartCoroutine(Transition());
-            }
         }
 
         void Update(){
-            // Sept 1 - Pausing breaks the coroutine sequence
-            Debug.Log(coroutineRunning);
+            // NOTE: Previous solution used a coroutine, running into problems when the game was paused.
+            if(!PopupActive){
+                timer += Time.deltaTime;
+                if(timer >= 3.0f){
+                    if(timer >= 8.0f){
+                        Debug.Log("Timestep done");
+                        if(Drive()){
+                            int eventChance = Random.Range(1,101);
+
+                            // Random chance of generating an event or rerun the coroutine
+                            if(eventChance <= 30){
+                                GenerateEvent(eventChance);
+                            }
+                        }
+                        timer = 0.0f;
+                    }
+                }
+            }
         }
 
+        /// <summary>
+        /// Generate towns' resources for the player to pick when picking a destination
+        /// </summary>
         public void GenerateTowns(){
             towns.Add(new Town());
             towns.Add(new Town());
@@ -139,112 +179,6 @@ namespace TravelPhase{
         }
 
         /// <summary>
-        /// Utility function to initialize dictionaries for tracking destinations and the distance away.
-        /// </summary>
-        private void InitializeLogs(){
-            // The key is the town BEFORE moving to the new town (ex. 0 = Montreal, starting town provides access to Ottawa at 198km away)
-            // 0 = Montreal, 1 = Ottawa, 2 = Timmins, 3 = Thunder Bay, 11 = Toronto, 12 = Windsor, 13 = Chicago, 14 = Milwaukee, 15 = Minneapolis,
-            // 16 = Winnipeg, 17 = Regina, 18 = Calgary, 19 = Banff, 20 = Kelowna, 26 = Saskatoon, 27 = Edmonton, 28 = Hinton, 29 = Kamloops 
-            nextDestinationLog.Add(0, MapDestination("Ottawa", ""));
-            distanceLog.Add(0, MapDistance(198, 0));
-            nextDestinationLog.Add(1, MapDestination("Timmins", "Toronto"));
-            distanceLog.Add(1, MapDistance(718, 450));
-            nextDestinationLog.Add(2, MapDestination("Thunder Bay", ""));
-            distanceLog.Add(2, MapDistance(777, 0));
-            nextDestinationLog.Add(3, MapDestination("Winnipeg", ""));
-            distanceLog.Add(3, MapDistance(702, 0));
-            nextDestinationLog.Add(11, MapDestination("Windsor", ""));
-            distanceLog.Add(11, MapDistance(376, 0));
-            nextDestinationLog.Add(12, MapDestination("Chicago", ""));
-            distanceLog.Add(12, MapDistance(457, 0));
-            nextDestinationLog.Add(13, MapDestination("Milwaukee", ""));
-            distanceLog.Add(13, MapDistance(148, 0));
-            nextDestinationLog.Add(14, MapDestination("Minneapolis", ""));
-            distanceLog.Add(14, MapDistance(542, 0));
-            nextDestinationLog.Add(15, MapDestination("Winnipeg", ""));
-            distanceLog.Add(15, MapDistance(736, 0));
-            nextDestinationLog.Add(16, MapDestination("Regina", "Saskatoon"));
-            distanceLog.Add(16, MapDistance(573, 786));
-            nextDestinationLog.Add(17, MapDestination("Calgary", ""));
-            distanceLog.Add(17, MapDistance(758, 0));
-            nextDestinationLog.Add(18, MapDestination("Banff", ""));
-            distanceLog.Add(18, MapDistance(127, 0));
-            nextDestinationLog.Add(19, MapDestination("Kelowna", ""));
-            distanceLog.Add(19, MapDistance(480, 0));
-            nextDestinationLog.Add(20, MapDestination("Vancouver", ""));
-            distanceLog.Add(20, MapDistance(390, 0));
-            nextDestinationLog.Add(26, MapDestination("Edmonton", ""));
-            distanceLog.Add(26, MapDistance(523, 0));
-            nextDestinationLog.Add(27, MapDestination("Hinton", ""));
-            distanceLog.Add(27, MapDistance(288, 0));
-            nextDestinationLog.Add(28, MapDestination("Kamloops", ""));
-            distanceLog.Add(28, MapDistance(519, 0));
-            nextDestinationLog.Add(29, MapDestination("Vancouver", ""));
-            distanceLog.Add(29, MapDistance(357, 0));
-            // Placeholder for no destination defined.
-            nextDestinationLog.Add(30, MapDestination("", ""));
-            distanceLog.Add(30, MapDistance(0, 0));
-            logInitialized = true;
-        }
-
-        /// <summary>
-        /// Utility function to map one/two destinations as a list of destinations for a town.
-        /// </summary>
-        private List<string> MapDestination(string arg1, string arg2){
-            List <string> destinations = new List<string>();
-            destinations.Add(arg1);
-            destinations.Add(arg2);
-            return destinations;
-        }
-
-        /// <summary>
-        /// Utility function to map one/two distances as a list of distances away for a town.
-        /// </summary>
-        private List<int> MapDistance(int arg1, int arg2){
-            List <int> distances = new List<int>();
-            distances.Add(arg1);
-            distances.Add(arg2);
-            return distances;
-        }
-
-        /// <summary>
-        /// Select a destination
-        /// </summary>
-        /// <param name="id">Id of the button that was clicked.</param>
-        private void UpdateButtons(){
-            IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
-            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
-            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
-            dataReader.Read();
-
-            int townNum = dataReader.GetInt32(27), index = townNum;
-            string supplies = "";
-
-            // If the current town number has only one way to go, disable the 2nd option
-            destinationButton2.interactable = !(townNum == 0);
-            dbConnection.Close();
-
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
-            dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
-            dataReader = dbCommandReadValue.ExecuteReader();
-            dataReader.Read();
-
-            // Determine distance based on town #
-            for(int i = 1; i <= 2; i++){
-                if(i == 2 && !destinationButton2.interactable){
-                    destinationTexts[i-1].text = "";
-                    break;
-                }
-
-                supplies = towns[i-1].SumTownResources() <= 330 ? "Light Supplies" : "Decent Supplies";
-                destinationTexts[i-1].text = nextDestinationLog[townNum][i-1]+ "\n" + distanceLog[townNum][i-1] + "km\n" + supplies;
-            }
-            dbConnection.Close();
-        }
-
-        /// <summary>
         /// Refresh the screen upon loading the travel UI.
         /// </summary>
         public void RefreshScreen(){
@@ -292,8 +226,6 @@ namespace TravelPhase{
             int townNum = dataReader.GetInt32(27), targetTownDistance = dataReader.IsDBNull(28) ? 0 : dataReader.GetInt32(28);
             string destination = dataReader.IsDBNull(29) ? "" : dataReader.GetString(29);
 
-            // If the current town number has only one way to go, disable the 2nd option
-            destinationButton2.interactable = !(townNum == 0);
             dbConnection.Close();
 
             dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
@@ -320,8 +252,35 @@ namespace TravelPhase{
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            StopCoroutine(coroutine);
-            coroutineRunning = false;
+            PopupActive = true;
+            timer = 0.0f;
+            PrepRestScreen();
+            SceneManager.LoadScene(1);
+        }
+
+        /// <summary>
+        /// Stop the car on the road because of destination arrival
+        /// </summary>
+        public void Arrive(){
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            string townName = dataReader.GetString(29);
+
+            dbConnection.Close();
+
+            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 0, location = '" + townName + "' WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
+
+            PopupActive = true;
+            timer = 0.0f;
+            PrepRestScreen();
             SceneManager.LoadScene(1);
         }
 
@@ -330,7 +289,123 @@ namespace TravelPhase{
         /// </summary>
         public void ResumeTravel(){
             PopupActive = false;
-            coroutine = StartCoroutine(Transition());
+            //coroutine = StartCoroutine(Transition());
+        }
+
+        /// <summary>
+        /// Generate a random event while driving
+        /// </summary>
+        /// <param name="eventChance">The probability of the event happening, 30 or less guaranteed to be passed in</param>
+        private void GenerateEvent(int eventChance){
+            popupText.text = "Picking " + eventChance + " was a 3/10 chance out of 100 and 1/30 chance out of the 30 available!";
+            popup.SetActive(true);
+            PopupActive = true;
+        }
+
+        /// <summary>
+        /// Utility function to initialize dictionaries for tracking destinations and the distance away.
+        /// </summary>
+        private void InitializeLogs(){
+            // The key is the town BEFORE moving to the new town (ex. 0 = Montreal, starting town provides access to Ottawa at 198km away)
+            // 0 = Montreal, 1 = Ottawa, 2 = Timmins, 3 = Thunder Bay, 11 = Toronto, 12 = Windsor, 13 = Chicago, 14 = Milwaukee, 15 = Minneapolis,
+            // 16 = Winnipeg, 17 = Regina, 18 = Calgary, 19 = Banff, 20 = Kelowna, 26 = Saskatoon, 27 = Edmonton, 28 = Hinton, 29 = Kamloops 
+            nextDestinationLog.Add(0, MapDestination("Ottawa", ""));
+            distanceLog.Add(0, MapDistance(198, 0));
+            nextDestinationLog.Add(1, MapDestination("Timmins", "Toronto"));
+            distanceLog.Add(1, MapDistance(718, 450));
+            nextDestinationLog.Add(2, MapDestination("Thunder Bay", ""));
+            distanceLog.Add(2, MapDistance(777, 0));
+            nextDestinationLog.Add(3, MapDestination("Winnipeg", ""));
+            distanceLog.Add(3, MapDistance(702, 0));
+            nextDestinationLog.Add(11, MapDestination("Windsor", ""));
+            distanceLog.Add(11, MapDistance(376, 0));
+            nextDestinationLog.Add(12, MapDestination("Chicago", ""));
+            distanceLog.Add(12, MapDistance(457, 0));
+            nextDestinationLog.Add(13, MapDestination("Milwaukee", ""));
+            distanceLog.Add(13, MapDistance(148, 0));
+            nextDestinationLog.Add(14, MapDestination("Minneapolis", ""));
+            distanceLog.Add(14, MapDistance(542, 0));
+            nextDestinationLog.Add(15, MapDestination("Winnipeg", ""));
+            distanceLog.Add(15, MapDistance(736, 0));
+            nextDestinationLog.Add(16, MapDestination("Regina", "Saskatoon"));
+            distanceLog.Add(16, MapDistance(573, 786));
+            nextDestinationLog.Add(17, MapDestination("Calgary", ""));
+            distanceLog.Add(17, MapDistance(758, 0));
+            nextDestinationLog.Add(18, MapDestination("Banff", ""));
+            distanceLog.Add(18, MapDistance(127, 0));
+            nextDestinationLog.Add(19, MapDestination("Kelowna", "Kamloops"));
+            distanceLog.Add(19, MapDistance(480, 494));
+            nextDestinationLog.Add(20, MapDestination("Vancouver", ""));
+            distanceLog.Add(20, MapDistance(390, 0));
+            nextDestinationLog.Add(26, MapDestination("Edmonton", ""));
+            distanceLog.Add(26, MapDistance(523, 0));
+            nextDestinationLog.Add(27, MapDestination("Hinton", ""));
+            distanceLog.Add(27, MapDistance(288, 0));
+            nextDestinationLog.Add(28, MapDestination("Kamloops", "Kelowna"));
+            distanceLog.Add(28, MapDistance(519, 683));
+            nextDestinationLog.Add(29, MapDestination("Vancouver", ""));
+            distanceLog.Add(29, MapDistance(357, 0));
+            // Placeholder for no destination defined.
+            nextDestinationLog.Add(30, MapDestination("", ""));
+            distanceLog.Add(30, MapDistance(0, 0));
+            logInitialized = true;
+        }
+
+        /// <summary>
+        /// Utility function to map one/two destinations as a list of destinations for a town.
+        /// </summary>
+        private List<string> MapDestination(string arg1, string arg2){
+            List <string> destinations = new List<string>();
+            destinations.Add(arg1);
+            destinations.Add(arg2);
+            return destinations;
+        }
+
+        /// <summary>
+        /// Utility function to map one/two distances as a list of distances away for a town.
+        /// </summary>
+        private List<int> MapDistance(int arg1, int arg2){
+            List <int> distances = new List<int>();
+            distances.Add(arg1);
+            distances.Add(arg2);
+            return distances;
+        }
+
+        /// <summary>
+        /// Select a destination
+        /// </summary>
+        /// <param name="id">Id of the button that was clicked.</param>
+        private void UpdateButtons(){
+            IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            int townNum = dataReader.GetInt32(27), index = townNum;
+            string supplies = "";
+
+            // If the current town number has only one way to go, disable the 2nd option
+            destinationButton2.interactable = !CheckTownList(townNum);
+            dbConnection.Close();
+
+            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            // Determine distance based on town #
+            for(int i = 1; i <= 2; i++){
+                if(i == 2 && !destinationButton2.interactable){
+                    destinationTexts[i-1].text = "";
+                    break;
+                }
+
+                supplies = towns[i-1].SumTownResources() <= 330 ? "Light Supplies" : "Decent Supplies";
+                destinationTexts[i-1].text = nextDestinationLog[townNum][i-1]+ "\n" + distanceLog[townNum][i-1] + "km\n" + supplies;
+            }
+            dbConnection.Close();
         }
 
         /// <summary>
@@ -344,6 +419,7 @@ namespace TravelPhase{
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
+            string nextTown = dataReader.GetString(29);
             targetTownDistance = dataReader.GetInt32(28);
 
             dbConnection.Close();
@@ -363,8 +439,6 @@ namespace TravelPhase{
                 popup.SetActive(true);
                 popupText.text = "The car is broken.\nRepair the car with some scrap.";
                 PopupActive = true;
-                StopCoroutine(coroutine);
-                coroutineRunning = false;
                 return false;
             }
 
@@ -391,8 +465,6 @@ namespace TravelPhase{
                 popup.SetActive(true);
                 popupText.text = "The car is out of gas.\nProcure some by trading or scavenging.";
                 PopupActive = true;
-                StopCoroutine(coroutine);
-                coroutineRunning = false;
                 return false;
             }
 
@@ -469,7 +541,8 @@ namespace TravelPhase{
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                                                 ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
-                                                ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3]; 
+                                                ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3] +
+                                                " WHERE id = " + GameLoop.FileId; 
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -498,10 +571,8 @@ namespace TravelPhase{
                         tempDisplayText += names[0] + " has died.";
                         tempCommand += ", leaderName = null";
 
-                        StopCoroutine(coroutine);
-                        coroutineRunning = false;
-
                         popupText.text = tempDisplayText;
+                        PopupActive = true;
                         popup.SetActive(true);
                         RestMenu.LeaderName = names[0];
                         RestMenu.FriendsAlive = names.Where(s => !Equals(s, "_____TEMPNULL") && !Equals(s, names[0])).Count();
@@ -530,12 +601,11 @@ namespace TravelPhase{
                 }
 
                 tempDisplayText += deadCharacters.Count > 1 ? " have died." : " has died.";
-                StopCoroutine(coroutine);
-                coroutineRunning = false;
 
                 popupText.text = tempDisplayText;
                 PopupActive = true;
                 popup.SetActive(true);
+                return false;
             }
 
             dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
@@ -546,58 +616,33 @@ namespace TravelPhase{
 
             // Transition back to town rest if distance matches the target
             if(newDistance == targetTownDistance){
-                Debug.Log("Destination reached.");
-                StopCoroutine(coroutine);
+                PopupActive = true;
+                
+                destinationPopup.SetActive(true);
+                destinationPopupText.text = nextTown;
+                travelViewObject.SetActive(false);
+                backgroundPanel.SetActive(true);
+                return false;
             }
 
             return true;
         }
 
         /// <summary>
-        /// Move 1 timestep in travelling to the next destination.
+        /// Utility function to check if a town is a one-way town (has only one other destination connecting to it)
         /// </summary>
-        private IEnumerator Transition(){
-            coroutineRunning = true;
-            if(PopupActive){
-                if(coroutine != null){
-                    StopCoroutine(coroutine);
-                }
-            }
-            else{
-                // Initial delay for the player to have a chance to cancel out
-                yield return new WaitForSeconds(5.0f);
-                Debug.Log("test");
-                yield return new WaitForSeconds(1.0f);
-                Debug.Log("test.");
-                yield return new WaitForSeconds(1.0f);
-                Debug.Log("test..");
-                yield return new WaitForSeconds(1.0f);
-                Debug.Log("test...");
-                yield return new WaitForSeconds(1.0f);
-                Debug.Log("test....");
-                yield return new WaitForSeconds(1.0f);
+        private bool CheckTownList(int townNum){
+            List<int> oneWayTowns = new List<int>(){0,2,3,11,12,13,14,15,17,18,20,26,27,29};
+            return oneWayTowns.Contains(townNum);
+        }
 
-                // Travel, deal a little damage to the car and the party depending on pace and rationing
-                if(Drive()){
-                    // Driving must have happened for an event to occur.
-                    int eventChance = Random.Range(1,101);
-
-                    // Random chance of generating an event or rerun the coroutine
-                    if(eventChance <= 10){
-                        popup.SetActive(true);
-                        popupText.text = "this is a test";
-                        PopupActive = true;
-                        StopCoroutine(coroutine);
-                    }
-                    else{
-                        StartCoroutine(Transition());
-                    }
-                }
-                else{
-                    StartCoroutine(Transition());
-                }
+        /// <summary>
+        /// Utility function to prep the rest screen to have only screen 0 be visible when re-enabling.
+        /// </summary>
+        private void PrepRestScreen(){
+            for(int i = 0; i < restScreens.Length; i++){
+                restScreens[i].SetActive(i == 0);
             }
-            coroutineRunning = false;
         }
     }
 }

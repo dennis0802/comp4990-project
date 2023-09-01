@@ -52,7 +52,7 @@ namespace UI{
             int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar());
 
             // Display the top 8 scores.
-            dbCommandReadValues.CommandText = "SELECT * FROM LocalHighscoreTable ORDER BY score LIMIT 8";
+            dbCommandReadValues.CommandText = "SELECT * FROM LocalHighscoreTable ORDER BY score DESC LIMIT 8";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             string scoreDisplay1 = "", scoreDisplay2 = "";
             int rowNum = 1;

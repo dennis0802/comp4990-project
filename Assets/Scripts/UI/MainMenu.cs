@@ -286,6 +286,8 @@ namespace UI
         /// Delete the file
         /// </summary>
         public void DeleteFile(){
+            targetFile = GameLoop.FileId == -1 ? targetFile : GameLoop.FileId;
+
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM SaveFilesTable WHERE id = " + targetFile + ";";

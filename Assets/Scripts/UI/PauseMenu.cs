@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UI;
+using TravelPhase;
 
 namespace UI{
     [DisallowMultipleComponent]

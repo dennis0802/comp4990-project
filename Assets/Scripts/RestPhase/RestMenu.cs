@@ -270,7 +270,7 @@ namespace RestPhase{
             dataReader.Read();
 
             int money = dataReader.GetInt32(10), food = dataReader.GetInt32(7), scrap = dataReader.GetInt32(9), medkit = dataReader.GetInt32(11), 
-                tires = dataReader.GetInt32(12), batteries = dataReader.GetInt32(13), ammo = dataReader.GetInt32(14);
+                tires = dataReader.GetInt32(12), batteries = dataReader.GetInt32(13), ammo = dataReader.GetInt32(14), curDistance = dataReader.GetInt32(3);
             phaseNum = dataReader.GetInt32(6);
             float gas = dataReader.GetFloat(8);
 
@@ -318,9 +318,6 @@ namespace RestPhase{
             string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
 
             timeActivityText.text = "Current Time: " + time + timing + "; Activity: " + activity;
-            
-            // Map
-            distanceText.text = "Distance Travelled: " + dataReader.GetInt32(3) + " km\nDistance to Next Stop: # km";
 
             // Car
             scrapRepairText.text = "You have " + scrap + " scrap.";
@@ -381,6 +378,10 @@ namespace RestPhase{
                     shopButtons[i].interactable = true;
                 }
             }
+
+            // Map
+            int nextDistance = phaseNum == 2 ? dataReader.GetInt32(28)-curDistance : 0;
+            distanceText.text = "Distance Travelled: " + curDistance + " km\nDistance to Next Stop: " + nextDistance + " km";
 
             // Job listings
             for(int i = 0; i < 3; i++){
@@ -561,7 +562,7 @@ namespace RestPhase{
             if(phaseNum == 0){
                 SceneManager.LoadScene(2);
                 this.gameObject.SetActive(false);
-                MoveEnvironment.PopupActive = true;
+                TravelLoop.PopupActive = true;
                 leavePopup.SetActive(true);
             }
             else{
@@ -577,6 +578,7 @@ namespace RestPhase{
                 travelScreen.SetActive(true);
                 travelWindow.SetActive(true);
                 backgroundPanel.SetActive(false);
+                TravelLoop.PopupActive = false;
             }
         }
 
@@ -909,7 +911,9 @@ namespace RestPhase{
                 dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                                                     ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
-                                                    ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3]; 
+                                                    ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3] +
+                                                    "WHERE id = " + GameLoop.FileId; 
+                
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
             }
@@ -943,7 +947,7 @@ namespace RestPhase{
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                         ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
-                        ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3]; 
+                        ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3];
 
                 // Check if any character has died.
                 string tempDisplayText = "";
