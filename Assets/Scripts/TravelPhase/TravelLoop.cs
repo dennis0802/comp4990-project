@@ -234,6 +234,21 @@ namespace TravelPhase{
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
+            GameLoop.Hour = dataReader.GetInt32(15);
+
+            if(GameLoop.Hour >= 21 || GameLoop.Hour <= 5){
+                GameLoop.Activity = 4;
+            }
+            else if(GameLoop.Hour >= 18 || GameLoop.Hour <= 8){
+                GameLoop.Activity = 3;
+            }
+            else if(GameLoop.Hour >= 16 || GameLoop.Hour <= 10){
+                GameLoop.Activity = 2;
+            }
+            else{
+                GameLoop.Activity = 1;
+            }
+
             int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour, distanceLeft = targetTownDistance - dataReader.GetInt32(3);
             string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
 
