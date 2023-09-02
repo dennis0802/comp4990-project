@@ -274,7 +274,7 @@ namespace RestPhase{
             phaseNum = dataReader.GetInt32(6);
             float gas = dataReader.GetFloat(8);
 
-            suppliesText1.text = "Food: " +  food + "kg\n\nGas: " + gas + "L\n\nScrap: " + scrap + "\n\nMoney: $" +
+            suppliesText1.text = "Food: " +  food + "kg\n\nGas: " + gas + " cans\n\nScrap: " + scrap + "\n\nMoney: $" +
                                  money + "\n\nMedkit: " + medkit;
             suppliesText2.text = "Tires: " + tires + "\n\nBatteries: " + batteries + "\n\nAmmo: " + ammo;
             curFoodText.text = "You have " + food + "kg of food";
@@ -398,7 +398,7 @@ namespace RestPhase{
                         reward = dataReader.GetInt32(16+4*i) + "kg food";
                     }
                     else if(rewardType >= 4 && rewardType <= 6){
-                        reward = dataReader.GetInt32(16+4*i) + "L gas";
+                        reward = dataReader.GetInt32(16+4*i) + " cans";
                     }
                     else if(rewardType >= 7 && rewardType <= 9){
                         reward = dataReader.GetInt32(16+4*i) + " scrap";
@@ -1026,7 +1026,9 @@ namespace RestPhase{
             // If leader name is null, they are dead. Bring to game over screen. Otherwise visibilities are toggled by the engine.
             if(dataReader.IsDBNull(1)){
                 this.gameObject.SetActive(false);
+                travelScreen.SetActive(false);
                 gameOverScreen.SetActive(true);
+                backgroundPanel.SetActive(true);
             }
 
             dbConnection.Close();
@@ -1125,7 +1127,7 @@ namespace RestPhase{
                     offerItem = "kg of food";
                     break;
                 case 2:
-                    offerItem = "L of gas";
+                    offerItem = "cans of gas";
                     break;
                 case 3:
                     offerItem = "scrap";
@@ -1159,7 +1161,7 @@ namespace RestPhase{
                     curPartyStock = dataReader.GetInt32(7);
                     break;
                 case 2:
-                    demandItem = "L of gas";
+                    demandItem = "cans of gas";
                     curPartyStock = (int)(dataReader.GetFloat(8));
                     break;
                 case 3:

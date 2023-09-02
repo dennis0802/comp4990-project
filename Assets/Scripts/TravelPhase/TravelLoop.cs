@@ -203,7 +203,11 @@ namespace TravelPhase{
 
             for(int i = 0; i < playerHealthBars.Length; i++){
                 int index = 1 + 9 * i;
-                if(!dataReader.IsDBNull(index)){
+                if(dataReader.IsDBNull(index) && i == 0){
+                    playerHealthBars[i].value = 0;
+                    tempPlayerText += "\nCar\n";
+                }
+                else if(!dataReader.IsDBNull(index)){
                     playerHealthBars[i].value = dataReader.GetInt32(9 + 9 * i);
                     tempPlayerText += i == 0 ? dataReader.GetString(index) + "\nCar\n" : dataReader.GetString(index) + "\n";
                 }
@@ -252,7 +256,7 @@ namespace TravelPhase{
             int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour, distanceLeft = targetTownDistance - dataReader.GetInt32(3);
             string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
 
-            supplyText.text = "Food: " + dataReader.GetInt32(7) + "kg\nGas: " +  dataReader.GetFloat(8) + "L\nDistance to Destination: " +  distanceLeft
+            supplyText.text = "Food: " + dataReader.GetInt32(7) + "kg\nGas: " +  dataReader.GetFloat(8) + " cans\nDistance to Destination: " +  distanceLeft
                             + "km\nDistance Travelled: " + dataReader.GetInt32(3) + "km\nTime: " + time + timing + "\nActivity: " + activity;
             dbConnection.Close();
         }
@@ -304,17 +308,7 @@ namespace TravelPhase{
         /// </summary>
         public void ResumeTravel(){
             PopupActive = false;
-            //coroutine = StartCoroutine(Transition());
-        }
-
-        /// <summary>
-        /// Generate a random event while driving
-        /// </summary>
-        /// <param name="eventChance">The probability of the event happening, 30 or less guaranteed to be passed in</param>
-        private void GenerateEvent(int eventChance){
-            popupText.text = "Picking " + eventChance + " was a 3/10 chance out of 100 and 1/30 chance out of the 30 available!";
-            popup.SetActive(true);
-            PopupActive = true;
+            HasCharacterDied();
         }
 
         /// <summary>
@@ -323,7 +317,7 @@ namespace TravelPhase{
         private void InitializeLogs(){
             // The key is the town BEFORE moving to the new town (ex. 0 = Montreal, starting town provides access to Ottawa at 198km away)
             // 0 = Montreal, 1 = Ottawa, 2 = Timmins, 3 = Thunder Bay, 11 = Toronto, 12 = Windsor, 13 = Chicago, 14 = Milwaukee, 15 = Minneapolis,
-            // 16 = Winnipeg, 17 = Regina, 18 = Calgary, 19 = Banff, 20 = Kelowna, 26 = Saskatoon, 27 = Edmonton, 28 = Hinton, 29 = Kamloops 
+            // 16 = Winnipeg, 17 = Regina, 18 = Calgary, 19 = Banff, 20/38 = Kelowna, 26 = Saskatoon, 27 = Edmonton, 28 = Hinton, 29 = Kamloops 
             nextDestinationLog.Add(0, MapDestination("Ottawa", ""));
             distanceLog.Add(0, MapDistance(198, 0));
             nextDestinationLog.Add(1, MapDestination("Timmins", "Toronto"));
@@ -360,9 +354,8 @@ namespace TravelPhase{
             distanceLog.Add(28, MapDistance(519, 683));
             nextDestinationLog.Add(29, MapDestination("Vancouver", ""));
             distanceLog.Add(29, MapDistance(357, 0));
-            // Placeholder for no destination defined.
-            nextDestinationLog.Add(30, MapDestination("", ""));
-            distanceLog.Add(30, MapDistance(0, 0));
+            nextDestinationLog.Add(38, MapDestination("Vancouver", ""));
+            distanceLog.Add(38, MapDistance(390, 0));
             logInitialized = true;
         }
 
@@ -426,7 +419,7 @@ namespace TravelPhase{
         /// <summary>
         /// Drive some distance, increasing distance, changing time, and damaging the car and players.
         /// </summary>
-        /// <returns>True if drive was successful, false otherwise</returns>
+        /// <returns>True if drive had no events from updating, false if drive had events from updating</returns>
         private bool Drive(){
             IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
@@ -445,7 +438,7 @@ namespace TravelPhase{
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            int carHP = dataReader.GetInt32(1);
+            int carHP = dataReader.GetInt32(1), batteryStatus = dataReader.GetInt32(8), tireStatus = dataReader.GetInt32(9);
 
             dbConnection.Close();
 
@@ -457,12 +450,6 @@ namespace TravelPhase{
                 return false;
             }
 
-            GameLoop.Hour++;
-
-            if(GameLoop.Hour == 25){
-                GameLoop.Hour = 1;
-            }
-
             dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
@@ -472,15 +459,82 @@ namespace TravelPhase{
             int overallTime = dataReader.GetInt32(16), speed = dataReader.GetInt32(18), oldDistance  = dataReader.GetInt32(3), rations = dataReader.GetInt32(17);
             int newDistance = speed == 1 ? oldDistance + 40 : speed == 2 ? oldDistance + 50 : oldDistance + 60;
             newDistance = newDistance >= targetTownDistance ? targetTownDistance : newDistance;
-            int decay = speed == 1 ? 3 : speed == 2 ? 5 : 7;
+            int decay = speed == 1 ? 3 : speed == 2 ? 5 : 7, tire = dataReader.GetInt32(12), battery = dataReader.GetInt32(13); 
             float gas = dataReader.GetFloat(8);
 
-            // If the car is out of gas, do no driving.
+            // If the car is out of gas, has a dead battery, or a flat tire, do no driving. Alternatively, if a battery or tire is available, replace but still don't drive.
             if(gas == 0f){
                 popup.SetActive(true);
                 popupText.text = "The car is out of gas.\nProcure some by trading or scavenging.";
                 PopupActive = true;
                 return false;
+            }
+            else if(battery > 0 && batteryStatus == 1){
+                popup.SetActive(true);
+                popupText.text = "You spend an hour replacing your dead battery.";
+                PopupActive = true;
+
+                GameLoop.Hour++;
+
+                if(GameLoop.Hour == 25){
+                    GameLoop.Hour = 1;
+                }
+
+                IDbCommand dbCommandUpdateValues = dbConnection.CreateCommand();
+                dbCommandUpdateValues.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", battery = " + (battery - 1) + 
+                                                " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValues.ExecuteNonQuery();
+                dbConnection.Close();
+
+                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+                dbCommandUpdateValues = dbConnection.CreateCommand();
+                dbCommandUpdateValues.CommandText = "UPDATE CarsTable SET isBatteryDead = 0 WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValues.ExecuteNonQuery();
+                dbConnection.Close();
+
+                return false;
+            }
+            else if(tire > 0 && tireStatus == 1){
+                popup.SetActive(true);
+                popupText.text = "You spend an hour replacing your flat tire.";
+                PopupActive = true;
+                GameLoop.Hour++;
+
+                if(GameLoop.Hour == 25){
+                    GameLoop.Hour = 1;
+                }
+
+                IDbCommand dbCommandUpdateValues = dbConnection.CreateCommand();
+                dbCommandUpdateValues.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", tire = " + (tire - 1) + 
+                                                " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValues.ExecuteNonQuery();
+                dbConnection.Close();
+
+                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+                dbCommandUpdateValues = dbConnection.CreateCommand();
+                dbCommandUpdateValues.CommandText = "UPDATE CarsTable SET isTireFlat = 0 WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValues.ExecuteNonQuery();
+                dbConnection.Close();
+
+                return false;
+            }
+            else if(batteryStatus == 1){
+                popup.SetActive(true);
+                popupText.text = "The car has a dead battery.\nTrade for another one.";
+                PopupActive = true;
+                return false;
+            }
+            else if(tireStatus == 1){
+                popup.SetActive(true);
+                popupText.text = "The car has a flat tire.\nTrade for another one.";
+                PopupActive = true;
+                return false;
+            }
+
+            GameLoop.Hour++;
+
+            if(GameLoop.Hour == 25){
+                GameLoop.Hour = 1;
             }
 
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
@@ -562,10 +616,64 @@ namespace TravelPhase{
             dbConnection.Close();
 
             // Check if any character has died.
+            if(HasCharacterDied()){
+                RefreshScreen();
+                return false;
+            }
+            RefreshScreen();
+
+            // Transition back to town rest if distance matches the target
+            if(newDistance == targetTownDistance){
+                PopupActive = true;
+                
+                destinationPopup.SetActive(true);
+                destinationPopupText.text = nextTown;
+                travelViewObject.SetActive(false);
+                backgroundPanel.SetActive(true);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Check if anyone in the party has died.
+        /// </summary>
+        /// <returns>True if someone has perished, false otherwise</returns>
+        private bool HasCharacterDied(){
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
+                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            List<int> teamHealth = new List<int>();
+            List<int> teamMorale = new List<int>();
+            List<string> names = new List<string>();
+
+            for(int i = 0; i < 4 ; i++){
+                int index = 20 + 9 * i, curHp = dataReader.IsDBNull(28 + 9 * i) ? 0 : dataReader.GetInt32(28 + 9 * i), 
+                    curMorale = dataReader.IsDBNull(28 + 9 * i) ? 0 : dataReader.GetInt32(27 + 9 * i);
+
+                if(!dataReader.IsDBNull(index)){
+                    teamHealth.Add(curHp);
+                    teamMorale.Add(curMorale);
+                    names.Add(dataReader.GetString(index));
+                }
+                else{
+                    teamHealth.Add(0);
+                    teamMorale.Add(0);
+                    names.Add("_____TEMPNULL");
+                }
+            }
+            dbConnection.Close();
+
+            // Check if any character has died.
             string tempDisplayText = "";
 
             dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
-            dbCommandUpdateValue = dbConnection.CreateCommand();
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                     ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
                     ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3]; 
@@ -595,7 +703,7 @@ namespace TravelPhase{
                         dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
                         dbCommandUpdateValue.ExecuteNonQuery();
                         dbConnection.Close();
-                        return false; 
+                        return true; 
                     }
                     tempCommand += ", friend" + i + "Name = null";
                 }
@@ -620,28 +728,304 @@ namespace TravelPhase{
                 popupText.text = tempDisplayText;
                 PopupActive = true;
                 popup.SetActive(true);
-                return false;
+
+                dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValue.ExecuteNonQuery();
+                dbConnection.Close();
+                return true;
             }
 
             dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();  
+            dbConnection.Close();
 
-            RefreshScreen();
-
-            // Transition back to town rest if distance matches the target
-            if(newDistance == targetTownDistance){
-                PopupActive = true;
-                
-                destinationPopup.SetActive(true);
-                destinationPopupText.text = nextTown;
-                travelViewObject.SetActive(false);
-                backgroundPanel.SetActive(true);
-                return false;
-            }
-
-            return true;
+            return false;
         }
+
+        /// <summary>
+        /// Generate a random event while driving
+        /// </summary>
+        /// <param name="eventChance">The probability of the event happening, 30 or less guaranteed to be passed in</param>
+        private void GenerateEvent(int eventChance){
+            // Get difficulty, some events will play differently depending on it (more loss, more damage, etc.)
+            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            int diff = dataReader.GetInt32(4);
+
+            dbConnection.Close();
+
+            // 2/30 possibility for a random player to take extra damage (Ex. Bob breaks a rib/leg)
+            if(eventChance <= 2){
+                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                int rand = 0, index = 0;
+                // Keep randomly picking until not a dead player
+                do
+                {
+                    rand = Random.Range(0,4);
+                    index = 1 + 9 * rand;
+                } while (dataReader.IsDBNull(index));
+
+                string name = dataReader.GetString(index);
+                rand = Random.Range(0,4);
+                string[] temp = {" breaks a rib.", " breaks a leg.", " breaks an arm.", " sits down wrong."};
+                int hpLoss = diff % 2 == 0 ? Random.Range(13,20) : Random.Range(5,13), curHealth = dataReader.GetInt32(index+8);
+                curHealth = curHealth - hpLoss > 0 ? curHealth - hpLoss : 0;
+
+                string commandText = "UPDATE SaveFilesTable SET ";
+                commandText += index == 9 ? "leaderHealth = " + curHealth : index == 18 ? "friend1Health = " + curHealth : index == 27 
+                                          ? "friend2Health = " + curHealth : "friend3Health = " + curHealth;
+                commandText += " WHERE id = " + GameLoop.FileId;
+
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = commandText;
+                dbCommandUpdateValue.ExecuteNonQuery();
+
+                popupText.text = name + temp[rand];
+                dbConnection.Close();
+            }
+            // 2/30 possibility for a random resource type decay more (ex. 10 cans of gas goes missing. Everyone blames Bob.)
+            else if(eventChance <= 4){
+                dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                string temp = "", name = "", commandText = "UPDATE SaveFilesTable SET ";
+                int type = Random.Range(7,15), lost = diff % 2 == 0 ? Random.Range(15,30) : Random.Range(10,20), curStock = 0, rand = 0, index = 0;
+                float curGasStock = 0;
+                List<string> tempTexts = new List<string>(){"kg of food", "cans of gas", "scrap", "dollars", "medkits", "tires", "batteries", "ammo"};
+                List<string> commandTexts = new List<string>(){"food = ", "gas = ", "scrap = ", "money = ", "medkit = ", "tire = ", "battery = ", "ammo = "};
+
+                if(type >= 11 && type <= 13){
+                    lost = diff % 2 == 0 ? Random.Range(3,6) : Random.Range(1,3);
+                }
+
+                temp = tempTexts[type-7];
+                commandText += commandTexts[type-7];
+
+                if(type != 8){
+                    curStock = dataReader.GetInt32(type);
+                    curStock = curStock - lost > 0 ? curStock - lost : 0;
+                    commandText += curStock.ToString();
+                }
+                else{
+                    curGasStock = dataReader.GetFloat(type);
+                    curGasStock = curGasStock - (float)(lost) > 0.0f ? curGasStock - (float)(lost) : 0.0f;
+                    commandText += curGasStock.ToString();
+                }
+                commandText += " WHERE id = " + GameLoop.FileId;
+
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = commandText;
+                dbCommandUpdateValue.ExecuteNonQuery();
+
+                dbConnection.Close();
+                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                // Keep randomly picking until not a dead player
+                do
+                {
+                    rand = Random.Range(0,4);
+                    index = 1 + 9 * rand;
+                } while (dataReader.IsDBNull(index));
+
+                name = dataReader.GetString(index);
+                popupText.text = lost.ToString() + " " + temp + " goes missing.\nEveryone blames " + name + "."; 
+                dbConnection.Close();
+            }
+            // 2/30 possibility for the car to take more damage (ex. The car drives over some rough terrain)
+            else if(eventChance <= 6){
+                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                int hpLoss = diff % 2 == 0 ? Random.Range(20,30) : Random.Range(10,20), curHealth = dataReader.GetInt32(1);
+                curHealth = curHealth - hpLoss > 0 ? curHealth - hpLoss : 0;
+                string commandText = "UPDATE CarsTable SET carHP = " + curHealth + " WHERE id = " + GameLoop.FileId;
+                
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = commandText;
+                dbCommandUpdateValue.ExecuteNonQuery();
+
+                popupText.text = "The car struggles to drive over some terrain.";
+                dbConnection.Close();
+            }
+            // 2/30 possibility for more resources to be found (ex. Bob finds 10 cans of gas in an abandoned car)
+            else if(eventChance <= 8){
+                dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                string temp = "", name = "", commandText = "UPDATE SaveFilesTable SET ";
+                int type = Random.Range(7,15), gain = diff % 2 == 0 ? Random.Range(15,30) : Random.Range(10,20), curStock = 0, rand = 0, index = 0;
+                float curGasStock = 0;
+                List<string> tempTexts = new List<string>(){"kg of food", "cans of gas", "scrap", "dollars", "medkits", "tires", "batteries", "ammo"};
+                List<string> commandTexts = new List<string>(){"food = ", "gas = ", "scrap = ", "money = ", "medkit = ", "tire = ", "battery = ", "ammo = "};
+
+                if(type >= 11 && type <= 13){
+                    gain = diff % 2 == 0 ? Random.Range(3,6) : Random.Range(1,3);
+                }
+
+                temp = tempTexts[type-7];
+                commandText += commandTexts[type-7];
+
+                if(type != 8){
+                    curStock = dataReader.GetInt32(type) + gain;
+                    commandText += curStock.ToString();
+                }
+                else{
+                    curGasStock = dataReader.GetFloat(type) + (float)(gain);
+                    commandText += curGasStock.ToString();
+                }
+                commandText += " WHERE id = " + GameLoop.FileId;
+
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = commandText;
+                dbCommandUpdateValue.ExecuteNonQuery();
+
+                dbConnection.Close();
+                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                // Keep randomly picking until not a dead player
+                do
+                {
+                    rand = Random.Range(0,4);
+                    index = 1 + 9 * rand;
+                } while (dataReader.IsDBNull(index));
+
+                name = dataReader.GetString(index);
+                popupText.text = name + " finds " + gain + " " + temp + " in an abandoned car.";
+                dbConnection.Close();
+            }
+            // 3/30 possibility to find a new party member (ex. The party meets Bob. They have the Perk surgeon and Trait paranoid. Are they allowed to join?)
+            else if(eventChance <= 11){
+                // Check that a slot is available.
+            }
+            // 1/30 possibility for an upgrade to be found. (ex. Bob finds durable tires in an abandoned car.)
+            else if(eventChance <= 12){
+                // Check that a slot is available.
+            }
+            // 1/30 possibility for party-wide damage. (ex. The party cannot find clean water. Everyone is dehydrated.)
+            else if(eventChance <= 13){
+                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                int hpLoss = diff % 2 == 0 ? Random.Range(10,15) : Random.Range(5,10);
+                List<int> teamHp = new List<int>(){dataReader.GetInt32(9), dataReader.GetInt32(18), dataReader.GetInt32(27), dataReader.GetInt32(36)};
+                for(int i = 0; i < teamHp.Count; i++){
+                    teamHp[i] = teamHp[i] - hpLoss > 0 ? teamHp[i] - hpLoss : 0;
+                }
+
+                string commandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHp[0] + ", friend1Health = " + teamHp[1] + ", friend2Health = " + teamHp[2] +
+                                     ", friend3Health = " + teamHp[3] + " WHERE id = " + GameLoop.FileId;
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = commandText;
+                dbCommandUpdateValue.ExecuteNonQuery();
+
+                popupText.text = "The party cannot find clean water. Everyone is dehydrated.";
+
+                dbConnection.Close();
+            }
+            // 1/30 possibility for a tire to go flat
+            else if(eventChance <= 14){
+                dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                int tires = dataReader.GetInt32(12);
+
+                dbConnection.Close();
+
+                // Determine if the car can still move.
+                if(tires > 0){
+                    tires--;
+                    IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                    dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET tire = " + tires + " WHERE id = " + GameLoop.FileId;
+                    dbCommandUpdateValue.ExecuteNonQuery();
+                    popupText.text = "The car goes over some rough terrain and the tire pops.\nYou replace your flat tire.";
+                }
+                else{
+                    dbConnection.Close();
+
+                    dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+                    string commandText = "UPDATE CarsTable SET isTireFlat = 1 WHERE id = " + GameLoop.FileId;
+                    IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                    dbCommandUpdateValue.CommandText = commandText;
+                    dbCommandUpdateValue.ExecuteNonQuery();
+                    popupText.text = "The car goes over some rough terrain and the tire pops.\nYou don't have a tire to replace.\nTrade for another one.";
+                }
+
+                dbConnection.Close();
+            }
+            // 1/30 possibility for a car battery to die.
+            else if(eventChance <= 15){
+                dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                int batteries = dataReader.GetInt32(13);
+
+                dbConnection.Close();
+
+                // Determine if the car can still move.
+                if(batteries > 0){
+                    batteries--;
+                    IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                    dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET battery = " + batteries + " WHERE id = " + GameLoop.FileId;
+                    dbCommandUpdateValue.ExecuteNonQuery();
+                    popupText.text = "There is smoke coming from the hood - the car battery is dead.\nYou replace your dead battery.";
+                }
+                else{
+                    dbConnection.Close();
+
+                    dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+                    string commandText = "UPDATE CarsTable SET isBatteryDead = 1 WHERE id = " + GameLoop.FileId;
+                    IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                    dbCommandUpdateValue.CommandText = commandText;
+                    dbCommandUpdateValue.ExecuteNonQuery();
+                    popupText.text = "There is smoke coming from the hood - the car battery is dead.\nYou don't have a battery to replace.\nTrade for another one.";
+                }
+
+                dbConnection.Close();
+            }
+            else{
+                popupText.text = "Picking " + eventChance + " was a 3/10 chance out of 100 and 1/30 chance out of the 30 available!";
+            }
+            
+            RefreshScreen();
+            popup.SetActive(true);
+            PopupActive = true;
+        }
+
 
         /// <summary>
         /// Utility function to check if a town is a one-way town (has only one other destination connecting to it)

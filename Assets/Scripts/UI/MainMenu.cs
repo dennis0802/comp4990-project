@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
@@ -218,10 +219,27 @@ namespace UI
         /// </summary>
         public void SetFileDesc(){
             string diff = "";
-            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            List<int> nullFiles = new List<int>();
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id";
+            dbCommandReadValues.CommandText = "SELECT id FROM ActiveCharactersTable WHERE leaderName is NULL";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+
+            while(dataReader.Read()){
+                nullFiles.Add(dataReader.GetInt32(0));
+            }
+            dbConnection.Close();
+
+            foreach(int nullFile in nullFiles){
+                targetFile = nullFile;
+                DeleteFile();
+            }
+            targetFile = -1;
+
+            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id";
+            dataReader = dbCommandReadValues.ExecuteReader();
 
             while(dataReader.Read()){
                 switch(dataReader.GetInt32(4)){
@@ -324,11 +342,11 @@ namespace UI
         /// Start a new game
         /// </summary>
         public void StartNewGame(){
-            int startingFood = 100, startingGas = 50, startingScrap = 25, startingMoney = 30, startingMedkit = 1, startingBattery = 1, startingTire = 1, startingAmmo = 150;
+            int startingFood = 100, startingGas = 20, startingScrap = 25, startingMoney = 30, startingMedkit = 1, startingBattery = 1, startingTire = 1, startingAmmo = 150;
 
             if(GamemodeSelect.Difficulty == 2 || GamemodeSelect.Difficulty == 4){
                 startingFood = 50; 
-                startingGas = 25;
+                startingGas = 10;
                 startingScrap = 12; 
                 startingMoney = 15; 
                 startingMedkit = 0;
@@ -358,11 +376,6 @@ namespace UI
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            List<int> missionDiff = new List<int>();
-            List<int> missionReward = new List<int>();
-            List<int> missionQty = new List<int>();
-            List<int> missionType = new List<int>();
-
             Town start = new Town();
 
             dbConnection = GameDatabase.CreateTownAndOpenDatabase();
@@ -386,8 +399,8 @@ namespace UI
 
             dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
             dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO CarsTable(id, carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2) VALUES" +
-                                               "(" + targetFile + ", 100, 0, 0, 0, 0, 0, 0)";
+            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO CarsTable(id, carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2, isBatteryDead, isTireFlat) VALUES" +
+                                               "(" + targetFile + ", 100, 0, 0, 0, 0, 0, 0, 0, 0)";
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
