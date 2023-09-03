@@ -8,6 +8,7 @@ using Mono.Data.Sqlite;
 using TMPro;
 using UI;
 using Database;
+using System.Linq;
 
 namespace RestPhase{
     [DisallowMultipleComponent]
@@ -123,15 +124,15 @@ namespace RestPhase{
                 // Rate based on falling in between specified x-coordinates
                 if(prompts[i].transform.localPosition.x >= Mathf.Abs(13f) && prompts[i].transform.localPosition.x <= Mathf.Abs(17f)){
                     statuses[i].text = "Near Miss";
-                    amountRecovered += 1;
+                    amountRecovered += 3;
                 }
                 else if(prompts[i].transform.localPosition.x >= Mathf.Abs(9f) && prompts[i].transform.localPosition.x <= Mathf.Abs(12f)){
                     statuses[i].text = "Good";
-                    amountRecovered += 2;
+                    amountRecovered += 4;
                 }
                 else if(prompts[i].transform.localPosition.x >= -8f && prompts[i].transform.localPosition.x <= 8f){
                     statuses[i].text = "Great";
-                    amountRecovered += 3;
+                    amountRecovered += 5;
                 }
                 else{
                     statuses[i].text = "Miss";
@@ -141,10 +142,32 @@ namespace RestPhase{
             }
 
             // Update as necessary in the database
-            IDbConnection dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            // Check if a mechanic was used.
+            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            List<int> perksFound = new List<int>();
+            for(int i = 0; i < 4; i++){
+                if(!dataReader.IsDBNull(1+9*i)){
+                    perksFound.Add(dataReader.GetInt32(2+9*i));
+                }
+                else{
+                    perksFound.Add(-1);
+                }
+            }
+            dbConnection.Close();
+
+            if(perksFound.Where(p => p == 0).Count() > 0){
+                amountRecovered += 5;
+            }
+
+            dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+            dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
             int newHp = dataReader.GetInt32(1) + amountRecovered > 100 ? 100 : dataReader.GetInt32(1) + amountRecovered;
@@ -161,6 +184,7 @@ namespace RestPhase{
             dbConnection.Close();
 
             repairScreenRecoverText.text = "You repaired for " + amountRecovered + " HP.";
+            repairScreenRecoverText.text += "\nA +5 bonus was applied because of a mechanic's presence.";
             
             restMenu.PerformWaitingAction(3);
             returnButton.SetActive(true);

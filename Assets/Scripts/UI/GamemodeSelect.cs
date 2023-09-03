@@ -71,17 +71,17 @@ namespace UI{
         public static int PartnerPerk, PartnerTrait, PartnerColor, PartnerOutfit, PartnerAcc, PartnerHat;
 
         // For randomizing a character
-        private List<string> randomNames = new List<string>(){
+        public static List<string> RandomNames = new List<string>(){
             "Grayson","Iliana","Delaney","Ibrahim","Jaylin","Jazmine","Emilio","Sheldon","Brady","Jeffery","Izaiah","Juliette","Aidyn","Matias","Ryker","Saniya","Karen",
             "Luke","Sonia","Dakota","Catalina","Maci","Aurora","Ronin","Skye","Jasiah","Taylor","Johnathon","Monserrat","Keyon","Desmond","Jaylen","Brandon","Riley",
             "Emmy","Macey","Ramiro","Andreas","Yazmin","Adam","Jovany","Liliana","Leonel","Roselyn","Zain","Paige","Karissa","Dane","Emery","Aidan"
         };
 
         // Perk list
-        private List<string> perks = new List<string>(){"Mechanic", "Sharpshooter", "Health Care", "Surgeon", "Programmer", "Musician"};
+        public static List<string> Perks = new List<string>(){"Mechanic", "Sharpshooter", "Health Care", "Surgeon", "Programmer", "Musician"};
         
         // Trait list
-        private List<string> traits = new List<string>(){"Charming", "Paranoid", "Civilized", "Bandit", "Hot Headed", "Creative"};
+        public static List<string> Traits = new List<string>(){"Charming", "Paranoid", "Civilized", "Bandit", "Hot Headed", "Creative"};
 
         // Mode list
         private List<string> modes = new List<string>(){"Standard", "Deadlier", "Standard Custom", "Deadlier Custom"};
@@ -187,7 +187,7 @@ namespace UI{
         /// </summary>
         /// <param name="isPartner">If the character randomzied is the partner</param>
         public void RandomizeCharacter(bool isPartner){
-            string name = randomNames[Random.Range(0,49)];
+            string name = RandomNames[Random.Range(0,49)];
             int perk = Random.Range(0,6), trait = Random.Range(0,6), hatNum = Random.Range(1,4), outfitNum = Random.Range(1,4), accNum = Random.Range(1,4), colorNum = Random.Range(1,10);
             
             if(isPartner){
@@ -296,7 +296,7 @@ namespace UI{
         private void UpdateVisuals(int perk, int trait, int colorNum, int hatNum, int outfitNum, int accNum, string name, bool isPartner){
             GameObject model = isPartner ? partnerModel : leaderModel;
             TextMeshProUGUI textFocus = isPartner ? partnerDesc: leaderDesc;
-            textFocus.text = "Name: " + name + "\nPerk: " + perks[perk] + "\nTrait: " + traits[trait];
+            textFocus.text = "Name: " + name + "\nPerk: " + Perks[perk] + "\nTrait: " + Traits[trait];
 
             // Color
             model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[colorNum-1];

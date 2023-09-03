@@ -242,20 +242,8 @@ namespace UI
             dataReader = dbCommandReadValues.ExecuteReader();
 
             while(dataReader.Read()){
-                switch(dataReader.GetInt32(4)){
-                    case 1:
-                        diff = "Standard";
-                        break;
-                    case 2:
-                        diff = "Deadlier";
-                        break;
-                    case 3:
-                        diff = "Standard Custom";
-                        break;
-                    case 4:
-                        diff = "Deadlier Custom";
-                        break;
-                }
+                int diffRead = dataReader.GetInt32(4);
+                diff = diffRead == 1 ? "Standard" : diffRead == 2 ? "Deadlier" : diffRead == 3 ? "Standard Custom" : "Deadlier Custom";
                 fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(20) + 
                                                                "\n  " + dataReader.GetInt32(3) + "km\t " + dataReader.GetString(5) + "\n  " + diff;
             }
@@ -354,6 +342,8 @@ namespace UI
                 startingTire = 0;
                 startingAmmo = 75;
             }
+            // Add medkits if healthcare perk is used
+            startingMedkit += GamemodeSelect.LeaderPerk == 2 || GamemodeSelect.PartnerPerk == 2 ? 2 : 0;
 
             // Create table of active characters as a separate table
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();

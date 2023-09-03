@@ -311,6 +311,17 @@ namespace RestPhase{
             else{
                 GameLoop.Activity = 1;
             }
+
+            // 22 + 9 * i gets the traits
+            List<int> foundTraits = new List<int>();
+            for(int i = 0; i < 4; i++){
+                if(!dataReader.IsDBNull(20+9*i)){
+                    foundTraits.Add(dataReader.GetInt32(22+9*i));
+                }
+                else{
+                    foundTraits.Add(-1);
+                }
+            }
             
             rationsText.text = GameLoop.RationsMode == 1 ? "Current Rations: Low" : GameLoop.RationsMode == 2 ?  "Current Rations: Medium" : "Current Rations: High";
             paceText.text = GameLoop.Pace== 1 ? "Slow\n40km/h" : GameLoop.Pace == 2 ?  "Average\n50km/h" : "Fast\n60km/h";
@@ -342,12 +353,14 @@ namespace RestPhase{
             }
 
             // Change rate based on distance later, should get lower
-            GameLoop.SellRate = 0.4f;
+            GameLoop.SellRate = curDistance < 1000 ? 0.4f : curDistance < 1500 ? 0.3f : curDistance < 2000 ? 0.2f : 0.1f;
 
             int[] teamStocks = {food, (int)gas, scrap, medkit, tires, batteries, ammo};
 
             for(int i = 0; i < 7; i++){
                 buyingPrices[i] = dataReader.GetInt32(i+1);
+                // Add a 10% discount if a charming character is present
+                buyingPrices[i] = foundTraits.Contains(0) ? buyingPrices[i] - (int)(buyingPrices[i] * 0.1f) : buyingPrices[i];
                 sellingPrices[i] = (int)((float)(buyingPrices[i]) * GameLoop.SellRate);
                 shopStocks[i] = dataReader.GetInt32(i+8);
                 if(i == 0 || i == 6){
@@ -439,47 +452,12 @@ namespace RestPhase{
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            // Wheel
-            switch(dataReader.GetInt32(2)){
-                default:
-                    wheelText.text = "No wheel upgrade available to list.";
-                    break;
-            }
-
-            // Battery
-            switch(dataReader.GetInt32(3)){
-                default:
-                    batteryText.text = "No battery upgrade available to list.";
-                    break;                
-            }
-
-            // Engine
-            switch(dataReader.GetInt32(4)){
-                default:
-                    engineText.text = "No engine upgrade available to list.";
-                    break;
-            }
-
-            // Tool
-            switch(dataReader.GetInt32(5)){
-                default:
-                    toolText.text = "No tool upgrade available to list.";
-                    break;
-            }
-
-            // Misc 1
-            switch(dataReader.GetInt32(6)){
-                default:
-                    misc1Text.text = "No misc upgrade available to list.";
-                    break;
-            }
-
-            // Misc 2
-            switch(dataReader.GetInt32(7)){
-                default:
-                    misc2Text.text = "No misc upgrade available to list.";
-                    break;
-            }
+            wheelText.text = dataReader.GetInt32(2) == 1 ? "Durable Tires\nTires that always last regardless of terrain" : "No wheel upgrade available to list.";
+            batteryText.text = dataReader.GetInt32(3) == 1 ? "Durable Battery\nBattery that has been tested to never run out" : "No battery upgrade available to list.";
+            engineText.text = dataReader.GetInt32(4) == 1 ? "Fuel-Efficent Engine\nEngine that consumes less gas for more distance" : "No engine upgrade available to list.";
+            toolText.text = dataReader.GetInt32(5) == 1 ? "Secure Chest\nNo supplies will be forgotten with this chest" : "No tool upgrade available to list.";
+            misc1Text.text = dataReader.GetInt32(6) == 1 ? "Travel Garden\nGenerate 1kg of food every hour" : "No misc upgrade available to list.";
+            misc2Text.text = dataReader.GetInt32(7) == 1 ? "Cushioned Seating\nParty takes less damage when driving" : "No misc upgrade available to list.";
             int carHP = dataReader.GetInt32(1);
             carHPSlider.value = carHP;
 
@@ -793,41 +771,8 @@ namespace RestPhase{
         /// <param name="id">Item id</param>
         /// <returns>The string of the item to use to update the database</returns>
         private string FilterItem(int id){
-            string updateCommandText = "";
-            switch(id){
-                // Food
-                case 1:
-                    updateCommandText = "food = ";
-                    break;
-                // Gas
-                case 2:
-                    updateCommandText = "gas = ";
-                    break;
-                // Scrap
-                case 3:
-                    updateCommandText = "scrap = ";
-                    break;
-                // Money
-                case 4:
-                    updateCommandText = "money = ";
-                    break;
-                // Medkit
-                case 5:
-                    updateCommandText = "medkit = ";
-                    break;
-                // Tire
-                case 6:
-                    updateCommandText = "tire = ";
-                    break;
-                // Battery
-                case 7:
-                    updateCommandText = "battery = ";
-                    break;
-                // Ammo
-                case 8:
-                    updateCommandText = "ammo = ";
-                    break;
-            }
+            string updateCommandText = id == 1 ? "food = " : id == 2 ? "gas = " : id == 3 ? "scrap = " : id == 4 ? "money = " : id == 5 ? "medkit = " : id == 6 ? "tire = " :
+                                       id == 7 ? "battery = " : "ammo = ";
             return updateCommandText;
         }
 
