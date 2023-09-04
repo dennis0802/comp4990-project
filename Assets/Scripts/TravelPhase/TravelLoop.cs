@@ -101,7 +101,7 @@ namespace TravelPhase{
                             int eventChance = Random.Range(1,101);
 
                             // Random chance of generating an event or rerun the coroutine
-                            if(eventChance <= 30){
+                            if(eventChance <= 40){
                                 GenerateEvent(eventChance);
                             }
                         }
@@ -749,7 +749,7 @@ namespace TravelPhase{
         /// <summary>
         /// Generate a random event while driving
         /// </summary>
-        /// <param name="eventChance">The probability of the event happening, 30 or less guaranteed to be passed in</param>
+        /// <param name="eventChance">The probability of the event happening, 40 or less guaranteed to be passed in</param>
         private void GenerateEvent(int eventChance){
             // Get difficulty, perks, and traits, some events will play differently depending on it (more loss, more damage, etc.)
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
@@ -780,9 +780,9 @@ namespace TravelPhase{
             } 
             dbConnection.Close(); 
 
-            // 1-20 are base events, 21-30 depend on if someone in the party has a trait.
-            // 2/30 possibility for a random player to take extra damage (Ex. Bob breaks a rib/leg)
-            if(eventChance <= 2){
+            // 1-30 are base events, 31-40 depend on if someone in the party has a trait.
+            // 4/40 possibility for a random player to take extra damage (Ex. Bob breaks a rib/leg)
+            if(eventChance <= 4){
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
@@ -808,7 +808,6 @@ namespace TravelPhase{
                 } while (dataReader.IsDBNull(index));
 
                 string name = dataReader.GetString(index);
-                rand = Random.Range(0,4);
                 string[] temp = {" breaks a rib.", " breaks a leg.", " breaks an arm.", " sits down wrong."};
                 int hpLoss = diff % 2 == 0 ? Random.Range(13,20) : Random.Range(5,13), curHealth = dataReader.GetInt32(index+8);
                 curHealth = curHealth - hpLoss > 0 ? curHealth - hpLoss : 0;
@@ -816,9 +815,8 @@ namespace TravelPhase{
                 // Lose less HP if cushion upgrade found
                 hpLoss -= cushioned == 1 ? 5 : 0;
 
-                string commandText = "UPDATE SaveFilesTable SET ";
-                commandText += index == 9 ? "leaderHealth = " + curHealth : index == 18 ? "friend1Health = " + curHealth : index == 27 
-                                        ? "friend2Health = " + curHealth : "friend3Health = " + curHealth;
+                string commandText = "UPDATE ActiveCharactersTable SET ";
+                commandText += index == 1 ? "leaderHealth = " + curHealth : "friend" + rand + "Health = " + curHealth;
                 commandText += " WHERE id = " + GameLoop.FileId;
 
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
@@ -828,8 +826,8 @@ namespace TravelPhase{
                 popupText.text = name + temp[rand];
                 dbConnection.Close();
             }
-            // 2/30 possibility for a random resource type decay more (ex. 10 cans of gas goes missing. Everyone blames Bob.)
-            else if(eventChance <= 4){
+            // 3/40 possibility for a random resource type decay more (ex. 10 cans of gas goes missing. Everyone blames Bob.)
+            else if(eventChance <= 7){
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
@@ -852,9 +850,22 @@ namespace TravelPhase{
 
                     string temp = "", name = "", commandText = "UPDATE SaveFilesTable SET ";
                     int type = Random.Range(7,15), lost = diff % 2 == 0 ? Random.Range(15,30) : Random.Range(10,20), curStock = 0, rand = 0, index = 0;
+                    bool breakCondition = false;
                     float curGasStock = 0;
                     List<string> tempTexts = new List<string>(){"kg of food", "cans of gas", "scrap", "dollars", "medkits", "tires", "batteries", "ammo"};
                     List<string> commandTexts = new List<string>(){"food = ", "gas = ", "scrap = ", "money = ", "medkit = ", "tire = ", "battery = ", "ammo = "};
+
+                    // Randomize the item until it is an item in stock
+                    do
+                    {
+                        type = Random.Range(7,15);
+                        if(type == 8){
+                            breakCondition = dataReader.GetFloat(type) > 0.0f;
+                        }
+                        else{
+                            breakCondition = dataReader.GetInt32(type) > 0;
+                        }
+                    } while (!breakCondition);
 
                     if(type >= 11 && type <= 13){
                         lost = diff % 2 == 0 ? Random.Range(3,6) : Random.Range(1,3);
@@ -863,15 +874,18 @@ namespace TravelPhase{
                     temp = tempTexts[type-7];
                     commandText += commandTexts[type-7];
 
+                    // Gas is a float variable, requires a separate branch.
                     if(type != 8){
                         curStock = dataReader.GetInt32(type);
                         curStock = curStock - lost > 0 ? curStock - lost : 0;
                         commandText += curStock.ToString();
+                        lost = lost > curStock ? curStock : lost;
                     }
                     else{
                         curGasStock = dataReader.GetFloat(type);
                         curGasStock = curGasStock - (float)(lost) > 0.0f ? curGasStock - (float)(lost) : 0.0f;
                         commandText += curGasStock.ToString();
+                        lost = lost > (int)(curGasStock) ? (int)(curGasStock) : lost;
                     }
                     commandText += " WHERE id = " + GameLoop.FileId;
 
@@ -886,6 +900,19 @@ namespace TravelPhase{
                     dataReader = dbCommandReadValue.ExecuteReader();
                     dataReader.Read();
 
+                    // Change grammar if singular for some items
+                    if(lost == 1){
+                        if(type == 1){
+                            temp = "can of gas";
+                        }
+                        else if(type >= 3 && type <= 5){
+                            temp = temp.Remove(temp.Length-1, 1);
+                        }
+                        else if(type == 6){
+                            temp = "battery";
+                        }
+                    }
+
                     // Keep randomly picking until not a dead player
                     do
                     {
@@ -898,8 +925,8 @@ namespace TravelPhase{
                 } 
                 dbConnection.Close();
             }
-            // 2/30 possibility for the car to take more damage (ex. The car drives over some rough terrain)
-            else if(eventChance <= 6){
+            // 3/40 possibility for the car to take more damage (ex. The car drives over some rough terrain)
+            else if(eventChance <= 10){
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
@@ -917,8 +944,8 @@ namespace TravelPhase{
                 popupText.text = "The car struggles to drive over some terrain.";
                 dbConnection.Close();
             }
-            // 2/30 possibility for more resources to be found (ex. Bob finds 10 cans of gas in an abandoned car)
-            else if(eventChance <= 8){
+            // 3/40 possibility for more resources to be found (ex. Bob finds 10 cans of gas in an abandoned car)
+            else if(eventChance <= 13){
                 dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
@@ -970,8 +997,8 @@ namespace TravelPhase{
                 popupText.text = name + " finds " + gain + " " + temp + " in an abandoned car.";
                 dbConnection.Close();
             }
-            // 3/30 possibility to find a new party member (ex. The party meets Bob. They have the Perk surgeon and Trait paranoid.)
-            else if(eventChance <= 11){
+            // 5/40 possibility to find a new party member (ex. The party meets Bob. They have the Perk surgeon and Trait paranoid.)
+            else if(eventChance <= 18){
                 // Check that a slot is available.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -986,24 +1013,14 @@ namespace TravelPhase{
                 }
 
                 if(names.Where(n => Equals(n, "_____TEMPNULL")).Count() > 0){
-                    int index = names.IndexOf(names.First()), perk = Random.Range(0,GamemodeSelect.Perks.Count()), trait = Random.Range(0, GamemodeSelect.Traits.Count());
+                    int index = names.IndexOf(names.Where(n => Equals(n, "_____TEMPNULL")).First()), perk = Random.Range(0,GamemodeSelect.Perks.Count()), trait = Random.Range(0, GamemodeSelect.Traits.Count());
                     int acc = Random.Range(1,4), outfit = Random.Range(1,4), color = Random.Range(1,10), hat = Random.Range(1,9);
                     string name = GamemodeSelect.RandomNames[Random.Range(0, GamemodeSelect.RandomNames.Count())], perkRoll = GamemodeSelect.Perks[perk], traitRoll = GamemodeSelect.Traits[trait];
 
-                    string commandText = "UPDATE ActiveCharacters TABLE SET ";
-                    if(index == 0){
-                        commandText += "friend1Name = '" + name + "', friend1Perk = " + perk + ", friend1Trait = " + trait + ", friend1Acc = " + acc + ", friend1Color = " + color + 
-                                       ", friend1Hat = " + hat + ", friend1Outfit = " + outfit + " friend1Health = 100, friend1Morale = 75";
-                    }
-                    else if(index == 1){
-                        commandText += "friend2Name = '" + name + "', friend2Perk = " + perk + ", friend2Trait = " + trait + ", friend2Acc = " + acc + ", friend2Color = " + color + 
-                                       ", friend2Hat = " + hat + ", friend2Outfit = " + outfit + " friend2Health = 100, friend2Morale = 75";
-                    }
-                    else{
-                        commandText += "friend3Name = '" + name + "', friend3Perk = " + perk + ", friend3Trait = " + trait + ", friend3Acc = " + acc + ", friend3Color = " + color + 
-                                       ", friend3Hat = " + hat + ", friend3Outfit = " + outfit + " friend3Health = 100, friend3Morale = 75";
-                    }
-                    commandText += " WHERE id = " + GameLoop.FileId;
+                    string commandText = "UPDATE ActiveCharactersTable SET friend" + (index+1) + "Name = '" + name + "', friend" + (index+1) + "Perk = " + perk + 
+                                         ", friend" + (index+1) + "Trait = " + trait + ", friend" + (index+1) + "Acc = " + acc + ", friend" + (index+1) + "Color = " + color + 
+                                         ", friend" + (index+1) + "Hat = " + hat + ", friend" + (index+1) + "Outfit = " + outfit + ", friend" + (index+1) + "Health = 100" +
+                                         ", friend" + (index+1) + "Morale = 75 WHERE id = " + GameLoop.FileId;
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                     dbCommandUpdateValue.CommandText = commandText;
                     dbCommandUpdateValue.ExecuteNonQuery();
@@ -1017,17 +1034,17 @@ namespace TravelPhase{
                         dbCommandUpdateValue.ExecuteNonQuery();
                     }
 
-                    popupText.text = "The party meets " + name + "and allows them to join.\nThey have the " + perkRoll + "perk and the " + traitRoll + "trait.";
+                    popupText.text = "The party meets " + name + " and allows them to join.\nThey have the " + perkRoll + " perk and the " + traitRoll + " trait.";
                 }
                 else{
                     popupText.text = "You drive by someone on the road but your car is full.";
                 }
                 dbConnection.Close();
             }
-            // 1/30 possibility for an upgrade to be found. (ex. The party searches an abandoned car and finds nothing of interest.)
-            else if(eventChance <= 12){
+            // 1/40 possibility for an upgrade to be found. (ex. The party searches an abandoned car and finds nothing of interest.)
+            else if(eventChance <= 19){
                 // Check that a slot is available.
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -1045,13 +1062,13 @@ namespace TravelPhase{
                         selected = Random.Range(0, curUpgrades.Count);
                     } while (curUpgrades[selected] != 0);
 
-                    found = selected == 0 ? "durable tires" : selected == 1 ? "durable battery" : selected == 2 ? "a fuel-efficient engine" : selected == 3 ? "a secure travel chest" :
+                    found = selected == 0 ? "durable tires" : selected == 1 ? "a durable battery" : selected == 2 ? "a fuel-efficient engine" : selected == 3 ? "a secure travel chest" :
                             selected == 4 ? "a travel garden" : "cushioned seating";
                     commandTemp = selected == 0 ? "wheelUpgrade = 1 " : selected == 1 ? "batteryUpgrade = 1" : selected == 2 ? "engineUpgrade = 1" : selected == 3 ? "toolUpgrade == 1" :
                                   selected == 4 ? "miscUpgrade1 = 1" : "miscUpgrade2 = 1";
 
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                    dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET " + commandTemp + "WHERE id = " + GameLoop.FileId;
+                    dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET " + commandTemp + " WHERE id = " + GameLoop.FileId;
                     dbCommandUpdateValue.ExecuteNonQuery();
 
                     popupText.text = "The party searches an abandoned car and finds " + found + ".";
@@ -1065,8 +1082,8 @@ namespace TravelPhase{
 
                 dbConnection.Close();
             }
-            // 1/30 possibility for party-wide damage. (ex. The party cannot find clean water. Everyone is dehydrated.)
-            else if(eventChance <= 13){
+            // 2/40 possibility for party-wide damage. (ex. The party cannot find clean water. Everyone is dehydrated.)
+            else if(eventChance <= 21){
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
@@ -1089,8 +1106,8 @@ namespace TravelPhase{
 
                 dbConnection.Close();
             }
-            // 1/30 possibility for a tire to go flat
-            else if(eventChance <= 14){
+            // 3/40 possibility for a tire to go flat
+            else if(eventChance <= 24){
                 // If the car has upgraded tires, display the attempt at popping the tire.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -1133,8 +1150,8 @@ namespace TravelPhase{
                 }
                 dbConnection.Close();
             }
-            // 1/30 possibility for a car battery to die.
-            else if(eventChance <= 15){
+            // 3/40 possibility for a car battery to die.
+            else if(eventChance <= 27){
                 // If the car has upgraded battery, display the attempt at breaking.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -1177,8 +1194,8 @@ namespace TravelPhase{
                 }
                 dbConnection.Close();
             }
-            // 5/30 possibility for someone (other than the leader) with low morale to ditch. Cases where morale is high, treat as a typical drive with no evet
-            else if(eventChance <= 20){
+            // 3/40 possibility for someone (other than the leader) with low morale to ditch. Cases where morale is high, treat as a typical drive with no evet
+            else if(eventChance <= 30){
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
@@ -1186,9 +1203,11 @@ namespace TravelPhase{
                 dataReader.Read();
 
                 List<int> morale = new List<int>();
-                for(int i = 17; i <= 35 ; i+= 9){
-                    int moraleRead = dataReader.IsDBNull(i) ? -1 : dataReader.GetInt32(i);
-                    morale.Add(moraleRead);
+                for(int i = 10; i <= 28 ; i+= 9){
+                    if(!dataReader.IsDBNull(i)){
+                        int moraleRead = dataReader.IsDBNull(i+7) ? -1 : dataReader.GetInt32(i+7);
+                        morale.Add(moraleRead);
+                    }
                 }
 
                 int lowMorale = morale.Where(m => m >= 0 && m <= 20).Count();
@@ -1211,8 +1230,8 @@ namespace TravelPhase{
                 }
             }
             
-            // 2/30 possibility for musician characters to raise party morale (ex. Bob serenades the party, reminding them of better times. The party is in high spirits.)
-            else if(eventChance <= 22 && availablePerks.Where(p => p == 5).Count() > 0){
+            // 2/40 possibility for musician characters to raise party morale (ex. Bob serenades the party, reminding them of better times. The party is in high spirits.)
+            else if(eventChance <= 32 && availablePerks.Where(p => p == 5).Count() > 0){
                 // Get the name of the member who has the musician trait
                 int nameIndex = availablePerks.IndexOf(5);
                 List<int> partyMorale = new List<int>();
@@ -1232,7 +1251,7 @@ namespace TravelPhase{
                 for(int i = 0; i < 4; i++){
                     if(!dataReader.IsDBNull(1+9*i)){
                         int moraleFound = dataReader.GetInt32(8+9*i) + moraleGain > 100 ? 100 : dataReader.GetInt32(8+9*i) + moraleGain;
-                        commandText += i == 0 ? "leaderMorale = " + moraleFound : "friend" + i + "Morale = " + moraleFound;
+                        commandText += i == 0 ? "leaderMorale = " + moraleFound : ", friend" + i + "Morale = " + moraleFound;
                     }
                 }
                 commandText += " WHERE id = " + GameLoop.FileId;
@@ -1241,10 +1260,10 @@ namespace TravelPhase{
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
 
-                popupText.text = name + " serenades the party with a guitar, reminding them of better times.\nThe party is in high spirits";
+                popupText.text = name + " serenades the party with a guitar, reminding them of better times.\nThe party is in high spirits.";
             }
-            // 2/30 possibility for bandits to lower party morale (ex. Bob attempts to rob a helpless group but is caught and drags the party with him. The party feels guilty.)
-            else if(eventChance <= 24 && availableTraits.Where(t => t == 3).Count() > 0){
+            // 2/40 possibility for bandits to lower party morale (ex. Bob attempts to rob a helpless group but is caught and drags the party with him. The party feels guilty.)
+            else if(eventChance <= 34 && availableTraits.Where(t => t == 3).Count() > 0){
                 // Get the name of the member who has the bandit trait
                 int nameIndex = availableTraits.IndexOf(3);
                 List<int> partyMorale = new List<int>();
@@ -1264,7 +1283,7 @@ namespace TravelPhase{
                 for(int i = 0; i < 4; i++){
                     if(!dataReader.IsDBNull(1+9*i)){
                         int moraleFound = dataReader.GetInt32(8+9*i) - moraleLoss > 0 ? dataReader.GetInt32(8+9*i) - moraleLoss : 0;
-                        commandText += i == 0 ? "leaderMorale = " + moraleFound : "friend" + i + "Morale = " + moraleFound;
+                        commandText += i == 0 ? "leaderMorale = " + moraleFound : ", friend" + i + "Morale = " + moraleFound;
                     }
                 }
                 commandText += " WHERE id = " + GameLoop.FileId;
@@ -1273,10 +1292,10 @@ namespace TravelPhase{
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
 
-                popupText.text = name + " " + " attempts to rob a helpless group but is caught and drags the party with them.\nThe party is forced to flee and feels guilty.";
+                popupText.text = name + " attempts to rob a helpless group but is caught and drags the party with them.\nThe party is forced to flee and feels guilty.";
             } 
-            // 2/30 possibility for hot headed characters to lower another character's hp. (ex. Bob, annoyed with Ann for a minor issue, lashes out mid-argument.)
-            else if(eventChance <= 26 && availableTraits.Where(t => t == 4).Count() > 0){
+            // 2/40 possibility for hot headed characters to lower another character's hp. (ex. Bob, annoyed with Ann for a minor issue, lashes out mid-argument.)
+            else if(eventChance <= 36 && availableTraits.Where(t => t == 4).Count() > 0){
                 // Get the name of the first member who has the hot-headed trait
                 int nameIndex = availableTraits.IndexOf(4), hurtMember = 0;
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
@@ -1304,10 +1323,10 @@ namespace TravelPhase{
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
 
-                popupText.text = name + ", annoyed with " + hurtName + "for a minor issue, lashes out mid-argument.";
+                popupText.text = name + ", annoyed with " + hurtName + " for a minor issue, lashes out mid-argument.";
             }
-            // 2/30 possibility for surgeon characters to fully heal an injured character (ex. Bob's medical skills come in handy for mid-drive surgery on Ann)
-            else if(eventChance <= 28 && availablePerks.Where(p => p == 3).Count() > 0){
+            // 2/40 possibility for surgeon characters to fully heal an injured character (ex. Bob's medical skills come in handy for mid-drive surgery on Ann)
+            else if(eventChance <= 38 && availablePerks.Where(p => p == 3).Count() > 0){
                 // Get the name of the first member who has the surgeon trait
                 int nameIndex = availablePerks.IndexOf(3), healMember = 0;
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
@@ -1322,7 +1341,7 @@ namespace TravelPhase{
                 do
                 {
                     healMember = Random.Range(0,4);
-                } while (healMember == availableTraits.IndexOf(4) && !dataReader.IsDBNull(1+9*healMember));
+                } while (healMember == availableTraits.IndexOf(4) && dataReader.IsDBNull(1+9*healMember));
 
                 string name = dataReader.GetString(nameIndex), healName = dataReader.GetString(1+9*healMember);
                 int hpGain = diff % 2 == 0 ? 5 : 10, healHP = dataReader.GetInt32(9+9*healMember) + hpGain > 100 ? 100 : dataReader.GetInt32(9+9*healMember) + hpGain;
@@ -1337,13 +1356,13 @@ namespace TravelPhase{
 
                 popupText.text = name + "'s medical skills come in handy using medicinal herbs to treat " + healName + ".";
             } 
-            // 2/30 possibility for creative/programmer characters to act (ex. Bob has a creative solution for a car upgrade and succeeds/fails.)
-            // Uses an extra roll to determine positive/negative. TODO SEPT 4
-            else if(eventChance <= 30 && (availableTraits.Where(t => t == 5).Count() > 0 || availablePerks.Where(p => p == 4).Count() > 0)){
+            // 2/40 possibility for creative/programmer characters to act (ex. Bob has a creative solution for a car upgrade and succeeds/fails.)
+            // Uses an extra roll to determine positive/negative.
+            else if(eventChance <= 40 && (availableTraits.Where(t => t == 5).Count() > 0 || availablePerks.Where(p => p == 4).Count() > 0)){
                 // Get the name of the first member who has the creative OR programmer trait
-                int nameIndex = availableTraits.IndexOf(5), healMember = 0;
+                int nameIndex = availableTraits.Where(t => t == 5).Count() > 0 ? availableTraits.IndexOf(5) : availablePerks.IndexOf(4), healMember = 0;
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
-                string solType = availableTraits.Where(t => t == 5).Count() > 0 ? "creative" : "thought-out";
+                string solType = availableTraits.Where(t => t == 5).Count() > 0 ? "creative" : "systematic and thought-out";
 
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -1354,13 +1373,44 @@ namespace TravelPhase{
                 string name = dataReader.GetString(nameIndex), healName = dataReader.GetString(1+9*healMember);
                 dbConnection.Close();
 
-                int successRoll = availableTraits.Where(t => t == 5).Count() > 0 ? Random.Range(0,3) : Random.Range(0,2);
+                // Check that a slot is available.
+                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                List<int> curUpgrades = new List<int>(){dataReader.GetInt32(2), dataReader.GetInt32(3), dataReader.GetInt32(4), dataReader.GetInt32(5), dataReader.GetInt32(6),
+                                                        dataReader.GetInt32(7),};
+
+                // 1/4 chance for creative, 1/2 for programmer.
+                int successRoll = availableTraits.Where(t => t == 5).Count() > 0 ? Random.Range(0,4) : Random.Range(0,2);
+                // Check for success, then check if a slot is available. Otherwise an uneventful drive.
                 if(successRoll == 0){
-                    popupText.text = name + " has a " + solType + " solution for a car upgrade and fails.";
+                    popupText.text = name + " has a " + solType + " solution for a car upgrade but fails.";
                 }
-                else{
+                else if(curUpgrades.Where(c => c == 0).Count() > 0){
+                    int selected;
+                    string commandTemp = "";
+
+                    do
+                    {
+                        selected = Random.Range(0, curUpgrades.Count);
+                    } while (curUpgrades[selected] != 0);
+
+                    commandTemp = selected == 0 ? "wheelUpgrade = 1 " : selected == 1 ? "batteryUpgrade = 1" : selected == 2 ? "engineUpgrade = 1" : selected == 3 ? "toolUpgrade == 1" :
+                                selected == 4 ? "miscUpgrade1 = 1" : "miscUpgrade2 = 1";
+
+                    IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                    dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET " + commandTemp + " WHERE id = " + GameLoop.FileId;
+                    dbCommandUpdateValue.ExecuteNonQuery();
+                    
                     popupText.text = name + " has a " + solType + " solution for a car upgrade and succeeds.";
                 }
+                else{
+                    return;
+                }
+                dbConnection.Close();
             }   
             
             RefreshScreen();

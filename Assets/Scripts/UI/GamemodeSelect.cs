@@ -74,7 +74,8 @@ namespace UI{
         public static List<string> RandomNames = new List<string>(){
             "Grayson","Iliana","Delaney","Ibrahim","Jaylin","Jazmine","Emilio","Sheldon","Brady","Jeffery","Izaiah","Juliette","Aidyn","Matias","Ryker","Saniya","Karen",
             "Luke","Sonia","Dakota","Catalina","Maci","Aurora","Ronin","Skye","Jasiah","Taylor","Johnathon","Monserrat","Keyon","Desmond","Jaylen","Brandon","Riley",
-            "Emmy","Macey","Ramiro","Andreas","Yazmin","Adam","Jovany","Liliana","Leonel","Roselyn","Zain","Paige","Karissa","Dane","Emery","Aidan"
+            "Emmy","Macey","Ramiro","Andreas","Yazmin","Adam","Jovany","Liliana","Leonel","Roselyn","Zain","Paige","Karissa","Dane","Emery","Aidan", "Annie", "Britta",
+            "Shirley", "Pierce", "Troy", "Abed"
         };
 
         // Perk list

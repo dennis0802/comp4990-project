@@ -361,6 +361,9 @@ namespace RestPhase{
                 buyingPrices[i] = dataReader.GetInt32(i+1);
                 // Add a 10% discount if a charming character is present
                 buyingPrices[i] = foundTraits.Contains(0) ? buyingPrices[i] - (int)(buyingPrices[i] * 0.1f) : buyingPrices[i];
+                // Items will get more expensive with more distance
+                buyingPrices[i] += (int)(buyingPrices[i] * (0.4f-GameLoop.SellRate));
+
                 sellingPrices[i] = (int)((float)(buyingPrices[i]) * GameLoop.SellRate);
                 shopStocks[i] = dataReader.GetInt32(i+8);
                 if(i == 0 || i == 6){
@@ -375,7 +378,7 @@ namespace RestPhase{
             tireRowText.text = "Tire\t\t\t" + dataReader.GetInt32(12) + "\t\t       $" + buyingPrices[4] + "\t$" + sellingPrices[4] + "\t\t" + tires;
             batteryRowText.text = "Battery\t\t" + dataReader.GetInt32(13) + "\t\t       $" + buyingPrices[5] + "\t$" + sellingPrices[5] + "\t\t" + batteries;
             ammoRowText.text = "Ammo\t\t" + dataReader.GetInt32(14) + "\t\t       $" + buyingPrices[6] + "\t$" + sellingPrices[6] + "\t\t" + ammo;
-            moneyAmtText.text= "You have $" + money;
+            moneyAmtText.text = foundTraits.Contains(0) ? "You have $" + money + ". A 10% discount has been applied because of your charm.": "You have $" + money;
 
             // Enable buttons depending on stock and money
             // Disable buying if shop stock is empty or you have insufficient money
@@ -452,12 +455,12 @@ namespace RestPhase{
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            wheelText.text = dataReader.GetInt32(2) == 1 ? "Durable Tires\nTires that always last regardless of terrain" : "No wheel upgrade available to list.";
-            batteryText.text = dataReader.GetInt32(3) == 1 ? "Durable Battery\nBattery that has been tested to never run out" : "No battery upgrade available to list.";
-            engineText.text = dataReader.GetInt32(4) == 1 ? "Fuel-Efficent Engine\nEngine that consumes less gas for more distance" : "No engine upgrade available to list.";
-            toolText.text = dataReader.GetInt32(5) == 1 ? "Secure Chest\nNo supplies will be forgotten with this chest" : "No tool upgrade available to list.";
-            misc1Text.text = dataReader.GetInt32(6) == 1 ? "Travel Garden\nGenerate 1kg of food every hour" : "No misc upgrade available to list.";
-            misc2Text.text = dataReader.GetInt32(7) == 1 ? "Cushioned Seating\nParty takes less damage when driving" : "No misc upgrade available to list.";
+            wheelText.text = dataReader.GetInt32(2) == 1 ? "Durable Tires\nTires always last regardless of terrain." : "No wheel upgrade available to list.";
+            batteryText.text = dataReader.GetInt32(3) == 1 ? "Durable Battery\nBattery always has power." : "No battery upgrade available to list.";
+            engineText.text = dataReader.GetInt32(4) == 1 ? "Fuel-Efficent Engine\nEngine consumes less gas for more distance." : "No engine upgrade available to list.";
+            toolText.text = dataReader.GetInt32(5) == 1 ? "Secure Chest\nNo supplies will be forgotten again." : "No tool upgrade available to list.";
+            misc1Text.text = dataReader.GetInt32(6) == 1 ? "Travel Garden\nGenerate 1kg of food/hour." : "No misc upgrade available to list.";
+            misc2Text.text = dataReader.GetInt32(7) == 1 ? "Cushioned Seating\nParty takes less damage when driving." : "No misc upgrade available to list.";
             int carHP = dataReader.GetInt32(1);
             carHPSlider.value = carHP;
 
