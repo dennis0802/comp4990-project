@@ -238,6 +238,10 @@ namespace RestPhase{
         [SerializeField]
         private GameObject backgroundPanel;
 
+        [Tooltip("Combat components")]
+        [SerializeField]
+        private GameObject combatComponent;
+
         // To track rest hours on the slider
         private float restHours = 1;
         // To track the coroutine running for waiting actions
@@ -252,6 +256,7 @@ namespace RestPhase{
         public static string LeaderName = "";
         // To track friends alive for game over
         public static int FriendsAlive = 0;
+        public static bool IsScavenging;
 
         void OnEnable(){
             RefreshScreen();
@@ -533,7 +538,7 @@ namespace RestPhase{
         /// Go to scavenging mode
         /// </summary>
         public void GoScavenge(){
-            Debug.Log("Scavenging to be implemented.");
+            SceneManager.LoadScene(3);
         }
 
         /// <summary>

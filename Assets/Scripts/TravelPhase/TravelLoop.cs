@@ -101,7 +101,7 @@ namespace TravelPhase{
                             int eventChance = Random.Range(1,101);
 
                             // Random chance of generating an event or rerun the coroutine
-                            if(eventChance <= 40){
+                            if(eventChance <= 44){
                                 GenerateEvent(eventChance);
                             }
                         }
@@ -781,7 +781,7 @@ namespace TravelPhase{
             dbConnection.Close(); 
 
             // 1-30 are base events, 31-40 depend on if someone in the party has a trait.
-            // 4/40 possibility for a random player to take extra damage (Ex. Bob breaks a rib/leg)
+            // 4/44 possibility for a random player to take extra damage (Ex. Bob breaks a rib/leg)
             if(eventChance <= 4){
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -826,7 +826,7 @@ namespace TravelPhase{
                 popupText.text = name + temp[rand];
                 dbConnection.Close();
             }
-            // 3/40 possibility for a random resource type decay more (ex. 10 cans of gas goes missing. Everyone blames Bob.)
+            // 3/44 possibility for a random resource type decay more (ex. 10 cans of gas goes missing. Everyone blames Bob.)
             else if(eventChance <= 7){
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -925,7 +925,7 @@ namespace TravelPhase{
                 } 
                 dbConnection.Close();
             }
-            // 3/40 possibility for the car to take more damage (ex. The car drives over some rough terrain)
+            // 3/44 possibility for the car to take more damage (ex. The car drives over some rough terrain)
             else if(eventChance <= 10){
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -944,7 +944,7 @@ namespace TravelPhase{
                 popupText.text = "The car struggles to drive over some terrain.";
                 dbConnection.Close();
             }
-            // 3/40 possibility for more resources to be found (ex. Bob finds 10 cans of gas in an abandoned car)
+            // 3/44 possibility for more resources to be found (ex. Bob finds 10 cans of gas in an abandoned car)
             else if(eventChance <= 13){
                 dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -997,7 +997,8 @@ namespace TravelPhase{
                 popupText.text = name + " finds " + gain + " " + temp + " in an abandoned car.";
                 dbConnection.Close();
             }
-            // 5/40 possibility to find a new party member (ex. The party meets Bob. They have the Perk surgeon and Trait paranoid.)
+            // 5/44 possibility to find a new party member (ex. The party meets Bob. They have the Perk surgeon and Trait paranoid.)
+            // TODO: SEPT ? - Expand on adding custom members if in custom mode.
             else if(eventChance <= 18){
                 // Check that a slot is available.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
@@ -1041,7 +1042,7 @@ namespace TravelPhase{
                 }
                 dbConnection.Close();
             }
-            // 1/40 possibility for an upgrade to be found. (ex. The party searches an abandoned car and finds nothing of interest.)
+            // 1/44 possibility for an upgrade to be found. (ex. The party searches an abandoned car and finds nothing of interest.)
             else if(eventChance <= 19){
                 // Check that a slot is available.
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
@@ -1082,7 +1083,7 @@ namespace TravelPhase{
 
                 dbConnection.Close();
             }
-            // 2/40 possibility for party-wide damage. (ex. The party cannot find clean water. Everyone is dehydrated.)
+            // 2/44 possibility for party-wide damage. (ex. The party cannot find clean water. Everyone is dehydrated.)
             else if(eventChance <= 21){
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -1106,7 +1107,7 @@ namespace TravelPhase{
 
                 dbConnection.Close();
             }
-            // 3/40 possibility for a tire to go flat
+            // 3/44 possibility for a tire to go flat
             else if(eventChance <= 24){
                 // If the car has upgraded tires, display the attempt at popping the tire.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
@@ -1150,7 +1151,7 @@ namespace TravelPhase{
                 }
                 dbConnection.Close();
             }
-            // 3/40 possibility for a car battery to die.
+            // 3/44 possibility for a car battery to die.
             else if(eventChance <= 27){
                 // If the car has upgraded battery, display the attempt at breaking.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
@@ -1194,7 +1195,7 @@ namespace TravelPhase{
                 }
                 dbConnection.Close();
             }
-            // 3/40 possibility for someone (other than the leader) with low morale to ditch. Cases where morale is high, treat as a typical drive with no evet
+            // 3/44 possibility for someone (other than the leader) with low morale to ditch. Cases where morale is high, treat as a typical drive with no evet
             else if(eventChance <= 30){
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -1230,7 +1231,7 @@ namespace TravelPhase{
                 }
             }
             
-            // 2/40 possibility for musician characters to raise party morale (ex. Bob serenades the party, reminding them of better times. The party is in high spirits.)
+            // 2/44 possibility for musician characters to raise party morale (ex. Bob serenades the party, reminding them of better times. The party is in high spirits.)
             else if(eventChance <= 32 && availablePerks.Where(p => p == 5).Count() > 0){
                 // Get the name of the member who has the musician trait
                 int nameIndex = availablePerks.IndexOf(5);
@@ -1262,7 +1263,7 @@ namespace TravelPhase{
 
                 popupText.text = name + " serenades the party with a guitar, reminding them of better times.\nThe party is in high spirits.";
             }
-            // 2/40 possibility for bandits to lower party morale (ex. Bob attempts to rob a helpless group but is caught and drags the party with him. The party feels guilty.)
+            // 2/44 possibility for bandits to lower party morale (ex. Bob attempts to rob a helpless group but is caught and drags the party with him. The party feels guilty.)
             else if(eventChance <= 34 && availableTraits.Where(t => t == 3).Count() > 0){
                 // Get the name of the member who has the bandit trait
                 int nameIndex = availableTraits.IndexOf(3);
@@ -1294,7 +1295,7 @@ namespace TravelPhase{
 
                 popupText.text = name + " attempts to rob a helpless group but is caught and drags the party with them.\nThe party is forced to flee and feels guilty.";
             } 
-            // 2/40 possibility for hot headed characters to lower another character's hp. (ex. Bob, annoyed with Ann for a minor issue, lashes out mid-argument.)
+            // 2/44 possibility for hot headed characters to lower another character's hp. (ex. Bob, annoyed with Ann for a minor issue, lashes out mid-argument.)
             else if(eventChance <= 36 && availableTraits.Where(t => t == 4).Count() > 0){
                 // Get the name of the first member who has the hot-headed trait
                 int nameIndex = availableTraits.IndexOf(4), hurtMember = 0;
@@ -1325,7 +1326,7 @@ namespace TravelPhase{
 
                 popupText.text = name + ", annoyed with " + hurtName + " for a minor issue, lashes out mid-argument.";
             }
-            // 2/40 possibility for surgeon characters to fully heal an injured character (ex. Bob's medical skills come in handy for mid-drive surgery on Ann)
+            // 2/44 possibility for surgeon characters to fully heal an injured character (ex. Bob's medical skills come in handy for mid-drive surgery on Ann)
             else if(eventChance <= 38 && availablePerks.Where(p => p == 3).Count() > 0){
                 // Get the name of the first member who has the surgeon trait
                 int nameIndex = availablePerks.IndexOf(3), healMember = 0;
@@ -1356,7 +1357,7 @@ namespace TravelPhase{
 
                 popupText.text = name + "'s medical skills come in handy using medicinal herbs to treat " + healName + ".";
             } 
-            // 2/40 possibility for creative/programmer characters to act (ex. Bob has a creative solution for a car upgrade and succeeds/fails.)
+            // 2/44 possibility for creative/programmer characters to act (ex. Bob has a creative solution for a car upgrade and succeeds/fails.)
             // Uses an extra roll to determine positive/negative.
             else if(eventChance <= 40 && (availableTraits.Where(t => t == 5).Count() > 0 || availablePerks.Where(p => p == 4).Count() > 0)){
                 // Get the name of the first member who has the creative OR programmer trait
@@ -1412,7 +1413,56 @@ namespace TravelPhase{
                 }
                 dbConnection.Close();
             }   
-            
+            // 2/44 possibility for a combat event to occur if travelling with higher or more activity
+            else if(eventChance <= 42 && GameLoop.Activity >= 3){
+                popupText.text = "You suddenly find yourself surrounded by mutants.";
+                Debug.Log("Trigger combat event here");
+            }
+            // 2/44 possibility for someone to be pulled out of the car and left for dead if travelling with ravenous activity
+            // Morale will determine if member fights them off.
+            else if(eventChance <= 44 && GameLoop.Activity == 4){
+                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                List<int> morale = new List<int>();
+                int selected;
+
+                for(int i = 10; i <= 28 ; i+= 9){
+                    if(!dataReader.IsDBNull(i)){
+                        int moraleRead = dataReader.IsDBNull(i+7) ? -1 : dataReader.GetInt32(i+7);
+                        morale.Add(moraleRead);
+                    }
+                }
+
+                // Select a living party member to atttack, not including the leader
+                do
+                {
+                    selected = Random.Range(1,4);
+                } while (!dataReader.IsDBNull(1+9*selected));
+
+                int nameIndex = selected == 0 ? 10 : selected == 1 ? 19 : 28;
+                string name = dataReader.GetString(nameIndex), commandText = "UPDATE ActiveCharactersTable SET ";
+
+                if(morale[nameIndex+7] < 40){
+                    commandText += selected == 0 ? "friend1Name = null " : selected == 1 ? "friend2Name = null " : "friend3Name = null ";
+                    commandText += "WHERE id = " + GameLoop.FileId;
+
+                    IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                    dbCommandUpdateValue.CommandText = commandText;
+                    dbCommandUpdateValue.ExecuteNonQuery();
+                    dbConnection.Close();
+
+                    popupText.text = name + " is pulled out of the car and is unable to fight back against the mutants.";
+                }
+                else{
+                    dbConnection.Close();
+                    popupText.text = "Mutants attempt to pull " + name + " out of the car, but fail to do so.";
+                }
+            }
+
             RefreshScreen();
             popup.SetActive(true);
             PopupActive = true;

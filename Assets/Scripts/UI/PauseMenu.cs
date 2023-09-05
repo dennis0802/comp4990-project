@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UI;
 using TravelPhase;
+using CombatPhase;
 
 namespace UI{
     [DisallowMultipleComponent]
