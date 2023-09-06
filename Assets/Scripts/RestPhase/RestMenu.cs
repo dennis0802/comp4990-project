@@ -538,7 +538,7 @@ namespace RestPhase{
         /// Go to scavenging mode
         /// </summary>
         public void GoScavenge(){
-            SceneManager.LoadScene(3);
+            IsScavenging = true;
         }
 
         /// <summary>
