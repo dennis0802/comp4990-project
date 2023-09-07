@@ -54,20 +54,12 @@ namespace UI{
         // To track if the game is paused.
         public static bool IsPaused = false;
         private InputAction pauseAction;
-        private GameObject combatEnvironment;
 
         void Start(){
             pauseAction = playerInput.actions["Pause"];
         }
 
         void Update(){
-            if(SceneManager.GetActiveScene().buildIndex == 3 && combatEnvironment == null){
-                combatEnvironment = GameObject.FindWithTag("CombatEnvironment");
-            }
-            else if(SceneManager.GetActiveScene().buildIndex != 3 && combatEnvironment != null){
-                combatEnvironment = null;
-            }
-
             if(pauseAction.triggered){
                 if(IsPaused){
                     Resume();
@@ -83,13 +75,14 @@ namespace UI{
         /// </summary>
         public void Resume(){
             if(CombatLoop.InCombat){
+                CombatLoop.CombatEnvironment.SetActive(true);
                 CombatLoop.Camera.SetActive(true);
+                Cursor.lockState = CursorLockMode.Locked;
             }
 
             buttonClick.Play();
             pauseMenuUI.SetActive(false);
             activeUI.SetActive(true);
-            combatEnvironment.SetActive(true);
             Time.timeScale = 1.0f;
             IsPaused = false;
         }
@@ -100,12 +93,13 @@ namespace UI{
         public void Pause(){
             if(CombatLoop.InCombat){
                 CombatLoop.Camera.SetActive(false);
+                CombatLoop.CombatEnvironment.SetActive(false);
+                Cursor.lockState = CursorLockMode.None;
             }
 
             buttonClick.Play();
             pauseMenuUI.SetActive(true);
             activeUI.SetActive(false);
-            combatEnvironment.SetActive(false);
             Time.timeScale = 0.0f;
             IsPaused = true;
         }

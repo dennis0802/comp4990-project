@@ -23,10 +23,6 @@ namespace CombatPhase{
         [SerializeField]
         private Button startButton;
 
-        [Tooltip("Background panel")]
-        [SerializeField]
-        private GameObject backgroundPanel;
-
         [Tooltip("Enemy spawn points when combat starts.")]
         [SerializeField]
         private GameObject[] enemySpawnPoints;
@@ -65,15 +61,16 @@ namespace CombatPhase{
 
         // To track player spawn points
         private GameObject[] playerSpawnPoints;
+        private int diff;
         // For scavenging, to allow scavenging up to x seconds.
-        private float scavengeTimeLimit = 0.0f;
+        private float scavengeTimeLimit = 0.0f, timePassed = 0.0f, spawnTime = 0.0f;
         // To determine weapons selected
         public static int GunSelected = -1, PhysSelected = -1;
         // List of weapons
         private List<string> weaponList = new List<string>(){"Pistol", "Rifle", "Shotgun", "Knife", "Bat", "Shovel"};
 
         public static bool InCombat = false;
-        public static GameObject Camera;
+        public static GameObject Camera, CombatEnvironment;
 
         // Start is called before the first frame update
         void Start(){
@@ -83,6 +80,13 @@ namespace CombatPhase{
         void OnEnable()
         {
             UpdateIntroScreen();
+            if(SceneManager.GetActiveScene().buildIndex == 3 && CombatEnvironment == null){
+                CombatEnvironment = GameObject.FindWithTag("CombatEnvironment");
+            }
+            else if(SceneManager.GetActiveScene().buildIndex != 3 && CombatEnvironment != null){
+                CombatEnvironment = null;
+            }
+            CombatEnvironment.SetActive(false);
         }
 
         // Update is called once per frame
@@ -90,17 +94,42 @@ namespace CombatPhase{
         {   
             combatCamera.SetActive(InCombat && !PauseMenu.IsPaused);
             if(InCombat){
+                combatText.gameObject.SetActive(!PauseMenu.IsPaused);
+
+                // Players have limited time per scavenge session
                 if(RestMenu.IsScavenging){
                     scavengeTimeLimit -= Time.deltaTime;
+                    timePassed += Time.deltaTime;
+
                     if(scavengeTimeLimit <= 0.0f){
                         InCombat = false;
                         RestMenu.IsScavenging = false;
-                        backgroundPanel.SetActive(true);
+                        RestMenu.Panel.SetActive(true);
+                        combatCamera.SetActive(false);
+                        combatText.gameObject.SetActive(false);
+                        CombatEnvironment.SetActive(false);
                     }
+
+                    // Spawn pickup after enough time has passed
+                    if(timePassed >= spawnTime){
+                        timePassed = 0.0f;
+                        int spawnSelected, itemSelected;
+
+                        do{
+                            spawnSelected = Random.Range(0, pickupSpawnPoints.Length);
+                        }while(pickupSpawnPoints[spawnSelected].GetComponent<SpawnPoint>().inUse);
+
+                        pickupSpawnPoints[spawnSelected].GetComponent<SpawnPoint>().inUse = true;
+                        itemSelected = Random.Range(0, pickupPrefabs.Length);
+
+                        GameObject spawn = Instantiate(pickupPrefabs[itemSelected], pickupSpawnPoints[spawnSelected].transform.position, pickupSpawnPoints[spawnSelected].transform.rotation);
+                    }
+                    
+                    
                 }
                 combatText.text = Player.UsingGun ? "Equipped: " + weaponList[GunSelected] + "\nLoaded = " + Player.AmmoLoaded + "\nTotal Ammo: " + Player.TotalAvailableAmmo 
                                     : "Equipped: " + weaponList[PhysSelected];
-                combatText.text += RestMenu.IsScavenging ? "\nTime: " + scavengeTimeLimit : "";
+                combatText.text += RestMenu.IsScavenging ? "\nTime: " + System.Math.Round(scavengeTimeLimit, 2) : "";
             }
         }
 
@@ -121,8 +150,9 @@ namespace CombatPhase{
         /// </summary>
         public void StartCombat(){
             InCombat = true;
-            backgroundPanel.SetActive(false);
-            SceneManager.LoadScene(3);
+            RestMenu.Panel.SetActive(false);
+            CombatEnvironment.SetActive(true);
+            Cursor.lockState = CursorLockMode.Locked;
 
             for(int i = 0; i < weaponButtons.Length; i++){
                 if(!weaponButtons[i].interactable && i <= 2){
@@ -141,18 +171,26 @@ namespace CombatPhase{
                 IDataReader dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
-                int diff = dataReader.GetInt32(4);
+                diff = dataReader.GetInt32(4);
                 scavengeTimeLimit = diff == 1 || diff == 3 ? 60.0f : 40.0f;
+                spawnTime = diff == 1 || diff == 3 ? 10.0f : 15.0f;
 
                 dbConnection.Close();
             }
 
             playerSpawnPoints = GameObject.FindGameObjectsWithTag("PlayerSpawn");
-            int randPoint = Random.Range(0, playerSpawnPoints.Length);
+            int selected;
+            
+            do
+            {
+                selected = Random.Range(0, playerSpawnPoints.Length);
+            } while (playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse); 
 
-            Debug.Log(randPoint);
+            playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse = true;
+            GameObject player = Instantiate(playerPrefab, playerSpawnPoints[selected].transform.position, playerSpawnPoints[selected].transform.rotation);
+            player.transform.SetParent(CombatEnvironment.transform);
 
-            Instantiate(playerPrefab, new Vector3(45f,0f,0f), Quaternion.identity);
+            // Load AI teammates in
         }
     }
 }

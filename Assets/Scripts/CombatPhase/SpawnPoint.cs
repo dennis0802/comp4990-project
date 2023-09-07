@@ -5,7 +5,7 @@ using UnityEngine;
 namespace CombatPhase{
     public class SpawnPoint : MonoBehaviour
     {
-        private bool inUse = false;
+        public bool inUse = false;
 
         void OnDrawGizmos(){
             if(gameObject.tag == "PlayerSpawn"){
@@ -16,6 +16,9 @@ namespace CombatPhase{
             }
             else if(gameObject.tag == "AllySpawn"){
                 Gizmos.color = Color.green;
+            }
+            else if(gameObject.tag == "PickupSpawn"){
+                Gizmos.color = Color.cyan;
             }
             else{
                 Gizmos.color = Color.white;
