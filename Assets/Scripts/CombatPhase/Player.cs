@@ -20,14 +20,15 @@ namespace CombatPhase{
         [SerializeField]
         private Material[] playerColors;
 
-        private InputAction playerMove, playerShoot, weaponSwitch, playerReload;
+        private InputAction playerMove, playerShoot, weaponSwitch, playerReload, startRun, endRun;
         private CharacterController controller;
         private Transform cameraTransform;
         private float reloadTimer = 0.0f, gravity = -9.81f, playerSpeed = 3.0f, rotationSpeed = 5f;
         private Vector3 playerVelocity;
+        public int[] suppliesGathered = new int[]{0,0,0,0,0,0};
         public static int TotalAvailableAmmo = 0, AmmoLoaded = 0;
         private const int maxAmmoLoaded = 6;
-        private bool isGrounded, busyReloading;
+        private bool isGrounded, busyReloading, isRunning = false;
         public static bool UsingGun = true;
 
         // Start is called before the first frame update
@@ -36,6 +37,10 @@ namespace CombatPhase{
             playerShoot = playerInput.actions["LeftClick"];
             playerMove = playerInput.actions["Move"];
             playerReload = playerInput.actions["Reload"];
+            startRun = playerInput.actions["RunStart"];
+            endRun = playerInput.actions["RunEnd"];
+            startRun.performed += x => PressSprint();
+            endRun.performed += x => ReleaseSprint();
             weaponSwitch = playerInput.actions["SwitchWeapon"];
             cameraTransform = Camera.main.transform;
             controller = gameObject.GetComponent<CharacterController>();
@@ -54,6 +59,9 @@ namespace CombatPhase{
                 if(isGrounded && playerVelocity.y < 0){
                     playerVelocity.y = 0.0f;
                 }
+
+                // Running
+                playerSpeed = isRunning ? 6.0f : 3.0f;
 
                 // Movement
                 Vector2 input = playerMove.ReadValue<Vector2>();
@@ -174,6 +182,20 @@ namespace CombatPhase{
             TotalAvailableAmmo = dataReader.GetInt32(14);
 
             dbConnection.Close();
+        }
+    
+        /// <summary>
+        /// Toggle running when shift key is hit
+        /// </summary>
+        void PressSprint(){
+            isRunning = true;
+        }
+
+        /// <summary>
+        /// Toggle running when shift key is released
+        /// </summary>
+        void ReleaseSprint(){
+            isRunning = false;
         }
     }
 }

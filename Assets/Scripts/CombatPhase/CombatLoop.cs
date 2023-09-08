@@ -59,8 +59,19 @@ namespace CombatPhase{
         [SerializeField]
         private Slider playerHealthBar;
 
+        [Header("End of Combat")]
+        [Tooltip("End of combat screen to display stats")]
+        [SerializeField]
+        private GameObject endCombatScreen;
+
+        [Tooltip("Text object displaying the stats")]
+        [SerializeField]
+        private TextMeshProUGUI endCombatText;
+
         // To track player spawn points
         private GameObject[] playerSpawnPoints;
+        // To track the player
+        private GameObject player;
         private int diff;
         // For scavenging, to allow scavenging up to x seconds.
         private float scavengeTimeLimit = 0.0f, timePassed = 0.0f, spawnTime = 0.0f;
@@ -108,6 +119,24 @@ namespace CombatPhase{
                         combatCamera.SetActive(false);
                         combatText.gameObject.SetActive(false);
                         CombatEnvironment.SetActive(false);
+                        endCombatScreen.SetActive(true);
+                        Cursor.lockState = CursorLockMode.None;
+
+                        // Update the database here
+                        int foodFound = player.GetComponent<Player>().suppliesGathered[0] * 20, gasFound = player.GetComponent<Player>().suppliesGathered[1],
+                            scrapFound = player.GetComponent<Player>().suppliesGathered[2] * 10, moneyFound = player.GetComponent<Player>().suppliesGathered[3] * 15,
+                            medkitFound = player.GetComponent<Player>().suppliesGathered[4], ammoFound = player.GetComponent<Player>().suppliesGathered[5];
+
+                        string temp = "You collected:\n";
+                        temp += foodFound > 0 ? "* " + foodFound + " kg of food\n" : "";
+                        temp += gasFound > 0 ? gasFound == 1 ? "* " + gasFound + " can of gas\n" : "* " + gasFound + " cans of gas\n" : "";
+                        temp += scrapFound > 0 ? "* " + scrapFound + " scrap\n" : "";
+                        temp += moneyFound > 0 ? "* $" + moneyFound : "";
+                        temp += medkitFound > 0 ? medkitFound == 1 ? "* " + medkitFound + " medkit\n" : "* " + medkitFound + " medkits\n" : "";
+                        temp += ammoFound > 0 ? "* " + ammoFound + " ammo\n" : "";
+
+                        temp += Equals(temp, "You collected:\n") ? "Nothing." : "";
+                        endCombatText.text = temp;
                     }
 
                     // Spawn pickup after enough time has passed
@@ -123,6 +152,7 @@ namespace CombatPhase{
                         itemSelected = Random.Range(0, pickupPrefabs.Length);
 
                         GameObject spawn = Instantiate(pickupPrefabs[itemSelected], pickupSpawnPoints[spawnSelected].transform.position, pickupSpawnPoints[spawnSelected].transform.rotation);
+                        spawn.transform.SetParent(CombatEnvironment.transform);
                     }
                     
                     
@@ -172,7 +202,7 @@ namespace CombatPhase{
                 dataReader.Read();
 
                 diff = dataReader.GetInt32(4);
-                scavengeTimeLimit = diff == 1 || diff == 3 ? 60.0f : 40.0f;
+                scavengeTimeLimit = diff == 1 || diff == 3 ? 20.0f : 40.0f;
                 spawnTime = diff == 1 || diff == 3 ? 10.0f : 15.0f;
 
                 dbConnection.Close();
@@ -187,10 +217,17 @@ namespace CombatPhase{
             } while (playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse); 
 
             playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse = true;
-            GameObject player = Instantiate(playerPrefab, playerSpawnPoints[selected].transform.position, playerSpawnPoints[selected].transform.rotation);
+            player = Instantiate(playerPrefab, playerSpawnPoints[selected].transform.position, playerSpawnPoints[selected].transform.rotation);
             player.transform.SetParent(CombatEnvironment.transform);
 
             // Load AI teammates in
+        }
+
+        /// <summary>
+        /// End combat, saving results and returning to the rest menu.
+        /// </summary>
+        public void EndCombat(){
+            SceneManager.LoadScene(1);
         }
     }
 }

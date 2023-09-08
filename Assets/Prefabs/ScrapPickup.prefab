@@ -93,6 +93,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5670912453272769365}
   - component: {fileID: 8396609850666467513}
+  - component: {fileID: -804945324424907179}
   m_Layer: 0
   m_Name: ScrapPickup
   m_TagString: Untagged
@@ -124,9 +125,22 @@ CapsuleCollider:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7985007822090163046}
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_Enabled: 1
   m_Radius: 0.27262777
   m_Height: 0.60930765
   m_Direction: 0
   m_Center: {x: 0.012826264, y: -0.029390514, z: 0.04636258}
+--- !u!114 &-804945324424907179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7985007822090163046}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f676d2a24aba62429444c23379ad3e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  visuals: {fileID: 5387503499240292490}

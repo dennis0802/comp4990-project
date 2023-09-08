@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace CombatPhase{
-    public class AmmoPickup : BasePickup
+    public class ScrapPickup : BasePickup
     {
         [Tooltip("The visuals object to rotate")]
         [SerializeField]
@@ -11,8 +11,7 @@ namespace CombatPhase{
 
         protected override void OnPickup(Player player)
         {
-            player.suppliesGathered[5] += 1;
-            Player.TotalAvailableAmmo += 10;
+            player.suppliesGathered[2] += 1;
             Destroy(gameObject);
         }
 
