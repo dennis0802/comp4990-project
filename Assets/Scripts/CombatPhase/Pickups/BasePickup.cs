@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace CombatPhase{
+namespace CombatPhase.Pickups{
     /// <summary>
     /// Base class for pickups
     /// </summary>
@@ -13,11 +13,6 @@ namespace CombatPhase{
         /// How fast to spin the visual in degrees per second
         /// </summary>
         public const float Speed = 180;
-
-        /// <summary>
-        /// The spawnpoint the collectible spawned on
-        /// </summary>
-        public SpawnPoint spawn;
 
         /// <summary>
         /// Implement behaviour for when picked up

@@ -180,6 +180,8 @@ namespace CombatPhase{
             dataReader.Read();
 
             TotalAvailableAmmo = dataReader.GetInt32(14);
+            AmmoLoaded = TotalAvailableAmmo - 6 > 0 ? 6 : TotalAvailableAmmo;
+            TotalAvailableAmmo -= AmmoLoaded;
 
             dbConnection.Close();
         }

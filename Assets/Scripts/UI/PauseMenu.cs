@@ -60,7 +60,7 @@ namespace UI{
         }
 
         void Update(){
-            if(pauseAction.triggered){
+            if(SceneManager.GetActiveScene().buildIndex != 3 && pauseAction.triggered){
                 if(IsPaused){
                     Resume();
                 }
@@ -74,12 +74,6 @@ namespace UI{
         /// Resume the game
         /// </summary>
         public void Resume(){
-            if(CombatLoop.InCombat){
-                CombatLoop.CombatEnvironment.SetActive(true);
-                CombatLoop.Camera.SetActive(true);
-                Cursor.lockState = CursorLockMode.Locked;
-            }
-
             buttonClick.Play();
             pauseMenuUI.SetActive(false);
             activeUI.SetActive(true);
@@ -91,12 +85,6 @@ namespace UI{
         /// Pause the game
         /// </summary>
         public void Pause(){
-            if(CombatLoop.InCombat){
-                CombatLoop.Camera.SetActive(false);
-                CombatLoop.CombatEnvironment.SetActive(false);
-                Cursor.lockState = CursorLockMode.None;
-            }
-
             buttonClick.Play();
             pauseMenuUI.SetActive(true);
             activeUI.SetActive(false);

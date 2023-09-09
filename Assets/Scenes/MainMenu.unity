@@ -100069,7 +100069,7 @@ GameObject:
   - component: {fileID: 1986573149}
   m_Layer: 5
   m_Name: MainRestUI
-  m_TagString: Untagged
+  m_TagString: RestMenu
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

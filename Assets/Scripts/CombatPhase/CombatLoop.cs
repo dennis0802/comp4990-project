@@ -23,14 +23,6 @@ namespace CombatPhase{
         [SerializeField]
         private Button startButton;
 
-        [Tooltip("Enemy spawn points when combat starts.")]
-        [SerializeField]
-        private GameObject[] enemySpawnPoints;
-
-        [Tooltip("Pickup spawn points when combat starts.")]
-        [SerializeField]
-        private GameObject[] pickupSpawnPoints;
-
         [Tooltip("Pickups that the player can collect")]
         [SerializeField]
         private GameObject[] pickupPrefabs;
@@ -68,20 +60,22 @@ namespace CombatPhase{
         [SerializeField]
         private TextMeshProUGUI endCombatText;
 
-        // To track player spawn points
-        private GameObject[] playerSpawnPoints;
+        // To track spawn points for the party, enemies, and pickups
+        private GameObject[] playerSpawnPoints, enemySpawnPoints, pickupSpawnPoints;
+        
         // To track the player
-        private GameObject player;
+        private GameObject player, restMenu;
         private int diff;
         // For scavenging, to allow scavenging up to x seconds.
-        private float scavengeTimeLimit = 0.0f, timePassed = 0.0f, spawnTime = 0.0f;
+        private float scavengeTimeLimit = 0.0f, itemTimer = 0.0f, spawnItemTime = 0.0f;
+        private float spawnEnemyTime = 0.0f, enemyTimer = 0.0f;
         // To determine weapons selected
         public static int GunSelected = -1, PhysSelected = -1;
         // List of weapons
         private List<string> weaponList = new List<string>(){"Pistol", "Rifle", "Shotgun", "Knife", "Bat", "Shovel"};
 
         public static bool InCombat = false;
-        public static GameObject Camera, CombatEnvironment;
+        public static GameObject Camera, CombatEnvironment, RestMenuRef;
 
         // Start is called before the first frame update
         void Start(){
@@ -110,7 +104,8 @@ namespace CombatPhase{
                 // Players have limited time per scavenge session
                 if(RestMenu.IsScavenging){
                     scavengeTimeLimit -= Time.deltaTime;
-                    timePassed += Time.deltaTime;
+                    itemTimer += Time.deltaTime;
+                    enemyTimer += Time.deltaTime;
 
                     if(scavengeTimeLimit <= 0.0f){
                         InCombat = false;
@@ -121,11 +116,43 @@ namespace CombatPhase{
                         CombatEnvironment.SetActive(false);
                         endCombatScreen.SetActive(true);
                         Cursor.lockState = CursorLockMode.None;
-
-                        // Update the database here
+                        
                         int foodFound = player.GetComponent<Player>().suppliesGathered[0] * 20, gasFound = player.GetComponent<Player>().suppliesGathered[1],
                             scrapFound = player.GetComponent<Player>().suppliesGathered[2] * 10, moneyFound = player.GetComponent<Player>().suppliesGathered[3] * 15,
-                            medkitFound = player.GetComponent<Player>().suppliesGathered[4], ammoFound = player.GetComponent<Player>().suppliesGathered[5];
+                            medkitFound = player.GetComponent<Player>().suppliesGathered[4], ammoFound = player.GetComponent<Player>().suppliesGathered[5] * 10;
+
+                        // Update the database
+                        // Ammo will be counted as total avaialble plus loaded since collected ammo can be used during combat
+                        IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                        IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
+                        dbCommandReadValue.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                        IDataReader dataReader = dbCommandReadValue.ExecuteReader();
+                        dataReader.Read();
+
+                        int livingMembers = 0;
+                        for(int i = 0; i < 4; i++){
+                            livingMembers += !dataReader.IsDBNull(i) ? 1 : 0;
+                        }
+
+                        dbConnection.Close();
+                        
+                        dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                        dbCommandReadValue = dbConnection.CreateCommand();
+                        dbCommandReadValue.CommandText = "SELECT food, time, rations FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                        dataReader = dbCommandReadValue.ExecuteReader();
+                        dataReader.Read();
+
+                        int time = dataReader.GetInt32(1), totalFood = dataReader.GetInt32(0), rations = dataReader.GetInt32(2);
+                        totalFood = totalFood + foodFound - rations * livingMembers > 0 ? totalFood + foodFound - rations * livingMembers : 0;
+                        time = time + 1 == 25 ? 1 : time + 1;
+
+                        IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                        dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = food + " + totalFood + ", gas = gas + " + (float)(gasFound) + 
+                                                            ", scrap = scrap + " + scrapFound + ", money = money + " + moneyFound + ", medkit = medkit + " + medkitFound +
+                                                            ", ammo = " + (Player.AmmoLoaded + Player.TotalAvailableAmmo) + ", time = " + time + ", overallTime = overallTime + 1 " +
+                                                            " WHERE id = " + GameLoop.FileId;
+                        dbCommandUpdateValue.ExecuteNonQuery();
+                        dbConnection.Close();
 
                         string temp = "You collected:\n";
                         temp += foodFound > 0 ? "* " + foodFound + " kg of food\n" : "";
@@ -140,23 +167,30 @@ namespace CombatPhase{
                     }
 
                     // Spawn pickup after enough time has passed
-                    if(timePassed >= spawnTime){
-                        timePassed = 0.0f;
-                        int spawnSelected, itemSelected;
+                    if(itemTimer >= spawnItemTime){
+                        itemTimer = 0.0f;
+                        int itemSpawnSelected, itemSelected;
 
                         do{
-                            spawnSelected = Random.Range(0, pickupSpawnPoints.Length);
-                        }while(pickupSpawnPoints[spawnSelected].GetComponent<SpawnPoint>().inUse);
+                            itemSpawnSelected = Random.Range(0, pickupSpawnPoints.Length);
+                        }while(pickupSpawnPoints[itemSpawnSelected].GetComponent<SpawnPoint>().inUse);
 
-                        pickupSpawnPoints[spawnSelected].GetComponent<SpawnPoint>().inUse = true;
+                        pickupSpawnPoints[itemSpawnSelected].GetComponent<SpawnPoint>().inUse = true;
                         itemSelected = Random.Range(0, pickupPrefabs.Length);
 
-                        GameObject spawn = Instantiate(pickupPrefabs[itemSelected], pickupSpawnPoints[spawnSelected].transform.position, pickupSpawnPoints[spawnSelected].transform.rotation);
-                        spawn.transform.SetParent(CombatEnvironment.transform);
+                        GameObject itemSpawn = Instantiate(pickupPrefabs[itemSelected], pickupSpawnPoints[itemSpawnSelected].transform.position, pickupSpawnPoints[itemSpawnSelected].transform.rotation);
+                        itemSpawn.transform.SetParent(CombatEnvironment.transform);
                     }
-                    
-                    
                 }
+                // Spawn enemy after some time, depending on difficulty.
+                if(enemyTimer >= spawnEnemyTime){
+                    enemyTimer = 0.0f;
+                    Debug.Log("Enemy spawned.");
+                    int enemySpawnSelected = Random.Range(0, enemySpawnPoints.Length);
+                    GameObject enemySpawn = Instantiate(enemyPrefab, enemySpawnPoints[enemySpawnSelected].transform.position, enemySpawnPoints[enemySpawnSelected].transform.rotation);
+                    enemySpawn.transform.SetParent(CombatEnvironment.transform);
+                }
+
                 combatText.text = Player.UsingGun ? "Equipped: " + weaponList[GunSelected] + "\nLoaded = " + Player.AmmoLoaded + "\nTotal Ammo: " + Player.TotalAvailableAmmo 
                                     : "Equipped: " + weaponList[PhysSelected];
                 combatText.text += RestMenu.IsScavenging ? "\nTime: " + System.Math.Round(scavengeTimeLimit, 2) : "";
@@ -193,30 +227,36 @@ namespace CombatPhase{
                 }
             }
 
+            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+            diff = dataReader.GetInt32(4);
+
             // If scavenging, difficulty determines the amount of time.
             if(RestMenu.IsScavenging){
-                IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
-                IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
-                IDataReader dataReader = dbCommandReadValue.ExecuteReader();
-                dataReader.Read();
-
-                diff = dataReader.GetInt32(4);
-                scavengeTimeLimit = diff == 1 || diff == 3 ? 20.0f : 40.0f;
-                spawnTime = diff == 1 || diff == 3 ? 10.0f : 15.0f;
-
-                dbConnection.Close();
+                scavengeTimeLimit = diff == 1 || diff == 3 ? 60.0f : 40.0f;
+                spawnItemTime = diff == 1 || diff == 3 ? 10.0f : 15.0f;
             }
 
+            // Difficulty and activity determine enemy spawn time.
+            spawnEnemyTime = diff == 1 || diff == 3 ? 10.0f : 8.0f;
+            spawnEnemyTime += GameLoop.Activity == 1 ? 2.0f : GameLoop.Activity == 2 ? 0.0f : GameLoop.Activity == 1.0f ? 0.0f : -2.0f;
+
+            dbConnection.Close();
+
             playerSpawnPoints = GameObject.FindGameObjectsWithTag("PlayerSpawn");
+            enemySpawnPoints = GameObject.FindGameObjectsWithTag("EnemySpawn");
+            pickupSpawnPoints = GameObject.FindGameObjectsWithTag("PickupSpawn");
             int selected;
             
             do
             {
                 selected = Random.Range(0, playerSpawnPoints.Length);
             } while (playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse); 
-
             playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse = true;
+
             player = Instantiate(playerPrefab, playerSpawnPoints[selected].transform.position, playerSpawnPoints[selected].transform.rotation);
             player.transform.SetParent(CombatEnvironment.transform);
 
@@ -227,6 +267,7 @@ namespace CombatPhase{
         /// End combat, saving results and returning to the rest menu.
         /// </summary>
         public void EndCombat(){
+            RestMenuRef.SetActive(true);
             SceneManager.LoadScene(1);
         }
     }

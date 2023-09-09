@@ -2,8 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace CombatPhase{
-    public class GasPickup : BasePickup
+namespace CombatPhase.Pickups{
+    [DisallowMultipleComponent]
+    public class FoodPickup : BasePickup
     {
         [Tooltip("The visuals object to rotate")]
         [SerializeField]
@@ -11,7 +12,7 @@ namespace CombatPhase{
 
         protected override void OnPickup(Player player)
         {
-            player.suppliesGathered[1] += 1;
+            player.suppliesGathered[0] += 1;
             Destroy(gameObject);
         }
 

@@ -9,6 +9,7 @@ TagManager:
   - EnemySpawn
   - AllySpawn
   - PickupSpawn
+  - RestMenu
   layers:
   - Default
   - TransparentFX

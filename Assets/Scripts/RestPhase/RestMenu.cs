@@ -10,6 +10,7 @@ using TMPro;
 using UI;
 using Database;
 using TravelPhase;
+using CombatPhase;
 
 namespace RestPhase{
     [DisallowMultipleComponent]
@@ -540,6 +541,7 @@ namespace RestPhase{
         /// </summary>
         public void GoScavenge(){
             IsScavenging = true;
+            CombatLoop.RestMenuRef = this.gameObject;
             SceneManager.LoadScene(3);
         }
 

@@ -2,17 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Teammate : MonoBehaviour
-{
-    // Start is called before the first frame update
-    void Start()
+namespace AI{
+    public class Teammate : BaseAgent
     {
-        
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }
+

@@ -2,7 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace CombatPhase{
+namespace CombatPhase.Pickups{
+    [DisallowMultipleComponent]
     public class MedkitPickup : BasePickup
     {
         [Tooltip("The visuals object to rotate")]
