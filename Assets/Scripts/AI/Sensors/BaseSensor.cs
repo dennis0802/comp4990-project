@@ -10,6 +10,8 @@ namespace AI.Sensors{
     /// </summary>
     public abstract class BaseSensor : MonoBehaviour
     {
+        public BaseAgent Agent {get; set;}
+
         /// <summary>
         /// Implement what will be sent back to the agent
         /// </summary>

@@ -1,18 +1,22 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
 using RestPhase;
 using Database;
 using UI;
+using AI;
 using TMPro;
 using Mono.Data.Sqlite;
+using AI.States;
 
 namespace CombatPhase{
     [DisallowMultipleComponent]
-    public class CombatLoop : MonoBehaviour
+    public class CombatManager : MonoBehaviour
     {
         [Header("Intro")]
         [Tooltip("Buttons to select weapons a player can equip.")]
@@ -60,12 +64,27 @@ namespace CombatPhase{
         [SerializeField]
         private TextMeshProUGUI endCombatText;
 
+        [Header("Agents")]
+        [Tooltip("The mind or global state agents are in.")]
+        [SerializeField]
+        private BaseState mind;
+
+        [Tooltip("The maimum number of agents that can be updated in a single frame.")]
+        [Min(0)]
+        [SerializeField]
+        private int maxAgentsPerUpdate;
+
+        // All agents in the scene
+        public List<BaseAgent> Agents {get; private set;} = new();
+
+        // All registered states
+        private static readonly Dictionary<Type, BaseState> RegisteredStates = new();
         // To track spawn points for the party, enemies, and pickups
         private GameObject[] playerSpawnPoints, enemySpawnPoints, pickupSpawnPoints;
-        
         // To track the player
         private GameObject player, restMenu;
         private int diff;
+        private int _currentAgentIndex;
         // For scavenging, to allow scavenging up to x seconds.
         private float scavengeTimeLimit = 0.0f, itemTimer = 0.0f, spawnItemTime = 0.0f;
         private float spawnEnemyTime = 0.0f, enemyTimer = 0.0f;
@@ -73,9 +92,10 @@ namespace CombatPhase{
         public static int GunSelected = -1, PhysSelected = -1;
         // List of weapons
         private List<string> weaponList = new List<string>(){"Pistol", "Rifle", "Shotgun", "Knife", "Bat", "Shovel"};
-
+        protected static CombatManager Singleton;
         public static bool InCombat = false;
         public static GameObject Camera, CombatEnvironment, RestMenuRef;
+        public static BaseState Mind => Singleton.mind;
 
         // Start is called before the first frame update
         void Start(){
@@ -194,6 +214,31 @@ namespace CombatPhase{
                 combatText.text = Player.UsingGun ? "Equipped: " + weaponList[GunSelected] + "\nLoaded = " + Player.AmmoLoaded + "\nTotal Ammo: " + Player.TotalAvailableAmmo 
                                     : "Equipped: " + weaponList[PhysSelected];
                 combatText.text += RestMenu.IsScavenging ? "\nTime: " + System.Math.Round(scavengeTimeLimit, 2) : "";
+
+                // AI actions
+                if(Time.timeScale != 0){
+                    if(maxAgentsPerUpdate <= 0){
+                        for(int i = 0; i < Agents.Count; i++){
+                            try{
+                                Agents[i].Perform();
+                            }
+                            catch(Exception e){
+                                Debug.LogError(e);
+                            }
+                        }
+                    }
+                    else{
+                        for(int i = 0; i < maxAgentsPerUpdate; i++){
+                            try{
+                                Agents[_currentAgentIndex].Perform();
+                            }
+                            catch(Exception e){
+                                Debug.LogError(e);
+                            }
+                            NextAgent();
+                        }
+                    }
+                }
             }
         }
 
@@ -269,6 +314,59 @@ namespace CombatPhase{
         public void EndCombat(){
             RestMenuRef.SetActive(true);
             SceneManager.LoadScene(1);
+        }
+
+        public static BaseState GetState<T>() where T : BaseState{
+            return RegisteredStates.ContainsKey(typeof(T)) ? RegisteredStates[typeof(T)] : CreateState<T>();
+        }
+
+        private static void RegisterState<T>(BaseState stateToAdd) where T : BaseState{
+            RegisteredStates[typeof(T)] = stateToAdd;
+        }
+
+        private static BaseState CreateState<T>() where T : BaseState{
+            RegisterState<T>(ScriptableObject.CreateInstance(typeof(T)) as BaseState);
+            return RegisteredStates[typeof(T)];
+        }
+
+        public static void AddAgent(BaseAgent agent){
+            if(Singleton.Agents.Contains(agent)){
+                return;
+            }
+
+            Singleton.Agents.Add(agent);
+        }
+
+        public static void RemoveAgent(BaseAgent agent){
+            if(!Singleton.Agents.Contains(agent)){
+                return;
+            }
+
+            int index = Singleton.Agents.IndexOf(agent);
+            Singleton.Agents.Remove(agent);
+            if(Singleton._currentAgentIndex > index){
+                Singleton._currentAgentIndex--;
+            }
+            if(Singleton._currentAgentIndex < 0 || Singleton._currentAgentIndex >= Singleton.Agents.Count){
+                Singleton._currentAgentIndex = 0;
+            }
+        }
+
+        private void NextAgent(){
+            _currentAgentIndex++;
+            _currentAgentIndex = _currentAgentIndex >= Agents.Count ? 0 : _currentAgentIndex;
+        }
+
+        protected virtual void Awake(){
+            if(Singleton == this){
+                return;
+            }
+
+            if(Singleton != null){
+                Destroy(gameObject);
+                return;
+            }
+            Singleton = this;
         }
     }
 }

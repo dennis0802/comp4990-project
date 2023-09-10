@@ -1,18 +1,23 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
-public class NearestMemberSensor : MonoBehaviour
-{
-    // Start is called before the first frame update
-    void Start()
+namespace AI.Sensors{
+    public class NearestMemberSensor : BaseSensor
     {
-        
-    }
+        /// <summary>
+        /// Sense the nearest member to the agent (mutant).
+        /// </summary>
+        /// <returns>The transform of the nearest member or null if none available</returns>
+        public override object Sense(){
+            Transform[] party = FindObjectsOfType<Transform>().Where(t => t.name.Contains("Teammate") || t.name.Contains("Player")).ToArray();
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+            if(party.Length == 0){
+                return null;
+            }
+
+            return party.OrderBy(b => Vector3.Distance(Agent.transform.position, b.transform.position)).First();
+        }
     }
 }

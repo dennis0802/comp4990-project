@@ -1,18 +1,23 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
-public class NearestCollectibleSensor : MonoBehaviour
-{
-    // Start is called before the first frame update
-    void Start()
+namespace AI.Sensors{
+    public class NearestCollectibleSensor : BaseSensor
     {
-        
-    }
+        /// <summary>
+        /// Sense the nearest collectible to the agent.
+        /// </summary>
+        /// <returns>The transform of the nearest collectible or null if none available</returns>
+        public override object Sense(){
+            Transform[] itemSpawnPoints = FindObjectsOfType<Transform>().Where(t => Equals(t.tag, "PickupSpawn")).ToArray();
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+            if(itemSpawnPoints.Length == 0){
+                return null;
+            }
+
+            return itemSpawnPoints.OrderBy(b => Vector3.Distance(Agent.transform.position, b.transform.position)).First();
+        }
     }
 }

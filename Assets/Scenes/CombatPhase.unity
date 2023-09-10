@@ -2566,7 +2566,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1003545596}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3fffa220e654b624683ba1b7cc0b9334, type: 3}
+  m_Script: {fileID: 11500000, guid: 40bfcad0ea57e714395ab3794c8b6605, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   weaponButtons:
@@ -2580,9 +2580,9 @@ MonoBehaviour:
   pickupPrefabs:
   - {fileID: 7615890095295749777, guid: 0a8f08047662fd047b225df7488fd5d0, type: 3}
   - {fileID: 1307955053518995905, guid: 2b717992e77ff8b40a00ce766a2fbad0, type: 3}
+  - {fileID: 7985007822090163046, guid: 267f7ad7c0aec484d9e80b4da09c82d8, type: 3}
   - {fileID: 6759323283945832143, guid: ea7cfe994a98f8f43bb1abdd2a20cd01, type: 3}
   - {fileID: 2658370017346923722, guid: 8cb62c45dd3b3ed4bacf53f109370f67, type: 3}
-  - {fileID: 7985007822090163046, guid: 267f7ad7c0aec484d9e80b4da09c82d8, type: 3}
   - {fileID: 3315125418576677966, guid: d8ae2c800453a4f44a32e1c0485f55bc, type: 3}
   playerPrefab: {fileID: 4324690102972426135, guid: d5faa173f1b3a3c499da74513556f6fd, type: 3}
   allyPrefab: {fileID: 4324690102972426135, guid: e44e9ecb24c20724abecabd8e1832df0, type: 3}
@@ -2592,6 +2592,7 @@ MonoBehaviour:
   playerHealthBar: {fileID: 0}
   endCombatScreen: {fileID: 188661165}
   endCombatText: {fileID: 245420781}
+  mind: {fileID: 11400000, guid: cc32f1c49caf6414b9c046b4ce1a4e99, type: 2}
 --- !u!82 &1003545602
 AudioSource:
   m_ObjectHideFlags: 0

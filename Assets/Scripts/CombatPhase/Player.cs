@@ -53,7 +53,7 @@ namespace CombatPhase{
         void Update()
         {
             // Combat actions for the player
-            if(CombatLoop.InCombat){
+            if(CombatManager.InCombat){
                 // Stop falling
                 isGrounded = controller.isGrounded;
                 if(isGrounded && playerVelocity.y < 0){
@@ -81,7 +81,7 @@ namespace CombatPhase{
                 // Shooting
                 if(playerShoot.triggered){
                     if(UsingGun && AmmoLoaded > 0){
-                        AmmoLoaded -= CombatLoop.GunSelected == 2 ? 3 : 1;
+                        AmmoLoaded -= CombatManager.GunSelected == 2 ? 3 : 1;
                     }
                     else if(UsingGun && AmmoLoaded == 0){
                         // Play empty gun sound here.
