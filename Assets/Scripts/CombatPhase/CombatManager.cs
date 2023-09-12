@@ -55,6 +55,10 @@ namespace CombatPhase{
         [SerializeField]
         private Slider playerHealthBar;
 
+        [Tooltip("Player health text")]
+        [SerializeField]
+        private TextMeshProUGUI playerHealthText;
+
         [Header("End of Combat")]
         [Tooltip("End of combat screen to display stats")]
         [SerializeField]
@@ -82,7 +86,7 @@ namespace CombatPhase{
         // To track spawn points for the party, enemies, and pickups
         private GameObject[] playerSpawnPoints, enemySpawnPoints, pickupSpawnPoints;
         // To track the player
-        private GameObject player, restMenu;
+        private GameObject player, ally, restMenu;
         private int diff;
         private int _currentAgentIndex;
         // For scavenging, to allow scavenging up to x seconds.
@@ -120,6 +124,8 @@ namespace CombatPhase{
             combatCamera.SetActive(InCombat && !PauseMenu.IsPaused);
             if(InCombat){
                 combatText.gameObject.SetActive(!PauseMenu.IsPaused);
+                playerHealthBar.gameObject.SetActive(!PauseMenu.IsPaused);
+                playerHealthText.gameObject.SetActive(!PauseMenu.IsPaused);
 
                 // Players have limited time per scavenge session
                 if(RestMenu.IsScavenging){
@@ -128,62 +134,8 @@ namespace CombatPhase{
                     enemyTimer += Time.deltaTime;
 
                     if(scavengeTimeLimit <= 0.0f){
-                        InCombat = false;
-                        RestMenu.IsScavenging = false;
-                        RestMenu.Panel.SetActive(true);
-                        combatCamera.SetActive(false);
-                        combatText.gameObject.SetActive(false);
-                        CombatEnvironment.SetActive(false);
-                        endCombatScreen.SetActive(true);
-                        Cursor.lockState = CursorLockMode.None;
-                        
-                        int foodFound = player.GetComponent<Player>().suppliesGathered[0] * 20, gasFound = player.GetComponent<Player>().suppliesGathered[1],
-                            scrapFound = player.GetComponent<Player>().suppliesGathered[2] * 10, moneyFound = player.GetComponent<Player>().suppliesGathered[3] * 15,
-                            medkitFound = player.GetComponent<Player>().suppliesGathered[4], ammoFound = player.GetComponent<Player>().suppliesGathered[5] * 10;
-
-                        // Update the database
-                        // Ammo will be counted as total avaialble plus loaded since collected ammo can be used during combat
-                        IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
-                        IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-                        dbCommandReadValue.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
-                        IDataReader dataReader = dbCommandReadValue.ExecuteReader();
-                        dataReader.Read();
-
-                        int livingMembers = 0;
-                        for(int i = 0; i < 4; i++){
-                            livingMembers += !dataReader.IsDBNull(i) ? 1 : 0;
-                        }
-
-                        dbConnection.Close();
-                        
-                        dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
-                        dbCommandReadValue = dbConnection.CreateCommand();
-                        dbCommandReadValue.CommandText = "SELECT food, time, rations FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
-                        dataReader = dbCommandReadValue.ExecuteReader();
-                        dataReader.Read();
-
-                        int time = dataReader.GetInt32(1), totalFood = dataReader.GetInt32(0), rations = dataReader.GetInt32(2);
-                        totalFood = totalFood + foodFound - rations * livingMembers > 0 ? totalFood + foodFound - rations * livingMembers : 0;
-                        time = time + 1 == 25 ? 1 : time + 1;
-
-                        IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                        dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = food + " + totalFood + ", gas = gas + " + (float)(gasFound) + 
-                                                            ", scrap = scrap + " + scrapFound + ", money = money + " + moneyFound + ", medkit = medkit + " + medkitFound +
-                                                            ", ammo = " + (Player.AmmoLoaded + Player.TotalAvailableAmmo) + ", time = " + time + ", overallTime = overallTime + 1 " +
-                                                            " WHERE id = " + GameLoop.FileId;
-                        dbCommandUpdateValue.ExecuteNonQuery();
-                        dbConnection.Close();
-
-                        string temp = "You collected:\n";
-                        temp += foodFound > 0 ? "* " + foodFound + " kg of food\n" : "";
-                        temp += gasFound > 0 ? gasFound == 1 ? "* " + gasFound + " can of gas\n" : "* " + gasFound + " cans of gas\n" : "";
-                        temp += scrapFound > 0 ? "* " + scrapFound + " scrap\n" : "";
-                        temp += moneyFound > 0 ? "* $" + moneyFound : "";
-                        temp += medkitFound > 0 ? medkitFound == 1 ? "* " + medkitFound + " medkit\n" : "* " + medkitFound + " medkits\n" : "";
-                        temp += ammoFound > 0 ? "* " + ammoFound + " ammo\n" : "";
-
-                        temp += Equals(temp, "You collected:\n") ? "Nothing." : "";
-                        endCombatText.text = temp;
+                        EndCombat();
+                        return;
                     }
 
                     // Spawn pickup after enough time has passed
@@ -209,6 +161,11 @@ namespace CombatPhase{
                     int enemySpawnSelected = Random.Range(0, enemySpawnPoints.Length);
                     GameObject enemySpawn = Instantiate(enemyPrefab, enemySpawnPoints[enemySpawnSelected].transform.position, enemySpawnPoints[enemySpawnSelected].transform.rotation);
                     enemySpawn.transform.SetParent(CombatEnvironment.transform);
+                    
+                    Mutant m = enemySpawn.GetComponent<Mutant>();
+                    float upperBoundDetection = diff == 1 || diff == 3 ? 8.0f : 14.0f;
+                    m.SetDetectionRange(Random.Range(8.0f, upperBoundDetection));
+                    m.SetDestination(m.gameObject.transform.position);
                 }
 
                 combatText.text = Player.UsingGun ? "Equipped: " + weaponList[GunSelected] + "\nLoaded = " + Player.AmmoLoaded + "\nTotal Ammo: " + Player.TotalAvailableAmmo 
@@ -305,30 +262,137 @@ namespace CombatPhase{
             player = Instantiate(playerPrefab, playerSpawnPoints[selected].transform.position, playerSpawnPoints[selected].transform.rotation);
             player.transform.SetParent(CombatEnvironment.transform);
 
+            dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            playerHealthBar.value = dataReader.GetInt32(9);
+            playerHealthText.text = "HP: " + playerHealthBar.value + "/100";
+
             // Load AI teammates in
+            for(int i = 1; i <= 3; i++){
+                if(!dataReader.IsDBNull(1+9*i)){
+                    do
+                    {
+                        selected = Random.Range(0, playerSpawnPoints.Length);
+                    } while (playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse); 
+                    playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse = true;
+
+                    ally = Instantiate(allyPrefab, playerSpawnPoints[selected].transform.position, playerSpawnPoints[selected].transform.rotation);
+                    ally.transform.SetParent(CombatEnvironment.transform);
+                    Teammate t = ally.GetComponent<Teammate>();
+                    t.id = i;
+                    t.SetDetectionRange(10.0f);
+                }
+            }
+
+            dbConnection.Close();
         }
 
         /// <summary>
-        /// End combat, saving results and returning to the rest menu.
+        /// End combat and save results
         /// </summary>
         public void EndCombat(){
+            InCombat = false;
+            RestMenu.IsScavenging = false;
+            RestMenu.Panel.SetActive(true);
+            combatCamera.SetActive(false);
+            combatText.gameObject.SetActive(false);
+            CombatEnvironment.SetActive(false);
+            endCombatScreen.SetActive(true);
+            Cursor.lockState = CursorLockMode.None;
+            
+            int foodFound = player.GetComponent<Player>().suppliesGathered[0] * 20, gasFound = player.GetComponent<Player>().suppliesGathered[1],
+                scrapFound = player.GetComponent<Player>().suppliesGathered[2] * 10, moneyFound = player.GetComponent<Player>().suppliesGathered[3] * 15,
+                medkitFound = player.GetComponent<Player>().suppliesGathered[4], ammoFound = player.GetComponent<Player>().suppliesGathered[5] * 10;
+
+            // Update the database
+            // Ammo will be counted as total avaialble plus loaded since collected ammo can be used during combat
+            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            int livingMembers = 0;
+            for(int i = 0; i < 4; i++){
+                livingMembers += !dataReader.IsDBNull(i) ? 1 : 0;
+            }
+
+            dbConnection.Close();
+            
+            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT food, time, rations FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            int time = dataReader.GetInt32(1), totalFood = dataReader.GetInt32(0), rations = dataReader.GetInt32(2);
+            totalFood = totalFood + foodFound - rations * livingMembers > 0 ? totalFood + foodFound - rations * livingMembers : 0;
+            time = time + 1 == 25 ? 1 : time + 1;
+
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = food + " + totalFood + ", gas = gas + " + (float)(gasFound) + 
+                                                ", scrap = scrap + " + scrapFound + ", money = money + " + moneyFound + ", medkit = medkit + " + medkitFound +
+                                                ", ammo = " + (Player.AmmoLoaded + Player.TotalAvailableAmmo) + ", time = " + time + ", overallTime = overallTime + 1 " +
+                                                " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.ExecuteNonQuery();
+            dbConnection.Close();
+
+            string temp = "You collected:\n";
+            temp += foodFound > 0 ? "* " + foodFound + " kg of food\n" : "";
+            temp += gasFound > 0 ? gasFound == 1 ? "* " + gasFound + " can of gas\n" : "* " + gasFound + " cans of gas\n" : "";
+            temp += scrapFound > 0 ? "* " + scrapFound + " scrap\n" : "";
+            temp += moneyFound > 0 ? "* $" + moneyFound : "";
+            temp += medkitFound > 0 ? medkitFound == 1 ? "* " + medkitFound + " medkit\n" : "* " + medkitFound + " medkits\n" : "";
+            temp += ammoFound > 0 ? "* " + ammoFound + " ammo\n" : "";
+
+            temp += Equals(temp, "You collected:\n") ? "Nothing." : "";
+            endCombatText.text = temp;
+        }
+
+        /// <summary>
+        /// Return to the rest menu
+        /// </summary>
+        public void ReturnToRest(){
             RestMenuRef.SetActive(true);
             SceneManager.LoadScene(1);
         }
 
+        /// <summary>
+        /// Lookup a state type from the dictionary.
+        /// </summary>
+        /// <typeparam name="T">The type of state to register</typeparam>
+        /// <returns>The state of the requested type.</returns>
         public static BaseState GetState<T>() where T : BaseState{
             return RegisteredStates.ContainsKey(typeof(T)) ? RegisteredStates[typeof(T)] : CreateState<T>();
         }
 
+        /// <summary>
+        /// Register a state type into the dictionary.
+        /// </summary>
+        /// <typeparam name="T">The type of state to register</typeparam>
+        /// <returns>The state of the requested type.</returns>
         private static void RegisterState<T>(BaseState stateToAdd) where T : BaseState{
             RegisteredStates[typeof(T)] = stateToAdd;
         }
 
+        /// <summary>
+        /// Create a state type into the dictionary
+        /// </summary>
+        /// <typeparam name="T">The type of state to register</typeparam>
+        /// <returns>The state of the requested type.</returns>
         private static BaseState CreateState<T>() where T : BaseState{
             RegisterState<T>(ScriptableObject.CreateInstance(typeof(T)) as BaseState);
             return RegisteredStates[typeof(T)];
         }
 
+        /// <summary>
+        /// Add an agent from the list of agents
+        /// </summary>
+        /// <param name="agent">The agent to add</param>
         public static void AddAgent(BaseAgent agent){
             if(Singleton.Agents.Contains(agent)){
                 return;
@@ -337,6 +401,10 @@ namespace CombatPhase{
             Singleton.Agents.Add(agent);
         }
 
+        /// <summary>
+        /// Remove an agent from the list of agents
+        /// </summary>
+        /// <param name="agent">The agent to remove</param>
         public static void RemoveAgent(BaseAgent agent){
             if(!Singleton.Agents.Contains(agent)){
                 return;
@@ -352,6 +420,9 @@ namespace CombatPhase{
             }
         }
 
+        /// <summary>
+        /// Move to the next agent in context
+        /// </summary>
         private void NextAgent(){
             _currentAgentIndex++;
             _currentAgentIndex = _currentAgentIndex >= Agents.Count ? 0 : _currentAgentIndex;

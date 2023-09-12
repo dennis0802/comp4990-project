@@ -11,7 +11,13 @@ namespace AI.Sensors{
         /// </summary>
         /// <returns>The transform of the nearest member or null if none available</returns>
         public override object Sense(){
-            Transform[] party = FindObjectsOfType<Transform>().Where(t => t.name.Contains("Teammate") || t.name.Contains("Player")).ToArray();
+            if(Agent is not Mutant mutant){
+                return null;
+            }
+
+            // Get the transforms of player/teammates who are in range
+            Transform[] party = FindObjectsOfType<Transform>().Where(t => t.name.Contains("Teammate") || t.name.Contains("Player") && 
+                                Vector3.Distance(t.transform.position, mutant.transform.position) < mutant.DetectionRange).ToArray();
 
             if(party.Length == 0){
                 return null;

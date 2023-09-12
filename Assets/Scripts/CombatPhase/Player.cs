@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using CombatPhase;
 using Database;
 using UI;
+using TMPro;
 using Mono.Data.Sqlite;
 
 namespace CombatPhase{
@@ -16,19 +18,80 @@ namespace CombatPhase{
         [SerializeField]
         private PlayerInput playerInput;
 
+        [Tooltip("Name text")]
+        [SerializeField]
+        private TextMeshPro nameText;
+
         [Tooltip("Colors for players")]
         [SerializeField]
         private Material[] playerColors;
 
+        [Tooltip("Player health bar")]
+        [SerializeField]
+        private Slider playerHealthBar;
+
+        [Tooltip("Player health text")]
+        [SerializeField]
+        private TextMeshProUGUI playerHealthText;
+
+        /// <summary>
+        /// Player input actions
+        /// </summary> 
         private InputAction playerMove, playerShoot, weaponSwitch, playerReload, startRun, endRun;
+        
+        /// <summary>
+        /// Controller for the player
+        /// </summary> 
         private CharacterController controller;
+
+        /// <summary>
+        /// Camera transform following the player
+        /// </summary> 
         private Transform cameraTransform;
-        private float reloadTimer = 0.0f, gravity = -9.81f, playerSpeed = 3.0f, rotationSpeed = 5f;
+
+        /// <summary>
+        /// Player reload timer
+        /// </summary>  
+        private float reloadTimer = 0.0f;
+
+        /// <summary>
+        /// Values for player movement physics
+        /// </summary>  
+        private float gravity = -9.81f, playerSpeed = 3.0f, rotationSpeed = 5f;
+
+        /// <summary>
+        /// Player current velocity
+        /// </summary> 
         private Vector3 playerVelocity;
+
+        /// <summary>
+        /// Array to store supplies of each type gathered
+        /// </summary> 
         public int[] suppliesGathered = new int[]{0,0,0,0,0,0};
-        public static int TotalAvailableAmmo = 0, AmmoLoaded = 0;
+
+        /// <summary>
+        /// Ammo available from party stock
+        /// </summary> 
+        public static int TotalAvailableAmmo = 0;
+
+        /// <summary>
+        /// Ammo currently loaded
+        /// </summary> 
+        public static int AmmoLoaded = 0;
+
+        /// <summary>
+        /// Max ammo a gun can gold
+        /// </summary> 
         private const int maxAmmoLoaded = 6;
+
+        /// <summary>
+        /// Flags for player actions
+        /// </summary> 
         private bool isGrounded, busyReloading, isRunning = false;
+
+        /// <summary>
+        /// Flag if gun is being used
+        /// </summary> 
         public static bool UsingGun = true;
 
         // Start is called before the first frame update
@@ -104,6 +167,8 @@ namespace CombatPhase{
                     }
                 }
 
+                // Check health
+
                 // Switching weapon
                 if(weaponSwitch.triggered){
                     UsingGun = !UsingGun;
@@ -122,6 +187,7 @@ namespace CombatPhase{
             dataReader.Read();
 
             int acc = dataReader.GetInt32(4), outfit = dataReader.GetInt32(5), color = dataReader.GetInt32(6), hat = dataReader.GetInt32(7);
+            nameText.text = dataReader.GetString(1);
 
             dbConnection.Close();
 

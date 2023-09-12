@@ -40,6 +40,36 @@ namespace AI{
         public BaseState State {get; private set;}
 
         /// <summary>
+        /// How far away this mutant can detect party members.
+        /// </summary>
+        public float DetectionRange { get; private set; }
+
+        protected virtual void Start(){
+            Setup();
+
+            if(CombatManager.Mind != null){
+                CombatManager.Mind.Enter(this);
+            }
+
+            if(State != null){
+                State.Enter(this);
+            }
+        }
+
+        /// <summary>
+        /// Perform current state action
+        /// </summary>
+        public virtual void Perform(){
+            if(CombatManager.Mind != null){
+                CombatManager.Mind.Execute(this);
+            }
+            
+            if(State != null){
+                State.Execute(this);
+            }
+        }
+
+        /// <summary>
         /// Read a sensor and receive given data piece.
         /// </summary>
         /// <typeparam name="TSensor">The sensor type to read.</typeparam>
@@ -103,32 +133,18 @@ namespace AI{
         /// <summary>
         /// Set the state of the agent
         /// </summary>
-        /// <param name="dest">The destination to move the agent to</typeparam>
+        /// <param name="dest">The destination to move the agent to<param>
         public void SetDestination(Vector3 dest){
             TargetDest = dest;
             NavMeshAgent.SetDestination(TargetDest);
         }
 
-        protected virtual void Start(){
-            Setup();
-
-            if(CombatManager.Mind != null){
-                CombatManager.Mind.Enter(this);
-            }
-
-            if(State != null){
-                State.Enter(this);
-            }
-        }
-
-        public virtual void Perform(){
-            if(CombatManager.Mind != null){
-                CombatManager.Mind.Execute(this);
-            }
-            
-            if(State != null){
-                State.Execute(this);
-            }
+        /// <summary>
+        /// Set the detection range of the agent
+        /// </summary>
+        /// <param name="detectionRange">The range this agent can detect up to<param>
+        public void SetDetectionRange(float detectionRange){
+            DetectionRange = detectionRange;
         }
     }
 }
