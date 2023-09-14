@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using AI;
 using UnityEngine;
 
 namespace CombatPhase.Pickups{
@@ -18,6 +19,11 @@ namespace CombatPhase.Pickups{
         /// Implement behaviour for when picked up
         /// </summary>
         protected abstract void OnPickup(Player player);
+        
+        /// <summary>
+        /// Implement behaviour for when picked up
+        /// </summary>
+        protected abstract void OnPickup(Teammate teammate);
 
         private void OnTriggerEnter(Collider other){
             DetectPickup(other);
@@ -29,8 +35,13 @@ namespace CombatPhase.Pickups{
         /// <param name="other">The object collided with</param>
         private void DetectPickup(Component other){
             Player player = other.gameObject.GetComponent<Player>();
+            Teammate teammate = other.gameObject.GetComponent<Teammate>();
+
             if(player != null){
                 OnPickup(player);
+            }
+            else if(teammate != null){
+
             }
         }
     }

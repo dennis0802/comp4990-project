@@ -4,12 +4,12 @@ using UnityEngine;
 using System.Linq;
 
 namespace AI.Sensors{
-    public class NearestMemberSensor : BaseSensor
+    public class NearestPartySensor : BaseSensor
     {
         /// <summary>
-        /// Sense the nearest member to the agent (mutant).
+        /// Sense the nearest party member to the agent (mutant).
         /// </summary>
-        /// <returns>The transform of the nearest member or null if none available</returns>
+        /// <returns>The transform of the nearest party member or null if none available</returns>
         public override object Sense(){
             if(Agent is not Mutant mutant){
                 return null;

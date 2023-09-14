@@ -15,6 +15,24 @@ namespace AI{
     /// </summary>
     public abstract class BaseAgent : MonoBehaviour
     {
+        public class Movement{
+            /// <summary>
+            /// Store the position
+            /// </summary>
+            private readonly Vector3 _position;
+
+            /// <summary>
+            /// Last position this was in since
+            /// </summary>
+            public Vector3 LastPosition;
+
+
+            public Movement(Vector3 pos){
+                _position = pos;
+                LastPosition = _position;
+            }
+        }
+
         public BaseSensor[] Sensors {get; private set;}
 
         /// <summary>
@@ -33,6 +51,16 @@ namespace AI{
         /// Current velocity of the agent
         /// </summary>
         public Vector3 Velocity {get; private set;}
+
+        /// <summary>
+        /// If the agent is moving
+        /// </summary>
+        public bool IsMoving {get; private set;}
+
+        /// <summary>
+        /// All movement that the agent is doing
+        /// </summary>
+        public List<Movement> Moves {get; private set;} = new();
 
         /// <summary>
         /// Current state of the agent
@@ -137,6 +165,23 @@ namespace AI{
         public void SetDestination(Vector3 dest){
             TargetDest = dest;
             NavMeshAgent.SetDestination(TargetDest);
+            Moves.Add(new Movement(transform.position));
+        }
+
+        /// <summary>
+        /// Check if the agent can set a new move (not already moving)
+        /// </summary>
+        /// <returns>True if the agent can set a new move, false otherwise</returns>
+        public bool CanSetMove(){
+            return CombatManager.IsMoveComplete(TargetDest, transform.position);
+        }
+
+        /// <summary>
+        /// Get the agent's current destination
+        /// </summary>
+        /// <returns>The target destination</returns>
+        public Vector3 GetDestination(){
+            return TargetDest;
         }
 
         /// <summary>

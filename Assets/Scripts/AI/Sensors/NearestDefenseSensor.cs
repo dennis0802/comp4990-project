@@ -11,7 +11,12 @@ namespace AI.Sensors{
         /// </summary>
         /// <returns>The transform of the nearest defense or null if none available</returns>
         public override object Sense(){
-            Transform[] defensivePoints = FindObjectsOfType<Transform>().Where(t => Equals(t.tag, "DefensivePoint")).ToArray();
+            if(Agent is not Teammate teammate){
+                return null;
+            }
+
+            Transform[] defensivePoints = FindObjectsOfType<Transform>().Where(t => Equals(t.tag, "DefensivePoint") 
+                                          && Vector3.Distance(t.transform.position, teammate.transform.position) < teammate.DetectionRange).ToArray();
 
             if(defensivePoints.Length == 0){
                 return null;

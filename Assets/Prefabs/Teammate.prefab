@@ -999,6 +999,9 @@ GameObject:
   - component: {fileID: 4324690102972426155}
   - component: {fileID: 367688364044216471}
   - component: {fileID: -4193850444712499654}
+  - component: {fileID: 2721850336441479092}
+  - component: {fileID: 4126407980464517591}
+  - component: {fileID: 8529361679386959963}
   m_Layer: 0
   m_Name: Teammate
   m_TagString: Player
@@ -1099,7 +1102,47 @@ MonoBehaviour:
   - {fileID: 2100000, guid: cc7d87f6c7c8bed47aa0e95909280a93, type: 2}
   nameText: {fileID: 6567670146053421575}
   minStopSpeed: 0.2
+  leader: {fileID: 0}
   id: 0
+  hp: 0
+  ammo: 0
+  usingGun: 0
+--- !u!114 &2721850336441479092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4324690102972426135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5e5ea999c8b2f9409b0eda7ffe14354, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &4126407980464517591
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4324690102972426135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51d432317b5cebb4c8fcb97cdfa01509, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &8529361679386959963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4324690102972426135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4083809d6a5bea4188fb58694da1b40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &4324690103502335292
 GameObject:
   m_ObjectHideFlags: 0

@@ -11,6 +11,10 @@ namespace AI.Sensors{
         /// </summary>
         /// <returns>The transform of the nearest collectible or null if none available</returns>
         public override object Sense(){
+            if(Agent is not Teammate teammate){
+                return null;
+            }
+
             Transform[] itemSpawnPoints = FindObjectsOfType<Transform>().Where(t => Equals(t.tag, "PickupSpawn")).ToArray();
 
             if(itemSpawnPoints.Length == 0){

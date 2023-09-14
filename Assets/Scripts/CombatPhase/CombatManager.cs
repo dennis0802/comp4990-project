@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -78,6 +79,11 @@ namespace CombatPhase{
         [SerializeField]
         private int maxAgentsPerUpdate;
 
+        /// <summary>
+        /// How close an agent can be to a destination and declare as reached
+        /// </summary>
+        private static float acceptableReachDistance = 0.1f;
+
         // All agents in the scene
         public List<BaseAgent> Agents {get; private set;} = new();
 
@@ -100,6 +106,7 @@ namespace CombatPhase{
         public static bool InCombat = false;
         public static GameObject Camera, CombatEnvironment, RestMenuRef;
         public static BaseState Mind => Singleton.mind;
+        public static Vector2 RandomPosition => Random.insideUnitCircle * 195;
 
         // Start is called before the first frame update
         void Start(){
@@ -333,11 +340,18 @@ namespace CombatPhase{
             totalFood = totalFood + foodFound - rations * livingMembers > 0 ? totalFood + foodFound - rations * livingMembers : 0;
             time = time + 1 == 25 ? 1 : time + 1;
 
+            // Sum up ammo remaining with teammates
+            Teammate[] partyMembers = FindObjectsOfType<Teammate>().Where(t => t.name.Contains("Teammate")).ToArray();
+            int ammoRemaining = 0;
+            foreach(Teammate t in partyMembers){
+                ammoRemaining += t.ammo;
+            }
+
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = food + " + totalFood + ", gas = gas + " + (float)(gasFound) + 
                                                 ", scrap = scrap + " + scrapFound + ", money = money + " + moneyFound + ", medkit = medkit + " + medkitFound +
-                                                ", ammo = " + (Player.AmmoLoaded + Player.TotalAvailableAmmo) + ", time = " + time + ", overallTime = overallTime + 1 " +
-                                                " WHERE id = " + GameLoop.FileId;
+                                                ", ammo = " + (Player.AmmoLoaded + Player.TotalAvailableAmmo + ammoRemaining) + ", time = " + 
+                                                time + ", overallTime = overallTime + 1 WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -418,6 +432,15 @@ namespace CombatPhase{
             if(Singleton._currentAgentIndex < 0 || Singleton._currentAgentIndex >= Singleton.Agents.Count){
                 Singleton._currentAgentIndex = 0;
             }
+        }
+
+        /// <summary>
+        /// Check if a move is complete
+        /// </summary>
+        /// <param name="dest">The destination location</param>
+        /// <param name="pos">The current position</param>
+        public static bool IsMoveComplete(Vector3 dest, Vector3 pos){
+            return Vector3.Distance(pos, dest) <= acceptableReachDistance;
         }
 
         /// <summary>

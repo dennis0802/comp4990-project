@@ -2,17 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DefensivePoint : MonoBehaviour
-{
-    // Start is called before the first frame update
-    void Start()
+namespace CombatPhase{
+    public class DefensivePoint : MonoBehaviour
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        public bool inUse = false;
     }
 }

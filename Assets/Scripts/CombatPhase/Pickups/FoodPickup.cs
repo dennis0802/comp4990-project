@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using AI;
 using UnityEngine;
 
 namespace CombatPhase.Pickups{
@@ -13,6 +14,12 @@ namespace CombatPhase.Pickups{
         protected override void OnPickup(Player player)
         {
             player.suppliesGathered[0] += 1;
+            Destroy(gameObject);
+        }
+
+        protected override void OnPickup(Teammate teammate)
+        {
+            teammate.leader.suppliesGathered[0] += 1;
             Destroy(gameObject);
         }
 

@@ -24,7 +24,10 @@ namespace AI{
         /// </summary>
         public float minStopSpeed;
 
-        public int id = 0;
+        public Player leader;
+
+        public int id = 0, hp = 0, ammo = 0;
+        public bool usingGun;
 
         protected override void Start(){
             base.Start();
@@ -41,10 +44,17 @@ namespace AI{
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            int acc = dataReader.GetInt32(4+9*id), outfit = dataReader.GetInt32(5+9*id), 
-                color = dataReader.GetInt32(6+9*id), hat = dataReader.GetInt32(7+9*id);
+            int acc = dataReader.GetInt32(4+9*id), outfit = dataReader.GetInt32(5+9*id), color = dataReader.GetInt32(6+9*id), hat = dataReader.GetInt32(7+9*id),
+                hpDB = dataReader.GetInt32(9+9*id), livingMembers = 0;
+
+            for(int i = 0; i < 4; i++){
+                if(!dataReader.IsDBNull(1+9*i)){
+                    livingMembers++;
+                }
+            }
             
             nameText.text = dataReader.GetString(1+9*id);
+            hp = hpDB;
 
             dbConnection.Close();
 
@@ -102,11 +112,14 @@ namespace AI{
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            /*TotalAvailableAmmo = dataReader.GetInt32(14);
-            AmmoLoaded = TotalAvailableAmmo - 6 > 0 ? 6 : TotalAvailableAmmo;
-            TotalAvailableAmmo -= AmmoLoaded;*/
+            ammo = Player.TotalAvailableAmmo/livingMembers;
+            Player.TotalAvailableAmmo -= ammo;
 
             dbConnection.Close();
+        }
+
+        public void UpdateModel(){
+
         }
     }
 }
