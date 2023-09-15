@@ -26,12 +26,8 @@ namespace CombatPhase{
         [SerializeField]
         private Material[] playerColors;
 
-        [Tooltip("Player health bar")]
-        [SerializeField]
         private Slider playerHealthBar;
 
-        [Tooltip("Player health text")]
-        [SerializeField]
         private TextMeshProUGUI playerHealthText;
 
         /// <summary>
@@ -88,6 +84,8 @@ namespace CombatPhase{
         /// Flags for player actions
         /// </summary> 
         private bool isGrounded, busyReloading, isRunning = false;
+
+        public int hp;
 
         /// <summary>
         /// Flag if gun is being used
@@ -168,6 +166,9 @@ namespace CombatPhase{
                 }
 
                 // Check health
+                if(hp <= 0){
+                    // Die (end the game)
+                }
 
                 // Switching weapon
                 if(weaponSwitch.triggered){
@@ -182,12 +183,13 @@ namespace CombatPhase{
         private void InitializeCharacter(){
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT leaderAcc, leaderOutfit, leaderColor, leaderHat, leaderName, leaderHealth FROM ActiveCharactersTable WHERE id = " +
+                                             GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            int acc = dataReader.GetInt32(4), outfit = dataReader.GetInt32(5), color = dataReader.GetInt32(6), hat = dataReader.GetInt32(7);
-            nameText.text = dataReader.GetString(1);
+            int acc = dataReader.GetInt32(0), outfit = dataReader.GetInt32(1), color = dataReader.GetInt32(2), hat = dataReader.GetInt32(3), hp = dataReader.GetInt32(5);
+            nameText.text = dataReader.GetString(4);
 
             dbConnection.Close();
 
@@ -239,13 +241,18 @@ namespace CombatPhase{
                     break;
             }
 
+            playerHealthBar = GameObject.FindWithTag("PlayerHealthBar").GetComponent<Slider>();
+            playerHealthText = GameObject.FindWithTag("PlayerHealthText").GetComponent<TextMeshProUGUI>();
+            playerHealthBar.value = hp;
+            playerHealthText.text = "HP: " + hp.ToString() + "/100";
+
             dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT ammo FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            TotalAvailableAmmo = dataReader.GetInt32(14);
+            TotalAvailableAmmo = dataReader.GetInt32(0);
             AmmoLoaded = TotalAvailableAmmo - 6 > 0 ? 6 : TotalAvailableAmmo;
             TotalAvailableAmmo -= AmmoLoaded;
 
@@ -264,6 +271,20 @@ namespace CombatPhase{
         /// </summary>
         void ReleaseSprint(){
             isRunning = false;
+        }
+
+        /// <summary>
+        /// Receive damage from a mutant
+        /// </summary>
+        public void ReceiveDamage(int amt){
+            hp -= amt;
+            playerHealthBar.value = hp;
+            playerHealthText.text = "HP: " + hp.ToString() + "/100";
+
+            if(hp <= 0){
+                // Die
+                Debug.Log("deadge");
+            }
         }
     }
 }

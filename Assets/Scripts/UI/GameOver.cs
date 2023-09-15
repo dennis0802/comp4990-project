@@ -37,13 +37,14 @@ namespace UI{
         private void CalculateScore(){
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId + ";";
+            dbCommandReadValues.CommandText = "SELECT difficulty, distance, food, gas, scrap, money, medkit, tire, battery, ammo, timeTaken FROM SaveFilesTable " + 
+                                              "WHERE id = " + GameLoop.FileId + ";";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            int distance = dataReader.GetInt32(3), difficulty = dataReader.GetInt32(4), food = dataReader.GetInt32(7), gas = (int)(dataReader.GetFloat(8)),
-                scrap = dataReader.GetInt32(9), money = dataReader.GetInt32(10), medkit = dataReader.GetInt32(11), tire = dataReader.GetInt32(12), battery = dataReader.GetInt32(13), 
-                ammo = dataReader.GetInt32(14), timeTaken = dataReader.GetInt32(16);
+            int distance = dataReader.GetInt32(1), difficulty = dataReader.GetInt32(0), food = dataReader.GetInt32(2), gas = (int)(dataReader.GetFloat(3)),
+                scrap = dataReader.GetInt32(4), money = dataReader.GetInt32(5), medkit = dataReader.GetInt32(6), tire = dataReader.GetInt32(7), battery = dataReader.GetInt32(8), 
+                ammo = dataReader.GetInt32(9), timeTaken = dataReader.GetInt32(10);
 
             // Score is base amount of supplies (medkit, tires, and batteries doubled) + a tenth of the distance + a time bonus determined below multiplied by a difficulty bonus
             // + friends alive (500 each).

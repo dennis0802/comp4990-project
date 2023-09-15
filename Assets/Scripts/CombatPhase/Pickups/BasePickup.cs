@@ -41,7 +41,7 @@ namespace CombatPhase.Pickups{
                 OnPickup(player);
             }
             else if(teammate != null){
-
+                OnPickup(teammate);
             }
         }
     }

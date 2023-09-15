@@ -155,7 +155,7 @@ namespace UI
             idFound = false;
             IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable";
+            dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
             idFound = GameDatabase.MatchId(dbCommandReadValues, id);
 
             // Creating a new file
@@ -182,11 +182,11 @@ namespace UI
                 if(idFound){
                     TransitionMenu(id);
                     dbCommandReadValues = dbConnection.CreateCommand();
-                    dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                    dbCommandReadValues.CommandText = "SELECT inPhase FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
                     IDataReader dataReader = dbCommandReadValues.ExecuteReader();
                     dataReader.Read();
 
-                    int phase = dataReader.GetInt32(6);
+                    int phase = dataReader.GetInt32(0);
                     
                     if(phase == 0 || phase == 2){
                         restMenuUI.SetActive(true);
@@ -238,14 +238,15 @@ namespace UI
 
             dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id";
+            dbCommandReadValues.CommandText = "SELECT SaveFilesTable.id, leaderName, distance, location, difficulty FROM SaveFilesTable LEFT JOIN ActiveCharactersTable" + 
+                                              " ON SaveFilesTable.charactersId = ActiveCharactersTable.id";
             dataReader = dbCommandReadValues.ExecuteReader();
 
             while(dataReader.Read()){
                 int diffRead = dataReader.GetInt32(4);
                 diff = diffRead == 1 ? "Standard" : diffRead == 2 ? "Deadlier" : diffRead == 3 ? "Standard Custom" : "Deadlier Custom";
-                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(20) + 
-                                                               "\n  " + dataReader.GetInt32(3) + "km\t " + dataReader.GetString(5) + "\n  " + diff;
+                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(1) + 
+                                                               "\n  " + dataReader.GetInt32(2) + "km\t " + dataReader.GetString(3) + "\n  " + diff;
             }
 
             dbConnection.Close();

@@ -458,17 +458,18 @@ namespace RestPhase{
             // Upgrades
             dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
+                                              GameLoop.FileId;
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            wheelText.text = dataReader.GetInt32(2) == 1 ? "Durable Tires\nTires always last regardless of terrain." : "No wheel upgrade available to list.";
-            batteryText.text = dataReader.GetInt32(3) == 1 ? "Durable Battery\nBattery always has power." : "No battery upgrade available to list.";
-            engineText.text = dataReader.GetInt32(4) == 1 ? "Fuel-Efficent Engine\nEngine consumes less gas for more distance." : "No engine upgrade available to list.";
-            toolText.text = dataReader.GetInt32(5) == 1 ? "Secure Chest\nNo supplies will be forgotten again." : "No tool upgrade available to list.";
-            misc1Text.text = dataReader.GetInt32(6) == 1 ? "Travel Garden\nGenerate 1kg of food/hour." : "No misc upgrade available to list.";
-            misc2Text.text = dataReader.GetInt32(7) == 1 ? "Cushioned Seating\nParty takes less damage when driving." : "No misc upgrade available to list.";
-            int carHP = dataReader.GetInt32(1);
+            wheelText.text = dataReader.GetInt32(1) == 1 ? "Durable Tires\nTires always last regardless of terrain." : "No wheel upgrade available to list.";
+            batteryText.text = dataReader.GetInt32(2) == 1 ? "Durable Battery\nBattery always has power." : "No battery upgrade available to list.";
+            engineText.text = dataReader.GetInt32(3) == 1 ? "Fuel-Efficent Engine\nEngine consumes less gas for more distance." : "No engine upgrade available to list.";
+            toolText.text = dataReader.GetInt32(4) == 1 ? "Secure Chest\nNo supplies will be forgotten again." : "No tool upgrade available to list.";
+            misc1Text.text = dataReader.GetInt32(5) == 1 ? "Travel Garden\nGenerate 1kg of food/hour." : "No misc upgrade available to list.";
+            misc2Text.text = dataReader.GetInt32(6) == 1 ? "Cushioned Seating\nParty takes less damage when driving." : "No misc upgrade available to list.";
+            int carHP = dataReader.GetInt32(0);
             carHPSlider.value = carHP;
 
             // Enable buttons depending on car HP and amount of scrap
@@ -800,10 +801,10 @@ namespace RestPhase{
 
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT overallTime FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
-            int overallTime = dataReader.GetInt32(16);
+            int overallTime = dataReader.GetInt32(0);
 
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + " WHERE id = " + GameLoop.FileId;
@@ -976,12 +977,12 @@ namespace RestPhase{
         public void CheckLeaderStatus(){
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
             // If leader name is null, they are dead. Bring to game over screen. Otherwise visibilities are toggled by the engine.
-            if(dataReader.IsDBNull(1)){
+            if(dataReader.IsDBNull(0)){
                 this.gameObject.SetActive(false);
                 travelScreen.SetActive(false);
                 gameOverScreen.SetActive(true);

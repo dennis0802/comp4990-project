@@ -10,6 +10,9 @@ TagManager:
   - AllySpawn
   - PickupSpawn
   - RestMenu
+  - Pickup
+  - PlayerHealthBar
+  - PlayerHealthText
   layers:
   - Default
   - TransparentFX

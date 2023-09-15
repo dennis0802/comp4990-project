@@ -26,7 +26,7 @@ namespace AI{
 
         public Player leader;
 
-        public int id = 0, hp = 0, ammo = 0;
+        public int id = 0, hp = 0, ammoTotal = 0, ammoLoaded = 0;
         public bool usingGun;
 
         protected override void Start(){
@@ -106,20 +106,32 @@ namespace AI{
                     break;
             }
 
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
-            dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
-            dataReader = dbCommandReadValue.ExecuteReader();
-            dataReader.Read();
-
-            ammo = Player.TotalAvailableAmmo/livingMembers;
+            ammoTotal = Player.TotalAvailableAmmo/livingMembers;
             Player.TotalAvailableAmmo -= ammo;
-
-            dbConnection.Close();
+            Reload();
         }
 
+        /// <summary>
+        /// Update model based on weapon selected
+        /// </summary>
         public void UpdateModel(){
 
+        }
+
+        /// <summary>
+        /// Receive damage from a mutant
+        /// </summary>
+        /// <param name="amt">The amount of damaged received</param>
+        public void ReceiveDamage(int amt){
+
+        }
+
+        /// <summary>
+        /// Reload gun with ammo
+        /// </summary>
+        public void Reload(){
+            ammoLoaded = ammoTotal - 6 > 0 ? 6 : ammoTotal;
+            ammoTotal -= ammoLoaded;
         }
     }
 }

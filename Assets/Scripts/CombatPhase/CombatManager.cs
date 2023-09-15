@@ -79,11 +79,6 @@ namespace CombatPhase{
         [SerializeField]
         private int maxAgentsPerUpdate;
 
-        /// <summary>
-        /// How close an agent can be to a destination and declare as reached
-        /// </summary>
-        private static float acceptableReachDistance = 0.1f;
-
         // All agents in the scene
         public List<BaseAgent> Agents {get; private set;} = new();
 
@@ -164,7 +159,6 @@ namespace CombatPhase{
                 // Spawn enemy after some time, depending on difficulty.
                 if(enemyTimer >= spawnEnemyTime){
                     enemyTimer = 0.0f;
-                    Debug.Log("Enemy spawned.");
                     int enemySpawnSelected = Random.Range(0, enemySpawnPoints.Length);
                     GameObject enemySpawn = Instantiate(enemyPrefab, enemySpawnPoints[enemySpawnSelected].transform.position, enemySpawnPoints[enemySpawnSelected].transform.rotation);
                     enemySpawn.transform.SetParent(CombatEnvironment.transform);
@@ -173,6 +167,7 @@ namespace CombatPhase{
                     float upperBoundDetection = diff == 1 || diff == 3 ? 8.0f : 14.0f;
                     m.SetDetectionRange(Random.Range(8.0f, upperBoundDetection));
                     m.SetDestination(m.gameObject.transform.position);
+                    m.SetHP(Random.Range(10,15));
                 }
 
                 combatText.text = Player.UsingGun ? "Equipped: " + weaponList[GunSelected] + "\nLoaded = " + Player.AmmoLoaded + "\nTotal Ammo: " + Player.TotalAvailableAmmo 
@@ -202,6 +197,10 @@ namespace CombatPhase{
                             NextAgent();
                         }
                     }
+                }
+
+                foreach(BaseAgent agent in Agents){
+                    agent.IncreaseDeltaTime();
                 }
             }
         }
@@ -238,10 +237,10 @@ namespace CombatPhase{
 
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT difficulty FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
-            diff = dataReader.GetInt32(4);
+            diff = dataReader.GetInt32(0);
 
             // If scavenging, difficulty determines the amount of time.
             if(RestMenu.IsScavenging){
@@ -271,16 +270,16 @@ namespace CombatPhase{
 
             dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT leaderHealth, friend1Name, friend2Name, friend3Name FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            playerHealthBar.value = dataReader.GetInt32(9);
+            playerHealthBar.value = dataReader.GetInt32(0);
             playerHealthText.text = "HP: " + playerHealthBar.value + "/100";
 
             // Load AI teammates in
             for(int i = 1; i <= 3; i++){
-                if(!dataReader.IsDBNull(1+9*i)){
+                if(!dataReader.IsDBNull(i)){
                     do
                     {
                         selected = Random.Range(0, playerSpawnPoints.Length);
@@ -291,6 +290,7 @@ namespace CombatPhase{
                     ally.transform.SetParent(CombatEnvironment.transform);
                     Teammate t = ally.GetComponent<Teammate>();
                     t.id = i;
+                    t.leader = player.GetComponent<Player>();
                     t.SetDetectionRange(10.0f);
                 }
             }
@@ -432,15 +432,6 @@ namespace CombatPhase{
             if(Singleton._currentAgentIndex < 0 || Singleton._currentAgentIndex >= Singleton.Agents.Count){
                 Singleton._currentAgentIndex = 0;
             }
-        }
-
-        /// <summary>
-        /// Check if a move is complete
-        /// </summary>
-        /// <param name="dest">The destination location</param>
-        /// <param name="pos">The current position</param>
-        public static bool IsMoveComplete(Vector3 dest, Vector3 pos){
-            return Vector3.Distance(pos, dest) <= acceptableReachDistance;
         }
 
         /// <summary>

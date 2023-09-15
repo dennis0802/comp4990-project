@@ -37,13 +37,7 @@ namespace UI{
         };
 
         private void Start(){
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
 
-            dbConnection.Close();
         }
 
         /// <summary>

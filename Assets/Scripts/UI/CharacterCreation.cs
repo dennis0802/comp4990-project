@@ -156,7 +156,7 @@ namespace UI{
             // Database commands to search for character id
             idFound = false;
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable";
+            dbCommandReadValues.CommandText = "SELECT id FROM CustomCharactersTable";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
 
             // Search for the id (ids go 0-44)
@@ -170,16 +170,16 @@ namespace UI{
             // If id found, access character info
             if(idFound){
                 dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable WHERE id = " + accessId + ";";
+                dbCommandReadValues.CommandText = "SELECT name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable WHERE id = " + accessId + ";";
                 dataReader = dbCommandReadValues.ExecuteReader();
                 dataReader.Read();
-                nameField.text = dataReader.GetString(1);
-                perkList.value = dataReader.GetInt32(2);
-                traitList.value = dataReader.GetInt32(3);
-                accNum = dataReader.GetInt32(4);
-                hatNum = dataReader.GetInt32(5);
-                colorNum = dataReader.GetInt32(6);
-                outfitNum = dataReader.GetInt32(7);
+                nameField.text = dataReader.GetString(0);
+                perkList.value = dataReader.GetInt32(1);
+                traitList.value = dataReader.GetInt32(2);
+                accNum = dataReader.GetInt32(3);
+                hatNum = dataReader.GetInt32(4);
+                colorNum = dataReader.GetInt32(5);
+                outfitNum = dataReader.GetInt32(6);
             }
             // Otherwise set to defaults
             else{
@@ -305,7 +305,7 @@ namespace UI{
                 baseId = i - (pageNum - 1) * 9;
                 IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
                 IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT * FROM CustomCharactersTable";
+                dbCommandReadValues.CommandText = "SELECT id, name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable";
                 IDataReader dataReader = dbCommandReadValues.ExecuteReader();
 
                 // Search for the id (ids go 0-44)

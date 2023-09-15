@@ -52,17 +52,17 @@ namespace UI{
             int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar());
 
             // Display the top 8 scores.
-            dbCommandReadValues.CommandText = "SELECT * FROM LocalHighscoreTable ORDER BY score DESC LIMIT 8";
+            dbCommandReadValues.CommandText = "SELECT leaderName, difficulty, distance, score FROM LocalHighscoreTable ORDER BY score DESC LIMIT 8";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             string scoreDisplay1 = "", scoreDisplay2 = "";
             int rowNum = 1;
 
             while(dataReader.Read()){
-                int difficulty = dataReader.GetInt32(2);
+                int difficulty = dataReader.GetInt32(1);
                 string difficultyText = difficulty == 1 ? "Standard" : difficulty == 2 ? "Deadlier" : difficulty == 3 ? "Standard(C)" : "Deadlier(C)";
 
-                scoreDisplay1 += "\t" + rowNum++ + "\t\t" + dataReader.GetString(1) + "\n";
-                scoreDisplay2 += dataReader.GetInt32(3) + "\t\t\t" + difficultyText + "\t\t" + dataReader.GetInt32(5) + "\n";
+                scoreDisplay1 += "\t" + rowNum++ + "\t\t" + dataReader.GetString(0) + "\n";
+                scoreDisplay2 += dataReader.GetInt32(2) + "\t\t\t" + difficultyText + "\t\t" + dataReader.GetInt32(3) + "\n";
             }
             scoreText1.text = scoreDisplay1;
             scoreText2.text = scoreDisplay2;

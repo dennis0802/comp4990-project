@@ -903,7 +903,10 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 41dbc784b9f8db5459660d1af871ef07, type: 2}
   - {fileID: 2100000, guid: c5b1b1dff31a1d540a6be901f6dc415b, type: 2}
   - {fileID: 2100000, guid: cc7d87f6c7c8bed47aa0e95909280a93, type: 2}
+  playerHealthBar: {fileID: 0}
+  playerHealthText: {fileID: 0}
   suppliesGathered: 000000000000000000000000000000000000000000000000
+  hp: 0
 --- !u!1 &4324690103502335292
 GameObject:
   m_ObjectHideFlags: 0

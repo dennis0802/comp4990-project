@@ -132,21 +132,21 @@ namespace TravelPhase{
             dbCommandUpdateValue.ExecuteNonQuery();
 
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT distance FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            int curDistance = dataReader.GetInt32(3);
+            int curDistance = dataReader.GetInt32(0);
             dbConnection.Close();
             
             // Update town database with new town rolls.
             dbConnection = GameDatabase.CreateTownAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT curTown FROM TownTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            int oldTownNum = dataReader.GetInt32(27);
+            int oldTownNum = dataReader.GetInt32(0);
             targetTownDistance = curDistance + distanceLog[oldTownNum][id-1];
             string destinationTown = nextDestinationLog[oldTownNum][id-1];
 
@@ -187,11 +187,11 @@ namespace TravelPhase{
 
             IDbConnection dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT carHp FROM CarsTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            carHealthBar.value = dataReader.GetInt32(1);
+            carHealthBar.value = dataReader.GetInt32(0);
 
             dbConnection.Close();
 
@@ -223,22 +223,22 @@ namespace TravelPhase{
             // Read the database for travel (key supplies, distance) info
             dbConnection = GameDatabase.CreateTownAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT curTown, nextDistanceAway, nextTownName FROM TownTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            int townNum = dataReader.GetInt32(27), targetTownDistance = dataReader.IsDBNull(28) ? 0 : dataReader.GetInt32(28);
-            string destination = dataReader.IsDBNull(29) ? "" : dataReader.GetString(29);
+            int townNum = dataReader.GetInt32(0), targetTownDistance = dataReader.IsDBNull(1) ? 0 : dataReader.GetInt32(1);
+            string destination = dataReader.IsDBNull(2) ? "" : dataReader.GetString(2);
 
             dbConnection.Close();
 
             dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT time, distance, food, gas, distance FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            GameLoop.Hour = dataReader.GetInt32(15);
+            GameLoop.Hour = dataReader.GetInt32(0);
 
             if(GameLoop.Hour >= 21 || GameLoop.Hour <= 5){
                 GameLoop.Activity = 4;
@@ -253,11 +253,11 @@ namespace TravelPhase{
                 GameLoop.Activity = 1;
             }
 
-            int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour, distanceLeft = targetTownDistance - dataReader.GetInt32(3);
+            int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour, distanceLeft = targetTownDistance - dataReader.GetInt32(1);
             string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
 
-            supplyText.text = "Food: " + dataReader.GetInt32(7) + "kg\nGas: " +  dataReader.GetFloat(8) + " cans\nDistance to Destination: " +  distanceLeft
-                            + "km\nDistance Travelled: " + dataReader.GetInt32(3) + "km\nTime: " + time + timing + "\nActivity: " + activity;
+            supplyText.text = "Food: " + dataReader.GetInt32(2) + "kg\nGas: " +  dataReader.GetFloat(3) + " cans\nDistance to Destination: " +  distanceLeft
+                            + "km\nDistance Travelled: " + dataReader.GetInt32(4) + "km\nTime: " + time + timing + "\nActivity: " + activity;
             dbConnection.Close();
         }
 
@@ -283,11 +283,11 @@ namespace TravelPhase{
         public void Arrive(){
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT nextTownName FROM TownTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            string townName = dataReader.GetString(29);
+            string townName = dataReader.GetString(0);
 
             dbConnection.Close();
 
@@ -386,22 +386,22 @@ namespace TravelPhase{
         private void UpdateButtons(){
             IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT curTown FROM TownTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            int townNum = dataReader.GetInt32(27), index = townNum;
+            int townNum = dataReader.GetInt32(0), index = townNum;
             string supplies = "";
 
             // If the current town number has only one way to go, disable the 2nd option
             destinationButton2.interactable = !CheckTownList(townNum);
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            /*dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
-            dataReader.Read();
+            dataReader.Read();*/
 
             // Determine distance based on town #
             for(int i = 1; i <= 2; i++){
@@ -413,7 +413,7 @@ namespace TravelPhase{
                 supplies = towns[i-1].SumTownResources() <= 330 ? "Light Supplies" : "Decent Supplies";
                 destinationTexts[i-1].text = nextDestinationLog[townNum][i-1]+ "\n" + distanceLog[townNum][i-1] + "km\n" + supplies;
             }
-            dbConnection.Close();
+            //dbConnection.Close();
         }
 
         /// <summary>
@@ -423,23 +423,23 @@ namespace TravelPhase{
         private bool Drive(){
             IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT nextTownName, nextDistanceAway FROM TownTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            string nextTown = dataReader.GetString(29);
-            targetTownDistance = dataReader.GetInt32(28);
+            string nextTown = dataReader.GetString(0);
+            targetTownDistance = dataReader.GetInt32(1);
 
             dbConnection.Close();
 
             dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT carHp, isBatteryDead, isTireFlat, engineUpgrade, miscUpgrade1 FROM CarsTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            int carHP = dataReader.GetInt32(1), batteryStatus = dataReader.GetInt32(8), tireStatus = dataReader.GetInt32(9), engineUpgrade = dataReader.GetInt32(4),
-                gardenUpgrade = dataReader.GetInt32(6);
+            int carHP = dataReader.GetInt32(0), batteryStatus = dataReader.GetInt32(1), tireStatus = dataReader.GetInt32(2), engineUpgrade = dataReader.GetInt32(3),
+                gardenUpgrade = dataReader.GetInt32(4);
 
             dbConnection.Close();
 
@@ -453,16 +453,16 @@ namespace TravelPhase{
 
             dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT overallTime, speed, distance, rations, tire, battery, gas FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            int overallTime = dataReader.GetInt32(16), speed = dataReader.GetInt32(18), oldDistance  = dataReader.GetInt32(3), rations = dataReader.GetInt32(17);
+            int overallTime = dataReader.GetInt32(0), speed = dataReader.GetInt32(1), oldDistance = dataReader.GetInt32(2), rations = dataReader.GetInt32(3);
             int newDistance = speed == 1 ? oldDistance + 40 : speed == 2 ? oldDistance + 50 : oldDistance + 60;
             newDistance = engineUpgrade == 1 ? newDistance + 10 : newDistance;
             newDistance = newDistance >= targetTownDistance ? targetTownDistance : newDistance;
-            int decay = speed == 1 ? 3 : speed == 2 ? 5 : 7, tire = dataReader.GetInt32(12), battery = dataReader.GetInt32(13); 
-            float gas = dataReader.GetFloat(8);
+            int decay = speed == 1 ? 3 : speed == 2 ? 5 : 7, tire = dataReader.GetInt32(4), battery = dataReader.GetInt32(5); 
+            float gas = dataReader.GetFloat(6);
 
             // If the car is out of gas, has a dead battery, or a flat tire, do no driving. Alternatively, if a battery or tire is available, replace but still don't drive.
             if(gas == 0f){
@@ -754,12 +754,12 @@ namespace TravelPhase{
             // Get difficulty, perks, and traits, some events will play differently depending on it (more loss, more damage, etc.)
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT difficulty FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
-
-            int diff = dataReader.GetInt32(4);
+            int diff = dataReader.GetInt32(0);
             dbConnection.Close();
+
             dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
@@ -785,11 +785,11 @@ namespace TravelPhase{
             if(eventChance <= 4){
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT miscUpgrade2 FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
-                int cushioned = dataReader.GetInt32(7);
+                int cushioned = dataReader.GetInt32(0);
 
                 dbConnection.Close();
 
@@ -830,12 +830,12 @@ namespace TravelPhase{
             else if(eventChance <= 7){
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT toolUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
                 // If tool upgrade was found, treat as uneventful drive.
-                if(dataReader.GetInt32(5) == 1){
+                if(dataReader.GetInt32(0) == 1){
                     dbConnection.Close();
                     return;
                 }
@@ -929,11 +929,11 @@ namespace TravelPhase{
             else if(eventChance <= 10){
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT carHp FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
-                int hpLoss = diff % 2 == 0 ? Random.Range(20,30) : Random.Range(10,20), curHealth = dataReader.GetInt32(1);
+                int hpLoss = diff % 2 == 0 ? Random.Range(20,30) : Random.Range(10,20), curHealth = dataReader.GetInt32(0);
                 curHealth = curHealth - hpLoss > 0 ? curHealth - hpLoss : 0;
                 string commandText = "UPDATE CarsTable SET carHP = " + curHealth + " WHERE id = " + GameLoop.FileId;
                 
@@ -1047,12 +1047,13 @@ namespace TravelPhase{
                 // Check that a slot is available.
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
+                                                 GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
-                List<int> curUpgrades = new List<int>(){dataReader.GetInt32(2), dataReader.GetInt32(3), dataReader.GetInt32(4), dataReader.GetInt32(5), dataReader.GetInt32(6),
-                                                        dataReader.GetInt32(7),};
+                List<int> curUpgrades = new List<int>(){dataReader.GetInt32(0), dataReader.GetInt32(1), dataReader.GetInt32(2), dataReader.GetInt32(3), dataReader.GetInt32(4),
+                                                        dataReader.GetInt32(5),};
                 // At least one slot is available.
                 if(curUpgrades.Where(c => c == 0).Count() > 0){
                     int selected;
@@ -1112,11 +1113,11 @@ namespace TravelPhase{
                 // If the car has upgraded tires, display the attempt at popping the tire.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT tireUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
-                if(dataReader.GetInt32(2) != 0){
+                if(dataReader.GetInt32(0) != 0){
                     popupText.text = "The car goes over some rough terrain but the durable tires remain intact.";
                 }
                 else{
@@ -1124,11 +1125,11 @@ namespace TravelPhase{
 
                     dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                     dbCommandReadValue = dbConnection.CreateCommand();
-                    dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                    dbCommandReadValue.CommandText = "SELECT tire FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
                     dataReader = dbCommandReadValue.ExecuteReader();
                     dataReader.Read();
 
-                    int tires = dataReader.GetInt32(12);
+                    int tires = dataReader.GetInt32(0);
 
                     // Determine if the car can still move.
                     if(tires > 0){
@@ -1156,11 +1157,11 @@ namespace TravelPhase{
                 // If the car has upgraded battery, display the attempt at breaking.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT batteryUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
-                if(dataReader.GetInt32(3) != 0){
+                if(dataReader.GetInt32(0) != 0){
                     popupText.text = "The car battery starts making noises but go away after some time.";
                 }
                 else{
@@ -1168,11 +1169,11 @@ namespace TravelPhase{
                     
                     dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                     dbCommandReadValue = dbConnection.CreateCommand();
-                    dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                    dbCommandReadValue.CommandText = "SELECT battery FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
                     dataReader = dbCommandReadValue.ExecuteReader();
                     dataReader.Read();
 
-                    int batteries = dataReader.GetInt32(13);
+                    int batteries = dataReader.GetInt32(0);
 
                     // Determine if the car can still move.
                     if(batteries > 0){
@@ -1377,12 +1378,13 @@ namespace TravelPhase{
                 // Check that a slot is available.
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
+                                                 GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
-                List<int> curUpgrades = new List<int>(){dataReader.GetInt32(2), dataReader.GetInt32(3), dataReader.GetInt32(4), dataReader.GetInt32(5), dataReader.GetInt32(6),
-                                                        dataReader.GetInt32(7),};
+                List<int> curUpgrades = new List<int>(){dataReader.GetInt32(0), dataReader.GetInt32(1), dataReader.GetInt32(2), dataReader.GetInt32(3), dataReader.GetInt32(4),
+                                                        dataReader.GetInt32(5),};
 
                 // 1/4 chance for creative, 1/2 for programmer.
                 int successRoll = availableTraits.Where(t => t == 5).Count() > 0 ? Random.Range(0,4) : Random.Range(0,2);

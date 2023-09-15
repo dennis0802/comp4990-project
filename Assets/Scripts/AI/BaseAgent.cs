@@ -15,24 +15,6 @@ namespace AI{
     /// </summary>
     public abstract class BaseAgent : MonoBehaviour
     {
-        public class Movement{
-            /// <summary>
-            /// Store the position
-            /// </summary>
-            private readonly Vector3 _position;
-
-            /// <summary>
-            /// Last position this was in since
-            /// </summary>
-            public Vector3 LastPosition;
-
-
-            public Movement(Vector3 pos){
-                _position = pos;
-                LastPosition = _position;
-            }
-        }
-
         public BaseSensor[] Sensors {get; private set;}
 
         /// <summary>
@@ -58,11 +40,6 @@ namespace AI{
         public bool IsMoving {get; private set;}
 
         /// <summary>
-        /// All movement that the agent is doing
-        /// </summary>
-        public List<Movement> Moves {get; private set;} = new();
-
-        /// <summary>
         /// Current state of the agent
         /// </summary>
         public BaseState State {get; private set;}
@@ -71,6 +48,11 @@ namespace AI{
         /// How far away this mutant can detect party members.
         /// </summary>
         public float DetectionRange { get; private set; }
+
+        /// <summary>
+        /// Time passed since last time the agent's mind made decisions
+        /// </summary>
+        public float DeltaTime { get; private set; }
 
         protected virtual void Start(){
             Setup();
@@ -95,6 +77,8 @@ namespace AI{
             if(State != null){
                 State.Execute(this);
             }
+
+            DeltaTime = 0;
         }
 
         /// <summary>
@@ -165,15 +149,6 @@ namespace AI{
         public void SetDestination(Vector3 dest){
             TargetDest = dest;
             NavMeshAgent.SetDestination(TargetDest);
-            Moves.Add(new Movement(transform.position));
-        }
-
-        /// <summary>
-        /// Check if the agent can set a new move (not already moving)
-        /// </summary>
-        /// <returns>True if the agent can set a new move, false otherwise</returns>
-        public bool CanSetMove(){
-            return CombatManager.IsMoveComplete(TargetDest, transform.position);
         }
 
         /// <summary>
@@ -190,6 +165,25 @@ namespace AI{
         /// <param name="detectionRange">The range this agent can detect up to<param>
         public void SetDetectionRange(float detectionRange){
             DetectionRange = detectionRange;
+        }
+
+        /// <summary>
+        /// Get the agent's current velocity
+        /// </summary>
+        /// <returns>The agent's current velocity</returns>
+        public Vector3 GetVelocity(){
+            return NavMeshAgent.velocity;
+        }
+
+        /// <summary>
+        /// Stop the agent (make its current position the destination)
+        /// </summary>
+        public void StopMoving(){
+            SetDestination(transform.position);
+        }
+
+        public void IncreaseDeltaTime(){
+            DeltaTime += Time.deltaTime;
         }
     }
 }

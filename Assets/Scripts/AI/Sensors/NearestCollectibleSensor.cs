@@ -15,7 +15,7 @@ namespace AI.Sensors{
                 return null;
             }
 
-            Transform[] itemSpawnPoints = FindObjectsOfType<Transform>().Where(t => Equals(t.tag, "PickupSpawn")).ToArray();
+            Transform[] itemSpawnPoints = FindObjectsOfType<Transform>().Where(t => Equals(t.tag, "Pickup")).ToArray();
 
             if(itemSpawnPoints.Length == 0){
                 return null;
