@@ -9,8 +9,14 @@ namespace AI.States{
     [CreateAssetMenu(menuName = "AI/States/Combat Mind", fileName = "Combat Mind")]
     public class CombatMind : BaseState
     {
+        /// <summary>
+        /// When agent first enters the state
+        /// </summary> 
         public override void Enter(BaseAgent agent){}
 
+        /// <summary>
+        /// When agent executes the state
+        /// </summary> 
         public override void Execute(BaseAgent agent){
             // NOTES:
             // All movement operations need velocity to be checked to avoid weird looking movements from the destination changing
@@ -23,7 +29,6 @@ namespace AI.States{
 
                     float time = 0.0f;
                     time += m.DeltaTime;
-                    Debug.Log(name + ": " + time);
 
                     // If player cannot be found, wander (pick a random position on the map)
                     if(nearestChar == null){
@@ -35,16 +40,16 @@ namespace AI.States{
 
                     // Move towards and attack
                     else{
-                        // Attack when close enough, move closer otherwise
+                        // Attempt attack when close enough, move closer otherwise
                         if(Vector3.Distance(nearestChar.position, m.transform.position) < 1.0f){
                             Player player = nearestChar.GetComponent<Player>();
                             Teammate partyMember = nearestChar.GetComponent<Teammate>();
 
                             if(player != null){
-                                player.ReceiveDamage(1);
+                                player.Damage(m.strength);
                             }
                             else if(partyMember != null){
-                                partyMember.ReceiveDamage(1);
+                                partyMember.Damage(m.strength);
                             }
                         }
                         else{
@@ -98,7 +103,6 @@ namespace AI.States{
                         // Physical attack within range
                         else if(Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f){
                             Debug.Log(t.name + " within physical range");
-                            nearestMutant.ReceiveDamage(1);
                         }
                         // Attempt to keep a safe distance away (mutant velocity should be faster than party members) [evasion steering]
                         else if(Vector3.Distance(nearestMutant.transform.position, t.transform.position) >= 1.0f){
@@ -130,6 +134,9 @@ namespace AI.States{
             }
         }
 
+        /// <summary>
+        /// When agent exits the state
+        /// </summary> 
         public override void Exit(BaseAgent agent){}
     }
 }

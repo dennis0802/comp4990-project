@@ -150,7 +150,9 @@ namespace CombatPhase{
                         }while(pickupSpawnPoints[itemSpawnSelected].GetComponent<SpawnPoint>().inUse);
 
                         pickupSpawnPoints[itemSpawnSelected].GetComponent<SpawnPoint>().inUse = true;
-                        itemSelected = Random.Range(0, pickupPrefabs.Length);
+                        itemSelected = Random.Range(1, 101);
+                        // 20% for food (0), 10% for gas (1), 20% for scrap (2), 20% for money (3), 10% for medkit (4), 20% for ammo (5)
+                        itemSelected = itemSelected <= 20 ? 0 : itemSelected <= 30 ? 1 : itemSelected <= 50 ? 2 : itemSelected <= 70 ? 3 : itemSelected <= 80 ? 4 : 5; 
 
                         GameObject itemSpawn = Instantiate(pickupPrefabs[itemSelected], pickupSpawnPoints[itemSpawnSelected].transform.position, pickupSpawnPoints[itemSpawnSelected].transform.rotation);
                         itemSpawn.transform.SetParent(CombatEnvironment.transform);
@@ -168,6 +170,8 @@ namespace CombatPhase{
                     m.SetDetectionRange(Random.Range(8.0f, upperBoundDetection));
                     m.SetDestination(m.gameObject.transform.position);
                     m.SetHP(Random.Range(10,15));
+                    int damage = diff == 1 || diff == 3 ? Random.Range(6,11) : Random.Range(10,15);
+                    m.SetStrength(damage);
                 }
 
                 combatText.text = Player.UsingGun ? "Equipped: " + weaponList[GunSelected] + "\nLoaded = " + Player.AmmoLoaded + "\nTotal Ammo: " + Player.TotalAvailableAmmo 
@@ -250,7 +254,7 @@ namespace CombatPhase{
 
             // Difficulty and activity determine enemy spawn time.
             spawnEnemyTime = diff == 1 || diff == 3 ? 10.0f : 8.0f;
-            spawnEnemyTime += GameLoop.Activity == 1 ? 2.0f : GameLoop.Activity == 2 ? 0.0f : GameLoop.Activity == 1.0f ? 0.0f : -2.0f;
+            spawnEnemyTime += GameLoop.Activity == 1 ? 2.0f : GameLoop.Activity == 2 ? 0.0f : GameLoop.Activity == 3 ? -1.0f : -3.0f;
 
             dbConnection.Close();
 
@@ -344,7 +348,7 @@ namespace CombatPhase{
             Teammate[] partyMembers = FindObjectsOfType<Teammate>().Where(t => t.name.Contains("Teammate")).ToArray();
             int ammoRemaining = 0;
             foreach(Teammate t in partyMembers){
-                ammoRemaining += t.ammo;
+                ammoRemaining += t.ammoTotal + t.ammoLoaded;
             }
 
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();

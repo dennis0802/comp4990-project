@@ -8,6 +8,7 @@ namespace CombatPhase{
         public bool inUse = false;
 
         void OnDrawGizmos(){
+            // Depending on tag, draw a sphere to indicate location and rotation on Unity Editor
             if(gameObject.tag == "PlayerSpawn"){
                 Gizmos.color = Color.blue;
             }

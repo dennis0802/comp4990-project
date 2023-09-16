@@ -21,7 +21,7 @@ namespace CombatPhase.Pickups{
         protected override void OnPickup(Teammate teammate)
         {
             teammate.leader.suppliesGathered[0] += 1;
-            teammate.ammo += 10;
+            teammate.ammoTotal += 10;
             Destroy(gameObject);
         }
 

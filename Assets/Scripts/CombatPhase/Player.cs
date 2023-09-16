@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -26,14 +27,20 @@ namespace CombatPhase{
         [SerializeField]
         private Material[] playerColors;
 
+        /// <summary>
+        /// The player's health bar
+        /// </summary>
         private Slider playerHealthBar;
 
+        /// <summary>
+        /// The text displaying the player's total health
+        /// </summary>
         private TextMeshProUGUI playerHealthText;
 
         /// <summary>
         /// Player input actions
         /// </summary> 
-        private InputAction playerMove, playerShoot, weaponSwitch, playerReload, startRun, endRun;
+        private InputAction playerMove, playerShoot, playerZoomIn, weaponSwitch, playerReload, startRun, endRun;
         
         /// <summary>
         /// Controller for the player
@@ -48,7 +55,7 @@ namespace CombatPhase{
         /// <summary>
         /// Player reload timer
         /// </summary>  
-        private float reloadTimer = 0.0f;
+        private float reloadTimer = 3.0f;
 
         /// <summary>
         /// Values for player movement physics
@@ -83,20 +90,39 @@ namespace CombatPhase{
         /// <summary>
         /// Flags for player actions
         /// </summary> 
-        private bool isGrounded, busyReloading, isRunning = false;
+        private bool isGrounded, busyReloading, isRunning = false, damagedRecently = false;
 
+        /// <summary>
+        /// Player health
+        /// </summary> 
         public int hp;
 
         /// <summary>
         /// Flag if gun is being used
         /// </summary> 
         public static bool UsingGun = true;
+        
+        /// <summary>
+        /// Flag if zoomed in with rifle
+        /// </summary> 
+        public static bool ZoomedIn = false;
+
+        /// <summary>
+        /// Flag if player can shoot.
+        /// </summary> 
+        public bool CanShoot = true;
+
+        /// <summary>
+        /// List of colliders on the agent
+        /// </summary> 
+        public Collider[] Colliders {get; private set;}
 
         // Start is called before the first frame update
         void Start()
         {
             playerShoot = playerInput.actions["LeftClick"];
             playerMove = playerInput.actions["Move"];
+            playerZoomIn = playerInput.actions["Zoom"];
             playerReload = playerInput.actions["Reload"];
             startRun = playerInput.actions["RunStart"];
             endRun = playerInput.actions["RunEnd"];
@@ -108,6 +134,10 @@ namespace CombatPhase{
 
             // Read the database: customize character with values read and get ammo available.
             InitializeCharacter();
+
+            List<Collider> colliders = GetComponents<Collider>().ToList();
+            colliders.AddRange(GetComponentsInChildren<Collider>());
+            Colliders = colliders.Distinct().ToArray();
         }
 
         // Update is called once per frame
@@ -139,40 +169,42 @@ namespace CombatPhase{
                 Quaternion targetRotation = Quaternion.Euler(0, cameraTransform.eulerAngles.y, 0);
                 transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
 
-                // Shooting
+                // Shooting or Physical attack
                 if(playerShoot.triggered){
-                    if(UsingGun && AmmoLoaded > 0){
+                    if(CanShoot && UsingGun && AmmoLoaded > 0){
                         AmmoLoaded -= CombatManager.GunSelected == 2 ? 3 : 1;
+                        // Spawn the bullet here
                     }
-                    else if(UsingGun && AmmoLoaded == 0){
+                    else if(CanShoot && UsingGun && AmmoLoaded == 0){
                         // Play empty gun sound here.
                         Debug.Log("Player is out of ammo");
                     }
                     else{
                         Debug.Log("Player wants to attack");
+                        // If close enough to a mutant, trigger the damage
                     }
+                }
+
+                // Toggle zoom in with rifle
+                if(CombatManager.GunSelected == 1 && CanShoot && playerZoomIn.triggered){
+                    Debug.Log("Zoomed in: " + ZoomedIn);
+                    ZoomedIn = !ZoomedIn;
                 }   
 
                 // Reloading 
                 if(playerReload.triggered){
-                    if(TotalAvailableAmmo > 0 && AmmoLoaded != maxAmmoLoaded){
-                        int totalReplaced = maxAmmoLoaded - AmmoLoaded > 0 ? maxAmmoLoaded - AmmoLoaded : 0;
-                        Player.TotalAvailableAmmo -= totalReplaced;
-                        AmmoLoaded = totalReplaced > 0 ? maxAmmoLoaded : 0;
+                    if(CanShoot && TotalAvailableAmmo > 0 && AmmoLoaded != maxAmmoLoaded){
+                        StartCoroutine(GunDelay());
                     }
                     else{
-
+                        // Play full gun sound here.
                     }
-                }
-
-                // Check health
-                if(hp <= 0){
-                    // Die (end the game)
                 }
 
                 // Switching weapon
                 if(weaponSwitch.triggered){
                     UsingGun = !UsingGun;
+                    CanShoot = UsingGun;
                 }
             }
         }
@@ -188,7 +220,8 @@ namespace CombatPhase{
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            int acc = dataReader.GetInt32(0), outfit = dataReader.GetInt32(1), color = dataReader.GetInt32(2), hat = dataReader.GetInt32(3), hp = dataReader.GetInt32(5);
+            int acc = dataReader.GetInt32(0), outfit = dataReader.GetInt32(1), color = dataReader.GetInt32(2), hat = dataReader.GetInt32(3);
+            hp = dataReader.GetInt32(5);
             nameText.text = dataReader.GetString(4);
 
             dbConnection.Close();
@@ -274,16 +307,45 @@ namespace CombatPhase{
         }
 
         /// <summary>
-        /// Receive damage from a mutant
+        /// Receive damage from a mutant and apply "invincibility frames"
         /// </summary>
-        public void ReceiveDamage(int amt){
+        /// <param name="amt">The amount of damaged received</param>
+        private IEnumerator ReceiveDamage(int amt){
+            damagedRecently = true;
+            Debug.Log("hp before: " + hp);
             hp -= amt;
+            Debug.Log("hp subtracted " + amt + " = " + hp);
             playerHealthBar.value = hp;
             playerHealthText.text = "HP: " + hp.ToString() + "/100";
 
             if(hp <= 0){
-                // Die
-                Debug.Log("deadge");
+                // Die, launch the game over screen
+            }
+            yield return new WaitForSeconds(1.0f);
+            damagedRecently = false;
+        }
+
+        /// <summary>
+        /// Delay gun use from reloading
+        /// </summary>
+        private IEnumerator GunDelay(){
+            CanShoot = false;
+            yield return new WaitForSeconds(3.0f);
+            int totalReplaced = maxAmmoLoaded - AmmoLoaded > 0 ? maxAmmoLoaded - AmmoLoaded : 0;
+            Player.TotalAvailableAmmo -= totalReplaced;
+            AmmoLoaded = totalReplaced > 0 ? maxAmmoLoaded : 0;
+            CanShoot = true;
+        }
+
+        /// <summary>
+        /// Attempt to damage the player
+        /// </summary>
+        /// <param name="amt">The amount of damaged received</param>
+        public void Damage(int amt){
+            // If "invinciblity frames" are active, ignore the attempt. Added to avoid frame-by-frame damage, hp would go down quick
+            if(!damagedRecently){
+                damagedRecently = true;
+                StartCoroutine(ReceiveDamage(amt));
             }
         }
     }
