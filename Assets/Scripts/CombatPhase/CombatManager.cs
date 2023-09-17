@@ -44,9 +44,9 @@ namespace CombatPhase{
         [SerializeField]
         private GameObject enemyPrefab;
 
-        [Tooltip("Camera used during combat phase")]
+        [Tooltip("Cameras used during combat phase")]
         [SerializeField]
-        private GameObject combatCamera;
+        private GameObject[] combatCamera;
 
         [Tooltip("Combat text")]
         [SerializeField]
@@ -68,6 +68,10 @@ namespace CombatPhase{
         [Tooltip("Text object displaying the stats")]
         [SerializeField]
         private TextMeshProUGUI endCombatText;
+
+        [Tooltip("End of combat screen due to player death")]
+        [SerializeField]
+        private GameObject gameOverScreen;
 
         [Header("Agents")]
         [Tooltip("The mind or global state agents are in.")]
@@ -97,20 +101,25 @@ namespace CombatPhase{
         public static int GunSelected = -1, PhysSelected = -1;
         // List of weapons
         private List<string> weaponList = new List<string>(){"Pistol", "Rifle", "Shotgun", "Knife", "Bat", "Shovel"};
+        public static List<int> DeadMembers = new List<int>();
         protected static CombatManager Singleton;
         public static bool InCombat = false;
-        public static GameObject Camera, CombatEnvironment, RestMenuRef;
+        public static GameObject Camera, CombatEnvironment, RestMenuRef, GameOverScreen, ZoomReticle, NormalReticle;
         public static BaseState Mind => Singleton.mind;
         public static Vector2 RandomPosition => Random.insideUnitCircle * 195;
+        public static string LeaderName;
 
         // Start is called before the first frame update
         void Start(){
-            Camera = combatCamera;
+            Camera = combatCamera[0];
+            GameOverScreen = gameOverScreen;
         }
 
         void OnEnable()
         {
             UpdateIntroScreen();
+            ZoomReticle = GameObject.FindWithTag("ZoomReticle");
+            NormalReticle = GameObject.FindWithTag("NormalReticle");
             if(SceneManager.GetActiveScene().buildIndex == 3 && CombatEnvironment == null){
                 CombatEnvironment = GameObject.FindWithTag("CombatEnvironment");
             }
@@ -118,12 +127,15 @@ namespace CombatPhase{
                 CombatEnvironment = null;
             }
             CombatEnvironment.SetActive(false);
+            ZoomReticle.SetActive(false);
+            NormalReticle.SetActive(false);
         }
 
         // Update is called once per frame
         void Update()
         {   
-            combatCamera.SetActive(InCombat && !PauseMenu.IsPaused);
+            combatCamera[0].SetActive(InCombat && !PauseMenu.IsPaused);
+            combatCamera[1].SetActive(InCombat && !PauseMenu.IsPaused);
             if(InCombat){
                 combatText.gameObject.SetActive(!PauseMenu.IsPaused);
                 playerHealthBar.gameObject.SetActive(!PauseMenu.IsPaused);
@@ -228,6 +240,7 @@ namespace CombatPhase{
             InCombat = true;
             RestMenu.Panel.SetActive(false);
             CombatEnvironment.SetActive(true);
+            NormalReticle.SetActive(true);
             Cursor.lockState = CursorLockMode.Locked;
 
             for(int i = 0; i < weaponButtons.Length; i++){
@@ -261,6 +274,7 @@ namespace CombatPhase{
             playerSpawnPoints = GameObject.FindGameObjectsWithTag("PlayerSpawn");
             enemySpawnPoints = GameObject.FindGameObjectsWithTag("EnemySpawn");
             pickupSpawnPoints = GameObject.FindGameObjectsWithTag("PickupSpawn");
+
             int selected;
             
             do
@@ -274,12 +288,13 @@ namespace CombatPhase{
 
             dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT leaderHealth, friend1Name, friend2Name, friend3Name FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT leaderHealth, friend1Name, friend2Name, friend3Name, leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
             playerHealthBar.value = dataReader.GetInt32(0);
             playerHealthText.text = "HP: " + playerHealthBar.value + "/100";
+            LeaderName = dataReader.GetString(4);
 
             // Load AI teammates in
             for(int i = 1; i <= 3; i++){
@@ -294,6 +309,7 @@ namespace CombatPhase{
                     ally.transform.SetParent(CombatEnvironment.transform);
                     Teammate t = ally.GetComponent<Teammate>();
                     t.id = i;
+                    t.allyName = dataReader.GetString(i);
                     t.leader = player.GetComponent<Player>();
                     t.SetDetectionRange(10.0f);
                 }
@@ -309,10 +325,15 @@ namespace CombatPhase{
             InCombat = false;
             RestMenu.IsScavenging = false;
             RestMenu.Panel.SetActive(true);
-            combatCamera.SetActive(false);
+            combatCamera[0].SetActive(false);
+            combatCamera[1].SetActive(false);
             combatText.gameObject.SetActive(false);
             CombatEnvironment.SetActive(false);
             endCombatScreen.SetActive(true);
+            NormalReticle.SetActive(false);
+            ZoomReticle.SetActive(false);
+            playerHealthBar.gameObject.SetActive(false);
+            playerHealthText.gameObject.SetActive(false);
             Cursor.lockState = CursorLockMode.None;
             
             int foodFound = player.GetComponent<Player>().suppliesGathered[0] * 20, gasFound = player.GetComponent<Player>().suppliesGathered[1],
@@ -320,8 +341,23 @@ namespace CombatPhase{
                 medkitFound = player.GetComponent<Player>().suppliesGathered[4], ammoFound = player.GetComponent<Player>().suppliesGathered[5] * 10;
 
             // Update the database
-            // Ammo will be counted as total avaialble plus loaded since collected ammo can be used during combat
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+
+            // Update player count (check if any teammates perished)
+            if(DeadMembers.Count > 0){
+                IDbCommand dbCommandUpdateDeadValue = dbConnection.CreateCommand();
+                string tempDead = "UPDATE ActiveCharactersTable SET ";
+                
+                for(int i = 0; i < DeadMembers.Count; i++){
+                    tempDead += DeadMembers[i] == 1 ? "friend1Name = null " : i == 2 ? "friend2Name = null " : "friend3Name = null ";
+                }
+                tempDead += "WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateDeadValue.CommandText = tempDead;
+                dbCommandUpdateDeadValue.ExecuteNonQuery();
+                dbConnection.Close();
+            }
+
+            // Ammo will be counted as total avaialble plus loaded since collected ammo can be used during combat
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
@@ -369,6 +405,25 @@ namespace CombatPhase{
 
             temp += Equals(temp, "You collected:\n") ? "Nothing." : "";
             endCombatText.text = temp;
+        }
+
+        public void EndCombatDeath(){
+            InCombat = false;
+            RestMenu.IsScavenging = false;
+            RestMenu.Panel.SetActive(true);
+            GameLoop.GameOverScreen.SetActive(true);
+            combatCamera[0].SetActive(false);
+            combatCamera[1].SetActive(false);
+            combatText.gameObject.SetActive(false);
+            playerHealthBar.gameObject.SetActive(false);
+            playerHealthText.gameObject.SetActive(false);
+            NormalReticle.SetActive(false);
+            ZoomReticle.SetActive(false);
+            Agents.Clear();
+            Singleton.Agents.Clear();
+            Singleton._currentAgentIndex = 0;
+            CombatEnvironment.SetActive(false);
+            Cursor.lockState = CursorLockMode.None;
         }
 
         /// <summary>

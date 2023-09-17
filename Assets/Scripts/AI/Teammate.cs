@@ -21,7 +21,7 @@ namespace AI{
         private TextMeshPro nameText;
 
         /// <summary>
-        /// Text to alert the player if teammate has perished
+        /// Text to alert the player
         /// </summary>
         private TextMeshProUGUI alertText;
 
@@ -104,7 +104,6 @@ namespace AI{
                 }
             }
             
-            allyName = dataReader.GetString(1+9*id);
             nameText.text = allyName;
             hp = hpDB;
 
@@ -192,6 +191,7 @@ namespace AI{
 
                 // Die
                 CombatManager.RemoveAgent(this);
+                CombatManager.DeadMembers.Add(id);
                 Destroy(gameObject);
             }
             yield return new WaitForSeconds(2.0f);

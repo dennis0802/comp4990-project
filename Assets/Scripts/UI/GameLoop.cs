@@ -36,8 +36,14 @@ namespace UI{
             "Charming", "Paranoid", "Civilized", "Bandit", "Hot Headed", "Creative"  
         };
 
-        private void Start(){
+        [Tooltip("Game over screen when leader is dead")]
+        [SerializeField]
+        private GameObject gameOverScreen;
 
+        public static GameObject GameOverScreen;
+
+        private void Start(){
+            GameOverScreen = gameOverScreen;
         }
 
         /// <summary>

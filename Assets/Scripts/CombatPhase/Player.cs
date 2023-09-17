@@ -38,6 +38,16 @@ namespace CombatPhase{
         private TextMeshProUGUI playerHealthText;
 
         /// <summary>
+        /// The zoomed in reticle when using the rifle.
+        /// </summary>
+        private Image zoomReticle;
+
+        /// <summary>
+        /// The normal reticle when not zoomed in.
+        /// </summary>
+        private Image normalReticle;
+
+        /// <summary>
         /// Player input actions
         /// </summary> 
         private InputAction playerMove, playerShoot, playerZoomIn, weaponSwitch, playerReload, startRun, endRun;
@@ -51,11 +61,6 @@ namespace CombatPhase{
         /// Camera transform following the player
         /// </summary> 
         private Transform cameraTransform;
-
-        /// <summary>
-        /// Player reload timer
-        /// </summary>  
-        private float reloadTimer = 3.0f;
 
         /// <summary>
         /// Values for player movement physics
@@ -91,6 +96,31 @@ namespace CombatPhase{
         /// Flags for player actions
         /// </summary> 
         private bool isGrounded, busyReloading, isRunning = false, damagedRecently = false;
+
+        /// <summary>
+        /// Shooting audio
+        /// </summary> 
+        private AudioSource shootingAudio;
+
+        /// <summary>
+        /// Empty gun audio
+        /// </summary>         
+        private AudioSource emptyAudio;
+
+        /// <summary>
+        /// Reloading audio
+        /// </summary> 
+        private AudioSource reloadAudio;
+
+        /// <summary>
+        /// Text to alert the player
+        /// </summary>
+        private TextMeshProUGUI alertText;
+
+        /// <summary>
+        /// Combat manager on scene
+        /// </summary>
+        private CombatManager combatManager;
 
         /// <summary>
         /// Player health
@@ -130,7 +160,10 @@ namespace CombatPhase{
             endRun.performed += x => ReleaseSprint();
             weaponSwitch = playerInput.actions["SwitchWeapon"];
             cameraTransform = Camera.main.transform;
-            controller = gameObject.GetComponent<CharacterController>();
+            controller = GetComponent<CharacterController>();
+            shootingAudio = GetComponents<AudioSource>()[0];
+            emptyAudio = GetComponents<AudioSource>()[1];
+            reloadAudio = GetComponents<AudioSource>()[2];
 
             // Read the database: customize character with values read and get ammo available.
             InitializeCharacter();
@@ -173,11 +206,11 @@ namespace CombatPhase{
                 if(playerShoot.triggered){
                     if(CanShoot && UsingGun && AmmoLoaded > 0){
                         AmmoLoaded -= CombatManager.GunSelected == 2 ? 3 : 1;
+                        shootingAudio.Play();
                         // Spawn the bullet here
                     }
                     else if(CanShoot && UsingGun && AmmoLoaded == 0){
-                        // Play empty gun sound here.
-                        Debug.Log("Player is out of ammo");
+                        emptyAudio.Play();
                     }
                     else{
                         Debug.Log("Player wants to attack");
@@ -186,8 +219,7 @@ namespace CombatPhase{
                 }
 
                 // Toggle zoom in with rifle
-                if(CombatManager.GunSelected == 1 && CanShoot && playerZoomIn.triggered){
-                    Debug.Log("Zoomed in: " + ZoomedIn);
+                if(CombatManager.GunSelected == 1 && playerZoomIn.triggered){
                     ZoomedIn = !ZoomedIn;
                 }   
 
@@ -197,7 +229,7 @@ namespace CombatPhase{
                         StartCoroutine(GunDelay());
                     }
                     else{
-                        // Play full gun sound here.
+                        reloadAudio.Play();
                     }
                 }
 
@@ -274,6 +306,7 @@ namespace CombatPhase{
                     break;
             }
 
+            combatManager = GameObject.FindWithTag("CombatManager").GetComponent<CombatManager>();
             playerHealthBar = GameObject.FindWithTag("PlayerHealthBar").GetComponent<Slider>();
             playerHealthText = GameObject.FindWithTag("PlayerHealthText").GetComponent<TextMeshProUGUI>();
             playerHealthBar.value = hp;
@@ -289,6 +322,8 @@ namespace CombatPhase{
             AmmoLoaded = TotalAvailableAmmo - 6 > 0 ? 6 : TotalAvailableAmmo;
             TotalAvailableAmmo -= AmmoLoaded;
 
+            alertText = GameObject.FindWithTag("AlertText").GetComponent<TextMeshProUGUI>();
+
             dbConnection.Close();
         }
     
@@ -296,14 +331,14 @@ namespace CombatPhase{
         /// Toggle running when shift key is hit
         /// </summary>
         void PressSprint(){
-            isRunning = true;
+            isRunning = !ZoomedIn;
         }
 
         /// <summary>
         /// Toggle running when shift key is released
         /// </summary>
         void ReleaseSprint(){
-            isRunning = false;
+            isRunning = !ZoomedIn;
         }
 
         /// <summary>
@@ -312,14 +347,12 @@ namespace CombatPhase{
         /// <param name="amt">The amount of damaged received</param>
         private IEnumerator ReceiveDamage(int amt){
             damagedRecently = true;
-            Debug.Log("hp before: " + hp);
             hp -= amt;
-            Debug.Log("hp subtracted " + amt + " = " + hp);
             playerHealthBar.value = hp;
             playerHealthText.text = "HP: " + hp.ToString() + "/100";
 
             if(hp <= 0){
-                // Die, launch the game over screen
+                combatManager.EndCombatDeath();
             }
             yield return new WaitForSeconds(1.0f);
             damagedRecently = false;
@@ -330,10 +363,16 @@ namespace CombatPhase{
         /// </summary>
         private IEnumerator GunDelay(){
             CanShoot = false;
-            yield return new WaitForSeconds(3.0f);
+            alertText.text = "Reloading.";
+            yield return new WaitForSeconds(1.0f);
+            alertText.text = "Reloading..";
+            yield return new WaitForSeconds(1.0f);
+            alertText.text = "Reloading...";
+            yield return new WaitForSeconds(1.0f);
             int totalReplaced = maxAmmoLoaded - AmmoLoaded > 0 ? maxAmmoLoaded - AmmoLoaded : 0;
             Player.TotalAvailableAmmo -= totalReplaced;
             AmmoLoaded = totalReplaced > 0 ? maxAmmoLoaded : 0;
+            reloadAudio.Play();
             CanShoot = true;
         }
 

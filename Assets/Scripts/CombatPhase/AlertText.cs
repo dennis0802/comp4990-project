@@ -19,22 +19,39 @@ namespace CombatPhase{
         /// Time how long the message stays up
         /// </summary> 
         private float timer = 0.0f;
-        
+
+        /// <summary>
+        /// If the alert played recently
+        /// </summary> 
+        private bool soundPlayed = false;
+
+        /// <summary>
+        /// Audio for alerts
+        /// </summary> 
+        private AudioSource alertSound;
+
         // Start is called before the first frame update
         void Start()
         {
             alert = GetComponent<TextMeshProUGUI>();
+            alertSound = GetComponent<AudioSource>();
         }
 
         // Update is called once per frame
         void Update()
         {
-            // If alert text is in use, keep it displayed for 5 seconds before "wiping"
+            // If alert text is in use, keep it displayed for 3 seconds before "wiping"
             if(!Equals(alert.text, "")){
+                if(alert.text.Contains("perished.") && !soundPlayed){
+                    soundPlayed = true;
+                    alertSound.Play();
+                }
+
                 timer += Time.deltaTime;
-                if(timer >= 5.0f){
+                if(timer >= 3.0f){
                     alert.text = "";
                     timer = 0.0f;
+                    soundPlayed = false;
                 }
             }
         }

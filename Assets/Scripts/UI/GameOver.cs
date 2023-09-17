@@ -9,6 +9,7 @@ using Database;
 using UnityEngine.SceneManagement;
 using System;
 using RestPhase;
+using CombatPhase;
 
 namespace UI{
     [DisallowMultipleComponent]
@@ -27,7 +28,19 @@ namespace UI{
         [SerializeField]
         private MainMenu mainMenu;
 
-        void Start(){
+        /// <summary>
+        /// Name to use for scoreboard
+        /// </summary>
+        private string leaderName = "";
+
+        /// <summary>
+        /// Name to use for scoreboard
+        /// </summary>
+        private int friendsAlive = 0;
+
+        void OnEnable(){
+            mainMenu = GameObject.FindGameObjectWithTag("MainScreen").GetComponent<MainMenu>();
+            leaderName = !Equals(RestMenu.LeaderName, "") ? RestMenu.LeaderName : !Equals(CombatManager.LeaderName, "") ? CombatManager.LeaderName : "NULL";
             CalculateScore();
         }
 
@@ -35,11 +48,25 @@ namespace UI{
         /// Calculate the overall score
         /// </summary>
         private void CalculateScore(){
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            // Check for friends alive
+            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT difficulty, distance, food, gas, scrap, money, medkit, tire, battery, ammo, timeTaken FROM SaveFilesTable " + 
-                                              "WHERE id = " + GameLoop.FileId + ";";
+            dbCommandReadValues.CommandText = "SELECT friend1Name, friend2Name, friend3Name FROM ActiveCharactersTable";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            for(int i = 0; i < 3; i++){
+                friendsAlive += dataReader.IsDBNull(i) ? 0 : 1;
+            }
+
+            dbConnection.Close();
+
+            // Check resources
+            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT difficulty, distance, food, gas, scrap, money, medkit, tire, battery, ammo, overallTime FROM SaveFilesTable " + 
+                                              "WHERE id = " + GameLoop.FileId + ";";
+            dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
             int distance = dataReader.GetInt32(1), difficulty = dataReader.GetInt32(0), food = dataReader.GetInt32(2), gas = (int)(dataReader.GetFloat(3)),
@@ -48,7 +75,7 @@ namespace UI{
 
             // Score is base amount of supplies (medkit, tires, and batteries doubled) + a tenth of the distance + a time bonus determined below multiplied by a difficulty bonus
             // + friends alive (500 each).
-            int finalScore = food + gas + scrap + money + medkit * 2 + tire * 2 + battery * 2 + ammo + distance/10 + 500 * RestMenu.FriendsAlive;
+            int finalScore = food + gas + scrap + money + medkit * 2 + tire * 2 + battery * 2 + ammo + distance/10 + 500 * friendsAlive;
 
             // A faster time means a higher score
             finalScore += 1000 - timeTaken > 0 ? 1000 - timeTaken : 0;
@@ -63,14 +90,14 @@ namespace UI{
 
             IDbCommand dbCommandInsertValues = dbConnection.CreateCommand();
             dbCommandInsertValues.CommandText = "INSERT INTO LocalHighscoreTable (id, leaderName, difficulty, distance, friends, score) VALUES(" +
-                                               (count + 1) + ", '" + RestMenu.LeaderName + "', " + difficulty + ", " + distance + ", " + RestMenu.FriendsAlive + ", " + 
+                                               (count + 1) + ", '" + leaderName + "', " + difficulty + ", " + distance + ", " + friendsAlive + ", " + 
                                                finalScore + ")";
             dbCommandInsertValues.ExecuteNonQuery();
             dbConnection.Close();
 
             scoreDetailText.text = "Food: " + food + "\tGas: " + gas + "\tScrap: " + scrap + "\tMoney: " + money + "\tAmmo: " + ammo +
                                    "\nMedkit: " + medkit + "x2" + "\tBattery: " + battery + "x2" + "\tTire: " + tire + "x2\n" + "Distance: " + distance + " / 10\t" +
-                                   "Time Taken: " + (1000 - timeTaken) + "\tFriends Alive: 500 * " + RestMenu.FriendsAlive;
+                                   "Time Taken: " + (1000 - timeTaken) + "\tFriends Alive: 500 * " + friendsAlive;
             totalScoreText.text = "Final Score: " + finalScore.ToString();
             mainMenu.DeleteFile();
         }

@@ -14,6 +14,12 @@ TagManager:
   - PlayerHealthBar
   - PlayerHealthText
   - AlertText
+  - GameOver
+  - CombatManager
+  - MainScreen
+  - ZoomReticle
+  - NormalReticle
+  - ShootLocation
   layers:
   - Default
   - TransparentFX

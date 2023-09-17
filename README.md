@@ -30,3 +30,5 @@ immersive the game environment is to end-users.
 * Game AI concepts from Dr. Akram Vasighizaker's COMP4770-2023W Artificial Intelligence for Games class
 * Player model visuals from Dr. Akram Vasighizaker's COMP4770-2023W Artificial Intelligence for Games class
 * Camera control done with Cinemachine Package
+* Gun sounds from https://mixkit.co/free-sound-effects/gun/
+* Alert sound from https://mixkit.co/free-sound-effects/buzzer/
