@@ -27,30 +27,46 @@ namespace CombatPhase{
         private InputAction aimAction;
 
         /// <summary>
+        /// The aim action
+        /// </summary>
+        private InputAction weaponSwitch;
+
+        /// <summary>
         /// If the camera has been switched
         /// </summary>
-        private bool isSwitched = false;
+        public static bool IsSwitched = false;
         
         void Start()
         {
             vcam = GetComponent<CinemachineVirtualCamera>();
             aimAction = playerInput.actions["Zoom"];
+            weaponSwitch = playerInput.actions["SwitchWeapon"];
         }
 
         private void Update(){
+            // Switching to zoom in while holding a gun
             if(CombatManager.InCombat && CombatManager.GunSelected == 1 && Player.UsingGun && aimAction.triggered){
-                if(isSwitched){
-                    isSwitched = false;
+                if(IsSwitched){
+                    IsSwitched = false;
                     CombatManager.ZoomReticle.SetActive(false);
                     CombatManager.NormalReticle.SetActive(true);
                     vcam.Priority -= priorityBoost;
                 }
                 else{
-                    isSwitched = true;
+                    IsSwitched = true;
                     CombatManager.ZoomReticle.SetActive(true);
                     CombatManager.NormalReticle.SetActive(false);
                     vcam.Priority += priorityBoost;
                 }
+            }
+
+            // Switching weapons while holding a gun
+            else if(CombatManager.InCombat && CombatManager.GunSelected == 1 && IsSwitched && weaponSwitch.triggered){
+                IsSwitched = false;
+                CombatManager.ZoomReticle.SetActive(false);
+                CombatManager.NormalReticle.SetActive(true);
+                vcam.Priority -= priorityBoost;
+                Player.ZoomedIn = false;
             }
         }
     }

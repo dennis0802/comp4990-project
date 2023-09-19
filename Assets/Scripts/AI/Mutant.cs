@@ -63,6 +63,11 @@ namespace AI{
         /// <param name="amt">The amount of damaged received</param>
         public void RangedDamage(int amt){
             // Since this relies on a collision (ie. not frame-by-frame in Update, no invincibility frames are needed)
+            hp -= amt;
+            if(hp <= 0){
+                CombatManager.RemoveAgent(this);
+                Destroy(gameObject);
+            }
         }
 
         /// <summary>

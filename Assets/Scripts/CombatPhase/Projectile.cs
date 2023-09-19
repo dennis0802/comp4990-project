@@ -19,9 +19,19 @@ namespace CombatPhase{
         private Rigidbody _rb;
 
         /// <summary>
+        /// Timer for the bullet to exist
+        /// </summary> 
+        private float timer = 0.0f;
+
+        /// <summary>
         /// Velocity of the projectile
         /// </summary> 
         public float Velocity {get; set;}
+
+        /// <summary>
+        /// Velocity of the projectile
+        /// </summary> 
+        public int Damage {get; set;}
 
         /// <summary>
         /// The party member who shot the bullet (GameObject to generalize)
@@ -68,12 +78,14 @@ namespace CombatPhase{
             // See if a mutant was hit
             Mutant mutant;
             do{
-                mutant = transform.GetComponent<Mutant>();
+                mutant = tr.GetComponent<Mutant>();
                 tr = tr.parent;
             } while (mutant == null && tr != null);
 
+            Debug.Log(mutant);
             if(mutant != null){
-                mutant.RangedDamage(1);
+                Debug.Log("Mutant hit");
+                mutant.RangedDamage(Damage);
             }
 
             // Destroy projectile
@@ -83,7 +95,11 @@ namespace CombatPhase{
         // Update is called once per frame
         void Update()
         {
-            
+            // Despawn bullets that don't hit anyone
+            timer += Time.deltaTime;
+            if(timer >= 10.0f){
+                Destroy(gameObject);
+            }
         }
     }
 }

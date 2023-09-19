@@ -27,6 +27,10 @@ namespace CombatPhase{
         [SerializeField]
         private Material[] playerColors;
 
+        [Tooltip("Bullet prefab")]
+        [SerializeField]
+        private GameObject bulletPrefab;
+
         /// <summary>
         /// The player's health bar
         /// </summary>
@@ -123,9 +127,24 @@ namespace CombatPhase{
         private CombatManager combatManager;
 
         /// <summary>
+        /// Location to spawn bullets regularly
+        /// </summary>
+        private GameObject shootLocation;
+
+        /// <summary>
+        /// Additional locations to spawn bullets via shotgun
+        /// </summary>
+        private GameObject[] shotgunShootLocations;
+
+        /// <summary>
         /// Player health
         /// </summary> 
         public int hp;
+
+        /// <summary>
+        /// Reload timer
+        /// </summary> 
+        public int reloadTimer;
 
         /// <summary>
         /// Flag if gun is being used
@@ -186,6 +205,7 @@ namespace CombatPhase{
 
                 // Running
                 playerSpeed = isRunning ? 6.0f : 3.0f;
+                Debug.Log(playerSpeed);
 
                 // Movement
                 Vector2 input = playerMove.ReadValue<Vector2>();
@@ -205,9 +225,28 @@ namespace CombatPhase{
                 // Shooting or Physical attack
                 if(playerShoot.triggered){
                     if(CanShoot && UsingGun && AmmoLoaded > 0){
-                        AmmoLoaded -= CombatManager.GunSelected == 2 ? 3 : 1;
+                        int gun = CombatManager.GunSelected;
+                        AmmoLoaded -= gun == 2 ? 3 : 1;
                         shootingAudio.Play();
+
                         // Spawn the bullet here
+                        GameObject bullet = Instantiate(bulletPrefab, shootLocation.transform.position, shootLocation.transform.rotation);
+                        bullet.transform.SetParent(CombatManager.CombatEnvironment.transform);
+                        Projectile projectile = bullet.GetComponent<Projectile>();
+                        projectile.Shooter = gameObject;
+                        projectile.Velocity = gun == 0 || gun == 1 ? 20 : 15;
+                        projectile.Damage = gun == 0 ? 2 : gun == 2 ? 4 : 6;
+
+                        // Shoot 2 additional bullets if using a shotgun, 45 degrees left and right of the main one
+                        if(gun == 2){
+                            foreach(GameObject location in shotgunShootLocations){
+                                bullet = Instantiate(bulletPrefab, location.transform.position, location.transform.rotation);
+                                bullet.transform.SetParent(CombatManager.CombatEnvironment.transform);
+                                bullet.GetComponent<Projectile>().Shooter = gameObject;
+                                bullet.GetComponent<Projectile>().Velocity = 15;
+                            }
+                        }
+
                     }
                     else if(CanShoot && UsingGun && AmmoLoaded == 0){
                         emptyAudio.Play();
@@ -218,15 +257,10 @@ namespace CombatPhase{
                     }
                 }
 
-                // Toggle zoom in with rifle
-                if(CombatManager.GunSelected == 1 && playerZoomIn.triggered){
-                    ZoomedIn = !ZoomedIn;
-                }   
-
                 // Reloading 
                 if(playerReload.triggered){
                     if(CanShoot && TotalAvailableAmmo > 0 && AmmoLoaded != maxAmmoLoaded){
-                        StartCoroutine(GunDelay());
+                        StartCoroutine(GunDelay(reloadTimer));
                     }
                     else{
                         reloadAudio.Play();
@@ -237,6 +271,7 @@ namespace CombatPhase{
                 if(weaponSwitch.triggered){
                     UsingGun = !UsingGun;
                     CanShoot = UsingGun;
+                    UpdateModel();
                 }
             }
         }
@@ -245,6 +280,8 @@ namespace CombatPhase{
         /// Initialize the player with data and ammo
         /// </summary>
         private void InitializeCharacter(){
+            UpdateModel();
+
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT leaderAcc, leaderOutfit, leaderColor, leaderHat, leaderName, leaderHealth FROM ActiveCharactersTable WHERE id = " +
@@ -309,6 +346,12 @@ namespace CombatPhase{
             combatManager = GameObject.FindWithTag("CombatManager").GetComponent<CombatManager>();
             playerHealthBar = GameObject.FindWithTag("PlayerHealthBar").GetComponent<Slider>();
             playerHealthText = GameObject.FindWithTag("PlayerHealthText").GetComponent<TextMeshProUGUI>();
+            shootLocation = GameObject.FindWithTag("ShootLocation");
+            shotgunShootLocations = GameObject.FindGameObjectsWithTag("ShotgunShootLocation");
+
+            int gun = CombatManager.GunSelected;
+            reloadTimer = gun == 1 ? 3 : gun == 2 ? 5 : 7;
+            
             playerHealthBar.value = hp;
             playerHealthText.text = "HP: " + hp.ToString() + "/100";
 
@@ -331,14 +374,14 @@ namespace CombatPhase{
         /// Toggle running when shift key is hit
         /// </summary>
         void PressSprint(){
-            isRunning = !ZoomedIn;
+            isRunning = !AimCamera.IsSwitched;
         }
 
         /// <summary>
         /// Toggle running when shift key is released
         /// </summary>
         void ReleaseSprint(){
-            isRunning = !ZoomedIn;
+            isRunning = false;
         }
 
         /// <summary>
@@ -361,14 +404,16 @@ namespace CombatPhase{
         /// <summary>
         /// Delay gun use from reloading
         /// </summary>
-        private IEnumerator GunDelay(){
+        /// <param name="delay">The delay to reload</param>
+        private IEnumerator GunDelay(int delay){
             CanShoot = false;
-            alertText.text = "Reloading.";
-            yield return new WaitForSeconds(1.0f);
-            alertText.text = "Reloading..";
-            yield return new WaitForSeconds(1.0f);
-            alertText.text = "Reloading...";
-            yield return new WaitForSeconds(1.0f);
+            alertText.text = "Reloading";
+            AlertText.MaxTime = delay;
+            for(int i = 0; i < delay; i++){
+                alertText.text = alertText.text + ".";
+                yield return new WaitForSeconds(1.0f);
+            }
+
             int totalReplaced = maxAmmoLoaded - AmmoLoaded > 0 ? maxAmmoLoaded - AmmoLoaded : 0;
             Player.TotalAvailableAmmo -= totalReplaced;
             AmmoLoaded = totalReplaced > 0 ? maxAmmoLoaded : 0;
@@ -385,6 +430,20 @@ namespace CombatPhase{
             if(!damagedRecently){
                 damagedRecently = true;
                 StartCoroutine(ReceiveDamage(amt));
+            }
+        }
+
+        /// <summary>
+        /// Update model depending on player weapon choice
+        /// </summary>
+        private void UpdateModel(){
+            if(UsingGun){
+                transform.GetChild(5).transform.GetChild(CombatManager.GunSelected).gameObject.SetActive(true);
+                transform.GetChild(5).transform.GetChild(CombatManager.PhysSelected).gameObject.SetActive(false);
+            }
+            else{
+                transform.GetChild(5).transform.GetChild(CombatManager.GunSelected).gameObject.SetActive(false);
+                transform.GetChild(5).transform.GetChild(CombatManager.PhysSelected).gameObject.SetActive(true);
             }
         }
     }

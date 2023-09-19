@@ -94,6 +94,7 @@ namespace CombatPhase{
         private GameObject player, ally, restMenu;
         private int diff;
         private int _currentAgentIndex;
+        private List<Teammate> teammates = new List<Teammate>();
         // For scavenging, to allow scavenging up to x seconds.
         private float scavengeTimeLimit = 0.0f, itemTimer = 0.0f, spawnItemTime = 0.0f;
         private float spawnEnemyTime = 0.0f, enemyTimer = 0.0f;
@@ -312,6 +313,8 @@ namespace CombatPhase{
                     t.allyName = dataReader.GetString(i);
                     t.leader = player.GetComponent<Player>();
                     t.SetDetectionRange(10.0f);
+                    t.usingGun = true;
+                    teammates.Add(t);
                 }
             }
 
@@ -354,7 +357,6 @@ namespace CombatPhase{
                 tempDead += "WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateDeadValue.CommandText = tempDead;
                 dbCommandUpdateDeadValue.ExecuteNonQuery();
-                dbConnection.Close();
             }
 
             // Ammo will be counted as total avaialble plus loaded since collected ammo can be used during combat
@@ -363,13 +365,25 @@ namespace CombatPhase{
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
+            // Update HP while getting living members
+            string tempHP = "UPDATE ActiveCharactersTable SET leaderHealth = " + player.GetComponent<Player>().hp;
+
             int livingMembers = 0;
             for(int i = 0; i < 4; i++){
                 livingMembers += !dataReader.IsDBNull(i) ? 1 : 0;
+                
+                if(!dataReader.IsDBNull(i) && i >= 1){
+                    tempHP += ", friend" + i + "Health = " + teammates[i-1].hp;
+                }
             }
-
+            tempHP += " WHERE id = " + GameLoop.FileId;
+            
+            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue.CommandText = tempHP;
+            dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
             
+            // Manage rations with the hour that passed during scavenging
             dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT food, time, rations FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
@@ -387,7 +401,7 @@ namespace CombatPhase{
                 ammoRemaining += t.ammoTotal + t.ammoLoaded;
             }
 
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+            dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = food + " + totalFood + ", gas = gas + " + (float)(gasFound) + 
                                                 ", scrap = scrap + " + scrapFound + ", money = money + " + moneyFound + ", medkit = medkit + " + medkitFound +
                                                 ", ammo = " + (Player.AmmoLoaded + Player.TotalAvailableAmmo + ammoRemaining) + ", time = " + 
@@ -395,6 +409,7 @@ namespace CombatPhase{
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
+            // Display final results
             string temp = "You collected:\n";
             temp += foodFound > 0 ? "* " + foodFound + " kg of food\n" : "";
             temp += gasFound > 0 ? gasFound == 1 ? "* " + gasFound + " can of gas\n" : "* " + gasFound + " cans of gas\n" : "";

@@ -21,6 +21,11 @@ namespace CombatPhase{
         private float timer = 0.0f;
 
         /// <summary>
+        /// Time how long the message stays up
+        /// </summary> 
+        public static int MaxTime;
+
+        /// <summary>
         /// If the alert played recently
         /// </summary> 
         private bool soundPlayed = false;
@@ -48,7 +53,7 @@ namespace CombatPhase{
                 }
 
                 timer += Time.deltaTime;
-                if(timer >= 3.0f){
+                if(timer >= MaxTime){
                     alert.text = "";
                     timer = 0.0f;
                     soundPlayed = false;

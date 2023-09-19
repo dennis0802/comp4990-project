@@ -26,6 +26,11 @@ namespace AI{
         private TextMeshProUGUI alertText;
 
         /// <summary>
+        /// Location to spawn bullets
+        /// </summary>
+        private GameObject shootLocation;
+
+        /// <summary>
         /// Min speed to be considered stopped
         /// </summary>
         public float minStopSpeed;
@@ -88,6 +93,8 @@ namespace AI{
         /// Initialize the ally with data
         /// </summary>
         private void InitializeCharacter(){
+            UpdateModel();
+
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
@@ -159,6 +166,7 @@ namespace AI{
             }
 
             alertText = GameObject.FindWithTag("AlertText").GetComponent<TextMeshProUGUI>();
+            shootLocation = GameObject.FindWithTag("ShootLocation");
 
             ammoTotal = Player.TotalAvailableAmmo/livingMembers;
             Player.TotalAvailableAmmo -= ammoTotal;
@@ -170,10 +178,12 @@ namespace AI{
         /// </summary>
         public void UpdateModel(){
             if(usingGun){
-
+                transform.GetChild(5).transform.GetChild(CombatManager.GunSelected).gameObject.SetActive(true);
+                transform.GetChild(5).transform.GetChild(CombatManager.PhysSelected).gameObject.SetActive(false);
             }
             else{
-
+                transform.GetChild(5).transform.GetChild(CombatManager.GunSelected).gameObject.SetActive(false);
+                transform.GetChild(5).transform.GetChild(CombatManager.PhysSelected).gameObject.SetActive(true);
             }
         }
 

@@ -20,6 +20,7 @@ TagManager:
   - ZoomReticle
   - NormalReticle
   - ShootLocation
+  - ShotgunShootLocation
   layers:
   - Default
   - TransparentFX
