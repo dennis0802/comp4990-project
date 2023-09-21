@@ -2,7 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System;
 using UnityEngine;
+using Random = UnityEngine.Random;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using Mono.Data.Sqlite;
@@ -647,28 +649,31 @@ namespace TravelPhase{
         private bool HasCharacterDied(){
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
-                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health, leaderMorale, " +
+                                              "friend1Morale, friend2Morale, friend3Morale, customIdLeader, customId1, customId2, customId3 FROM ActiveCharactersTable " + 
+                                              "WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
             List<int> teamHealth = new List<int>();
             List<int> teamMorale = new List<int>();
             List<string> names = new List<string>();
+            List<int> customIds = new List<int>();
 
             for(int i = 0; i < 4 ; i++){
-                int index = 20 + 9 * i, curHp = dataReader.IsDBNull(28 + 9 * i) ? 0 : dataReader.GetInt32(28 + 9 * i), 
-                    curMorale = dataReader.IsDBNull(28 + 9 * i) ? 0 : dataReader.GetInt32(27 + 9 * i);
+                int curHp = dataReader.IsDBNull(4+i) ? 0 : dataReader.GetInt32(4+i), curMorale = dataReader.IsDBNull(8+i) ? 0 : dataReader.GetInt32(8+i);
 
-                if(!dataReader.IsDBNull(index)){
+                if(!dataReader.IsDBNull(i)){
                     teamHealth.Add(curHp);
                     teamMorale.Add(curMorale);
-                    names.Add(dataReader.GetString(index));
+                    names.Add(dataReader.GetString(i));
+                    customIds.Add(dataReader.GetInt32(12+i));
                 }
                 else{
                     teamHealth.Add(0);
                     teamMorale.Add(0);
                     names.Add("_____TEMPNULL");
+                    customIds.Add(-1);
                 }
             }
             dbConnection.Close();
@@ -686,8 +691,6 @@ namespace TravelPhase{
             List<string> deadCharacters = new List<string>();
 
             for(int i = 0; i < teamHealth.Count; i++){
-                int index = 20 + 9 * i;
-
                 // A recently dead player will have their no hp but their name wasn't recorded as _____TEMPNULL
                 if(teamHealth[i] == 0 && !Equals(names[i], "_____TEMPNULL")){
                     flag = true;
@@ -736,6 +739,23 @@ namespace TravelPhase{
                 dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
+
+                dbConnection = GameDatabase.CreatePerishedCustomAndOpenDatabase();
+                dbCommandReadValues = dbConnection.CreateCommand();
+                dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
+                int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar()); 
+
+                foreach(int id in customIds){
+                    if(id == -1){
+                        continue;
+                    }
+
+                    IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
+                    dbCommandInsertValue.CommandText = "INSERT INTO PerishedCustomTable (id, saveFileId, customCharacterId)" +
+                                                        "VALUES (" + (count+1) + ", " + GameLoop.FileId + ", " + id + ")";
+                    dbCommandInsertValue.ExecuteNonQuery();
+                    count++;
+                }
                 return true;
             }
 
@@ -998,30 +1018,84 @@ namespace TravelPhase{
                 dbConnection.Close();
             }
             // 5/44 possibility to find a new party member (ex. The party meets Bob. They have the Perk surgeon and Trait paranoid.)
-            // TODO: SEPT ? - Expand on adding custom members if in custom mode.
             else if(eventChance <= 18){
                 // Check that a slot is available.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT friend1Name, friend2Name, friend3Name, leaderId, customId1, customId2, customId3 FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
                 List<string> names = new List<string>();
-                for(int i = 10; i <= 28 ; i+= 9){
+                for(int i = 0; i < 3 ; i++){
                     string name = dataReader.IsDBNull(i) ? "_____TEMPNULL" : dataReader.GetString(i);
                     names.Add(name);
                 }
 
                 if(names.Where(n => Equals(n, "_____TEMPNULL")).Count() > 0){
-                    int index = names.IndexOf(names.Where(n => Equals(n, "_____TEMPNULL")).First()), perk = Random.Range(0,GamemodeSelect.Perks.Count()), trait = Random.Range(0, GamemodeSelect.Traits.Count());
-                    int acc = Random.Range(1,4), outfit = Random.Range(1,4), color = Random.Range(1,10), hat = Random.Range(1,9);
-                    string name = GamemodeSelect.RandomNames[Random.Range(0, GamemodeSelect.RandomNames.Count())], perkRoll = GamemodeSelect.Perks[perk], traitRoll = GamemodeSelect.Traits[trait];
+                    int perk = -1, trait = -1, acc = -1, outfit = -1, color = -1, hat = -1, idRead = -1;
+                    string name = "", perkRoll = "", traitRoll = "";
+                    int index = names.IndexOf(names.Where(n => Equals(n, "_____TEMPNULL")).First());
+                    List<int> customIds = new List<int>(){dataReader.GetInt32(3), dataReader.GetInt32(4), dataReader.GetInt32(5), dataReader.GetInt32(6)};
+                    dbConnection.Close();
+                    
+                    dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                    dbCommandReadValue = dbConnection.CreateCommand();
+                    dbCommandReadValue.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
+                    int deadCount = Convert.ToInt32(dbCommandReadValue.ExecuteScalar());
 
+                    dbConnection.Close();
+
+                    dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                    dbCommandReadValue = dbConnection.CreateCommand();
+                    dbCommandReadValue.CommandText = "SELECT COUNT(*) FROM CustomCharactersTable";
+                    int customCharacterCount = Convert.ToInt32(dbCommandReadValue.ExecuteScalar());
+
+                    // Generate randomized character - standard or out of unused custom characters because they are all either in the party or dead
+                    if(diff == 1 || diff == 3 || customCharacterCount == customIds.Where(c => c != -1).Count() + deadCount){
+                        perk = Random.Range(0,GamemodeSelect.Perks.Count()); 
+                        trait = Random.Range(0, GamemodeSelect.Traits.Count());
+                        acc = Random.Range(1,4); 
+                        outfit = Random.Range(1,4); 
+                        color = Random.Range(1,10); 
+                        hat = Random.Range(1,9);
+                        name = GamemodeSelect.RandomNames[Random.Range(0, GamemodeSelect.RandomNames.Count())];
+                        perkRoll = GamemodeSelect.Perks[perk];
+                        traitRoll = GamemodeSelect.Traits[trait];
+                    }
+                    // Generate custom character
+                    else{
+                        int rand = -1;
+
+                        do
+                        {
+                            rand = Random.Range(0, customCharacterCount);
+                        } while (customIds.Contains(rand));
+
+                        dbCommandReadValue = dbConnection.CreateCommand();
+                        dbCommandReadValue.CommandText = "SELECT id, name, perk, trait, accessory, hat, color, outfit";
+                        dataReader = dbCommandReadValue.ExecuteReader();
+                        dataReader.Read();
+
+                        perk = dataReader.GetInt32(2);
+                        trait = dataReader.GetInt32(3);
+                        acc = dataReader.GetInt32(4);
+                        outfit = dataReader.GetInt32(7);
+                        color = dataReader.GetInt32(6);
+                        hat = dataReader.GetInt32(5);
+                        idRead = dataReader.GetInt32(0);
+                        name = dataReader.GetString(1);
+                        perkRoll = GamemodeSelect.Perks[perk];
+                        traitRoll = GamemodeSelect.Traits[trait];
+
+                        dbConnection.Close();
+                        dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                    }
+                    
                     string commandText = "UPDATE ActiveCharactersTable SET friend" + (index+1) + "Name = '" + name + "', friend" + (index+1) + "Perk = " + perk + 
                                          ", friend" + (index+1) + "Trait = " + trait + ", friend" + (index+1) + "Acc = " + acc + ", friend" + (index+1) + "Color = " + color + 
                                          ", friend" + (index+1) + "Hat = " + hat + ", friend" + (index+1) + "Outfit = " + outfit + ", friend" + (index+1) + "Health = 100" +
-                                         ", friend" + (index+1) + "Morale = 75 WHERE id = " + GameLoop.FileId;
+                                         ", friend" + (index+1) + "Morale = 75, customId " + (index + 1) + "= " + idRead + " WHERE id = " + GameLoop.FileId;
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                     dbCommandUpdateValue.CommandText = commandText;
                     dbCommandUpdateValue.ExecuteNonQuery();
@@ -1053,7 +1127,7 @@ namespace TravelPhase{
                 dataReader.Read();
 
                 List<int> curUpgrades = new List<int>(){dataReader.GetInt32(0), dataReader.GetInt32(1), dataReader.GetInt32(2), dataReader.GetInt32(3), dataReader.GetInt32(4),
-                                                        dataReader.GetInt32(5),};
+                                                        dataReader.GetInt32(5)};
                 // At least one slot is available.
                 if(curUpgrades.Where(c => c == 0).Count() > 0){
                     int selected;

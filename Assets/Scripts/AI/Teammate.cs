@@ -12,13 +12,13 @@ using Mono.Data.Sqlite;
 namespace AI{
     public class Teammate : BaseAgent
     {
-        [Tooltip("Colors for players")]
-        [SerializeField]
-        private Material[] playerColors;
-
         [Tooltip("Name text")]
         [SerializeField]
         private TextMeshPro nameText;
+
+        [Tooltip("Bullet prefab")]
+        [SerializeField]
+        private GameObject bulletPrefab;
 
         /// <summary>
         /// Text to alert the player
@@ -29,6 +29,11 @@ namespace AI{
         /// Location to spawn bullets
         /// </summary>
         private GameObject shootLocation;
+
+        /// <summary>
+        /// Additional locations to spawn bullets via shotgun
+        /// </summary>
+        private GameObject[] shotgunShootLocations;
 
         /// <summary>
         /// Min speed to be considered stopped
@@ -59,6 +64,11 @@ namespace AI{
         /// Teammate's ammo loaded
         /// </summary>
         public int ammoLoaded = 0;
+
+        /// <summary>
+        /// Teammate's physical damage output
+        /// </summary>
+        public int physicalDamageOutput;
         
         /// <summary>
         /// If teammate is using a gun
@@ -80,6 +90,11 @@ namespace AI{
         /// </summary> 
         public Collider[] Colliders {get; private set;}
 
+        /// <summary>
+        /// Shooting audio
+        /// </summary> 
+        private AudioSource shootingAudio;
+
         protected override void Start(){
             base.Start();
             InitializeCharacter();
@@ -87,6 +102,9 @@ namespace AI{
             List<Collider> colliders = GetComponents<Collider>().ToList();
             colliders.AddRange(GetComponentsInChildren<Collider>());
             Colliders = colliders.Distinct().ToArray();
+            shootingAudio = GetComponent<AudioSource>();
+
+            physicalDamageOutput = CombatManager.PhysSelected == 3 ? 1 : CombatManager.PhysSelected == 4 ? 2 : 3;
         }
 
         /// <summary>
@@ -117,8 +135,8 @@ namespace AI{
             dbConnection.Close();
 
             // Visuals
-            transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[color-1];
-            transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[color-1];
+            transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[color-1];
+            transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[color-1];
 
             switch(hat){
                 case 1:
@@ -226,6 +244,33 @@ namespace AI{
         public void Reload(){
             ammoLoaded = ammoTotal - 6 > 0 ? 6 : ammoTotal;
             ammoTotal -= ammoLoaded;
+        }
+
+        /// <summary>
+        /// Attempt to shoot a mutant
+        /// </summary>
+        public void Shoot(){
+            int gun = CombatManager.GunSelected;
+            ammoLoaded -= gun == 2 ? 3 : 1;
+            shootingAudio.Play();
+
+            // Spawn the bullet here
+            GameObject bullet = Instantiate(bulletPrefab, shootLocation.transform.position, shootLocation.transform.rotation);
+            bullet.transform.SetParent(CombatManager.CombatEnvironment.transform);
+            Projectile projectile = bullet.GetComponent<Projectile>();
+            projectile.Shooter = gameObject;
+            projectile.Velocity = gun == 0 || gun == 1 ? 20 : 15;
+            projectile.Damage = gun == 0 ? 2 : gun == 2 ? 4 : 6;
+
+            // Shoot 2 additional bullets if using a shotgun, 45 degrees left and right of the main one
+            if(gun == 2){
+                foreach(GameObject location in shotgunShootLocations){
+                    bullet = Instantiate(bulletPrefab, location.transform.position, location.transform.rotation);
+                    bullet.transform.SetParent(CombatManager.CombatEnvironment.transform);
+                    bullet.GetComponent<Projectile>().Shooter = gameObject;
+                    bullet.GetComponent<Projectile>().Velocity = 15;
+                }
+            }
         }
     }
 }

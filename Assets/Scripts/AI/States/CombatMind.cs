@@ -42,14 +42,24 @@ namespace AI.States{
                     else{
                         // Attempt attack when close enough, move closer otherwise
                         if(Vector3.Distance(nearestChar.position, m.transform.position) < 1.0f){
-                            Player player = nearestChar.GetComponent<Player>();
-                            Teammate partyMember = nearestChar.GetComponent<Teammate>();
+                            Player player = null;
+                            Teammate partyMember = null;
+
+                            if(m.Target is null){
+                                player = nearestChar.GetComponent<Player>();
+                                partyMember = nearestChar.GetComponent<Teammate>();
+                            }
 
                             if(player != null){
+                                m.Target = player.transform;
                                 player.Damage(m.strength);
                             }
                             else if(partyMember != null){
+                                m.Target = partyMember.transform;
                                 partyMember.Damage(m.strength);
+                            }
+                            else{
+                                m.Target = null;
                             }
                         }
                         else{
@@ -73,6 +83,7 @@ namespace AI.States{
 
                         if(nearestCollectible != null){
                             if(t.Velocity.magnitude < t.minStopSpeed){
+                                //Debug.Log(t.allyName + ": Going to collectible.");
                                 t.SetDestination(nearestCollectible.position);
                             }
                         }
@@ -83,51 +94,51 @@ namespace AI.States{
                     }
 
                     // Find a defensive point not in use and attack if enemies visible
-                    else if(dp != null){
-                        
+                    else if(nearestMutant != null){
                         // If not at the defensive point using it, it is not in use.
-                        if(Equals(t.GetDestination(), dp.transform.position) && !dp.inUse){
-                            dp.inUse = true;
-                            if(t.Velocity.magnitude < t.minStopSpeed){
-                                t.SetDestination(dp.transform.position);
+                        if(dp != null){
+                            if(Equals(t.GetDestination(), dp.transform.position) && !dp.inUse){
+                                dp.inUse = true;
+                                if(t.Velocity.magnitude < t.minStopSpeed){
+                                    t.SetDestination(dp.transform.position);
+                                }
+                            }
+                            else if(!Equals(t.GetDestination(), dp.transform.position) && dp.inUse){
+                                dp.inUse = false;
                             }
                         }
-                        else{
-                            dp.inUse = false;
-                        }
 
+                        // Prefer ranged attacks over physical attacks
                         // Range attack
                         if(t.usingGun && t.ammoLoaded > 0){
+                            Vector3.RotateTowards(t.transform.position, nearestMutant.transform.position, 1.0f * Time.deltaTime, 0.0f);
+                            t.Shoot();
                             Debug.Log(t.name + " within shooting range");
                         }
-                        // Physical attack within range
-                        else if(Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f){
-                            Debug.Log(t.name + " within physical range");
-                        }
-                        // Attempt to keep a safe distance away (mutant velocity should be faster than party members) [evasion steering]
-                        else if(Vector3.Distance(nearestMutant.transform.position, t.transform.position) >= 1.0f){
-                            Debug.Log(t.name + " running away");
-                        }
-
-                        if(t.ammoLoaded == 0 && t.ammoTotal > 0){
-                            t.Reload();
-                        }
-                        // Determine if weapon needs to be switched (change model as well)
-                        else if(t.ammoTotal == 0 && t.ammoLoaded == 0 && t.usingGun){
-                            t.usingGun = false;
-                            t.UpdateModel();
-                        }
+                        // Reload upon finding ammo
                         else if(!t.usingGun && t.ammoTotal != 0 && t.ammoLoaded == 0){
                             t.Reload();
                             t.usingGun = true;
                             t.UpdateModel();
                         }
-                    }
-
-                    // Mutants nearby and no defence, wander
-                    else if(t.Velocity.magnitude < t.minStopSpeed){
-                        Vector2 pos = CombatManager.RandomPosition;
-                        t.SetDestination(new Vector3(pos.x, 0, pos.y));
+                        // Reload
+                        else if(t.ammoLoaded == 0 && t.ammoTotal > 0){
+                            t.Reload();
+                        }
+                        // Out of ammo, switch to physical weapon
+                        else if(t.ammoTotal == 0 && t.ammoLoaded == 0 && t.usingGun){
+                            t.usingGun = false;
+                            t.UpdateModel();
+                        }
+                        // Physical attack within range
+                        else if(!t.usingGun && Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f){
+                            Debug.Log(t.name + " within physical range");
+                            nearestMutant.PhysicalDamage(t.physicalDamageOutput);
+                        }
+                        // Attempt to keep a safe distance away (mutant velocity should be faster than party members) [evasion steering]
+                        else if(!t.usingGun && Vector3.Distance(nearestMutant.transform.position, t.transform.position) >= 1.0f){
+                            Debug.Log(t.name + " running away");
+                        }
                     }
 
                     break;

@@ -27,6 +27,11 @@ namespace AI{
         public bool damagedRecently;
 
         /// <summary>
+        /// If teammate was damaged recently (are invincibiltiy frames active?)
+        /// </summary>
+        public Transform Target;
+
+        /// <summary>
         /// Receive physical damage from a party member and apply "invincibility frames"
         /// </summary>
         /// <param name="amt">The amount of damaged received</param>

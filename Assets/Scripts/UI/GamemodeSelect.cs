@@ -33,10 +33,6 @@ namespace UI{
         [SerializeField]
         private GameObject partnerModel;
 
-        [Tooltip("Colors for players")]
-        [SerializeField]
-        private Material[] playerColors;
-
         [Header("UI Elements")]
         [Tooltip("Button to toggle partner selection")]
         [SerializeField]        
@@ -69,6 +65,7 @@ namespace UI{
         public static string LeaderName, PartnerName;
         public static int LeaderPerk, LeaderTrait, LeaderColor, LeaderOutfit, LeaderAcc, LeaderHat, Difficulty = 1;
         public static int PartnerPerk, PartnerTrait, PartnerColor, PartnerOutfit, PartnerAcc, PartnerHat;
+        public static int[] CustomIDs = new int[]{-1,-1};
 
         // For randomizing a character
         public static List<string> RandomNames = new List<string>(){
@@ -218,7 +215,7 @@ namespace UI{
         /// </summary>
         /// <param name="baseId">Base id number for the button (ie. button 1, button 2...) to determine which character id in the database</param>
         public void LoadCustomCharacter(int baseId){
-            int colorNum, hatNum, outfitNum, accNum, perk, trait;
+            int colorNum, hatNum, outfitNum, accNum, perk, trait, customId = -1;
             string name;
 
             int accessId = CharacterCreation.ReadCharacterId(baseId);
@@ -246,7 +243,7 @@ namespace UI{
             if(idFound){
                 AssigningChar = !AssigningChar;
                 dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable WHERE id = " + accessId + ";";
+                dbCommandReadValues.CommandText = "SELECT name, perk, trait, accessory, hat, color, outfit, id FROM CustomCharactersTable WHERE id = " + accessId + ";";
                 dataReader = dbCommandReadValues.ExecuteReader();
                 dataReader.Read();
                 name = dataReader.GetString(0);
@@ -256,6 +253,7 @@ namespace UI{
                 hatNum = dataReader.GetInt32(4);
                 colorNum = dataReader.GetInt32(5);
                 outfitNum = dataReader.GetInt32(6);
+
                 if(assigningPartner){
                     PartnerName = name;
                     PartnerPerk = perk;
@@ -264,6 +262,7 @@ namespace UI{
                     PartnerOutfit = outfitNum;
                     PartnerAcc = accNum;
                     PartnerColor = colorNum;
+                    CustomIDs[1] = customId;
                 }
                 else{
                     LeaderName = name;
@@ -273,6 +272,7 @@ namespace UI{
                     LeaderOutfit = outfitNum;
                     LeaderAcc = accNum;
                     LeaderColor = colorNum;
+                    CustomIDs[0] = customId;
                 }
                 UpdateVisuals(perk, trait, colorNum, hatNum, outfitNum, accNum, name, assigningPartner);
                 dbConnection.Close();
@@ -300,8 +300,8 @@ namespace UI{
             textFocus.text = "Name: " + name + "\nPerk: " + Perks[perk] + "\nTrait: " + Traits[trait];
 
             // Color
-            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[colorNum-1];
-            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[colorNum-1];
+            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[colorNum-1];
+            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[colorNum-1];
 
             switch(hatNum){
                 case 1:

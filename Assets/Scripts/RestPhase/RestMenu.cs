@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System;
+using Random = UnityEngine.Random;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -88,10 +90,6 @@ namespace RestPhase{
         [Tooltip("Friend models")]
         [SerializeField]
         private GameObject[] playerModel;
-
-        [Tooltip("Colors for players")]
-        [SerializeField]
-        private Material[] playerColors;
 
         [Header("Buttons")]
         [Tooltip("Accept trade offer button")]
@@ -820,12 +818,13 @@ namespace RestPhase{
         private void DecrementFood(){
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
-                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health, food, inPhase " + 
+                                              "leaderMorale, friend1Morale, friend2Morale, friend3Morale, customIdLeader, customId1, customId2, customId3 FROM SaveFilesTable " + 
+                                              "LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id WHERE SaveFilesTable.id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            int overallFood = dataReader.GetInt32(7), phase = dataReader.GetInt32(6);
+            int overallFood = dataReader.GetInt32(8), phase = dataReader.GetInt32(9);
             List<int> teamHealth = new List<int>();
             List<int> teamMorale = new List<int>();
 
@@ -833,11 +832,9 @@ namespace RestPhase{
             if(overallFood > 0){
                 // For each living character on the team, they consume 1, 2, or 3 units of food each hour depending on the ration mode.
                 for(int i = 0; i < 4; i++){
-                    int index = 20 + 9 * i;
-
-                    if(!dataReader.IsDBNull(index)){
-                        int curHp = dataReader.GetInt32(28 + 9 * i),
-                            curMorale = dataReader.GetInt32(27 + 9 * i);
+                    if(!dataReader.IsDBNull(i)){
+                        int curHp = dataReader.GetInt32(4+i),
+                            curMorale = dataReader.GetInt32(10+i);
                         
                         overallFood = GameLoop.RationsMode == 1 ? overallFood - 1 : GameLoop.RationsMode == 2 ? overallFood - 2 : overallFood - 3;
                         overallFood = overallFood <= 0 ? 0 : overallFood;
@@ -878,25 +875,27 @@ namespace RestPhase{
             // For each living character, their morale and health decrease.
             else{
                 List<string> names = new List<string>();
+                List<int> customIds = new List<int>();
                 
                 for(int i = 0; i < 4; i++){
-                    int index = 20 + 9 * i;
-                    if(!dataReader.IsDBNull(index)){
-                        int curHp = dataReader.GetInt32(28 + 9 * i),
-                            curMorale = dataReader.GetInt32(27 + 9 * i);
+                    if(!dataReader.IsDBNull(i)){
+                        int curHp = dataReader.GetInt32(4+i),
+                            curMorale = dataReader.GetInt32(10+i);
                         if(curHp > 0){
                             curHp = curHp - 5 < 0 ? 0: curHp - 5;
                             curMorale = curMorale - 5 < 0 ? 0 : curMorale - 5;
                             teamHealth.Add(curHp);
                             teamMorale.Add(curMorale);
                         }
-                        names.Add(dataReader.GetString(index));
+                        names.Add(dataReader.GetString(i));
+                        customIds.Add(dataReader.GetInt32(14+i));
                     }
                     // Character is dead, they have 0hp.
                     else{
                         teamHealth.Add(0);
                         teamMorale.Add(0);
                         names.Add("_____TEMPNULL");
+                        customIds.Add(-1);
                     }
                 }
                 dbConnection.Close();
@@ -945,6 +944,24 @@ namespace RestPhase{
 
                 // Display characters that have died.
                 if(flag){
+                    dbConnection.Close();
+
+                    dbConnection = GameDatabase.CreatePerishedCustomAndOpenDatabase();
+                    dbCommandReadValues = dbConnection.CreateCommand();
+                    dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
+                    int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar()); 
+
+                    foreach(int id in customIds){
+                        if(id == -1){
+                            continue;
+                        }
+                        IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
+                        dbCommandInsertValue.CommandText = "INSERT INTO PerishedCustomTable (id, saveFileId, customCharacterId)" +
+                                                            "VALUES (" + (count+1) + ", " + GameLoop.FileId + ", " + id + ")";
+                        dbCommandInsertValue.ExecuteNonQuery();
+                        count++;
+                    }
+
                     for(int i = 0; i < deadCharacters.Count; i++){
                         if(deadCharacters.Count == 1 && !Equals(deadCharacters[i], "_____TEMPNULL")){
                             tempDisplayText += deadCharacters[i];
@@ -964,10 +981,13 @@ namespace RestPhase{
                     confirmPopup.SetActive(true);
                     this.gameObject.SetActive(false);
                 }
+                dbConnection.Close();
 
+                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
-                dbConnection.Close();                
+                dbConnection.Close();
             }
         }
 
@@ -1011,8 +1031,8 @@ namespace RestPhase{
             GameObject model = playerModel[charNumber];
 
             // Color
-            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[dataReader.GetInt32(index + 5)-1];
-            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[dataReader.GetInt32(index + 5)-1];
+            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[dataReader.GetInt32(index + 5)-1];
+            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[dataReader.GetInt32(index + 5)-1];
 
             // Hat
             switch(dataReader.GetInt32(index + 6)){

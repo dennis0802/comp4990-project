@@ -23,10 +23,6 @@ namespace CombatPhase{
         [SerializeField]
         private TextMeshPro nameText;
 
-        [Tooltip("Colors for players")]
-        [SerializeField]
-        private Material[] playerColors;
-
         [Tooltip("Bullet prefab")]
         [SerializeField]
         private GameObject bulletPrefab;
@@ -295,8 +291,8 @@ namespace CombatPhase{
 
             dbConnection.Close();
 
-            transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[color-1];
-            transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[color-1];
+            transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[color-1];
+            transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[color-1];
 
             switch(hat){
                 case 1:
@@ -350,7 +346,7 @@ namespace CombatPhase{
             shotgunShootLocations = GameObject.FindGameObjectsWithTag("ShotgunShootLocation");
 
             int gun = CombatManager.GunSelected;
-            reloadTimer = gun == 1 ? 3 : gun == 2 ? 5 : 7;
+            reloadTimer = gun == 0 ? 3 : gun == 1 ? 5 : 7;
             
             playerHealthBar.value = hp;
             playerHealthText.text = "HP: " + hp.ToString() + "/100";

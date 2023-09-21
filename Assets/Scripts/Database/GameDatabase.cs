@@ -34,6 +34,8 @@ namespace Database{
             dbConnection.Close();
             dbConnection = CreateTownAndOpenDatabase();
             dbConnection.Close();
+            dbConnection = CreatePerishedCustomAndOpenDatabase();
+            dbConnection.Close();
         }
 
         /// <summary>
@@ -94,7 +96,8 @@ namespace Database{
                                                "leaderName TEXT(10), leaderPerk INTEGER, leaderTrait INTEGER, leaderAcc INTEGER, leaderOutfit INTEGER, leaderColor INTEGER, leaderHat INTEGER, leaderMorale INTEGER, leaderHealth INTEGER, " +
                                                "friend1Name TEXT(10), friend1Perk INTEGER, friend1Trait INTEGER, friend1Acc INTEGER, friend1Outfit INTEGER, friend1Color INTEGER, friend1Hat INTEGER, friend1Morale INTEGER, friend1Health INTEGER," +
                                                "friend2Name TEXT(10), friend2Perk INTEGER, friend2Trait INTEGER, friend2Acc INTEGER, friend2Outfit INTEGER, friend2Color INTEGER, friend2Hat INTEGER, friend2Morale INTEGER, friend2Health INTEGER," +
-                                               "friend3Name TEXT(10), friend3Perk INTEGER, friend3Trait INTEGER, friend3Acc INTEGER, friend3Outfit INTEGER, friend3Color INTEGER, friend3Hat INTEGER, friend3Morale INTEGER, friend3Health INTEGER)";
+                                               "friend3Name TEXT(10), friend3Perk INTEGER, friend3Trait INTEGER, friend3Acc INTEGER, friend3Outfit INTEGER, friend3Color INTEGER, friend3Hat INTEGER, friend3Morale INTEGER, friend3Health INTEGER," +
+                                               "customIdLeader INTEGER, customId1 INTEGER, customId2 INTEGER, customId3 INTEGER)";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;
@@ -150,6 +153,23 @@ namespace Database{
             // Fields: id, the leader's name, the difficulty played, the distance travelled, the number of friends they survived with, and overall score.
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
             dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS LocalHighscoreTable(id INTEGER PRIMARY KEY, leaderName TEXT(10), difficulty INTEGER, distance INTEGER, friends INTEGER, score INTEGER)";
+            dbCommandCreateTable.ExecuteReader();
+
+            return dbConnection;
+        }
+
+        /// <summary>
+        /// Create and open a connection to the database to access custom characters that have perished in save files
+        /// </summary>
+        public static IDbConnection CreatePerishedCustomAndOpenDatabase(){
+            // Open connection to database
+            string dbUri = "URI=file:GameData.sqlite";
+            IDbConnection dbConnection = new SqliteConnection(dbUri);
+            dbConnection.Open();
+
+            // Create a table for the custom characters that have perished in save files in the database if it doesn't exist yet
+            IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
+            dbCommandCreateTable.CommandText = "CREATE TABLE IF NOT EXISTS PerishedCustomTable(id INTEGER PRIMARY KEY, saveFileId INTEGER, customCharacterId)";
             dbCommandCreateTable.ExecuteReader();
 
             return dbConnection;

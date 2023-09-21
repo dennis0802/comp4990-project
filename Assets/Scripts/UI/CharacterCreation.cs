@@ -100,6 +100,12 @@ namespace UI{
         [SerializeField]
         private Button[] assignButtons;
 
+        // Static list of all colors
+        public static Material[] Colors;
+
+        // Static list of all colors
+        public static Material[] OutfitPatterns;
+
         // To track page number
         public static int pageNum = 1;
         // To track character customization features
@@ -127,6 +133,7 @@ namespace UI{
         };
 
         public void Start(){
+            Colors = playerColors;
             UpdateButtonsText();
         }
 
@@ -367,7 +374,7 @@ namespace UI{
 
             // Visuals
             foreach(GameObject component in playerVisuals){
-                component.GetComponent<MeshRenderer>().material = playerColors[colorNum-1];
+                component.GetComponent<MeshRenderer>().material = Colors[colorNum-1];
             }      
         }
 
@@ -384,7 +391,7 @@ namespace UI{
             }
 
             foreach(GameObject component in playerVisuals){
-                component.GetComponent<MeshRenderer>().material = playerColors[colorNum-1];
+                component.GetComponent<MeshRenderer>().material = Colors[colorNum-1];
             }
             colorNumText.text = colorNum.ToString();
         }
@@ -505,8 +512,8 @@ namespace UI{
             
             iconComp = GamemodeSelect.AssigningChar ? assignIcons[baseId] : playerIcons[baseId];
             // Color
-            iconComp.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = playerColors[iconColorNum-1];
-            iconComp.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = playerColors[iconColorNum-1];
+            iconComp.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = Colors[iconColorNum-1];
+            iconComp.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = Colors[iconColorNum-1];
 
             switch(iconHatNum){
                 case 1:

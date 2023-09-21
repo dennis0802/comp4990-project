@@ -21,9 +21,23 @@ namespace UI{
         [SerializeField]
         private TextMeshProUGUI scoreText2;
 
+        [Tooltip("Text to display current score display")]
+        [SerializeField]
+        private TextMeshProUGUI modeText;
+
         [Tooltip("Clear scoreboard button")]
         [SerializeField]
         private Button clearScoreButton;
+
+        /// <summary>
+        /// Current mode of display (0 = all, 1 = standard, 2 = deadlier, 3 = standard custom, 4 = deadlier custom)
+        /// </summary>
+        private int displayMode = 0;
+
+        /// <summary>
+        /// Strings of difficulties to display
+        /// </summary>
+        private List<string> displayDiffs = new List<string>(){"All", "Standard", "Deadlier", "Standard (C)", "Deadlier (C)"};
 
         void OnEnable(){
             UpdateScreen();
@@ -51,8 +65,12 @@ namespace UI{
             dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM LocalHighscoreTable";
             int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar());
 
-            // Display the top 8 scores.
-            dbCommandReadValues.CommandText = "SELECT leaderName, difficulty, distance, score FROM LocalHighscoreTable ORDER BY score DESC LIMIT 8";
+            string commandText = "SELECT leaderName, difficulty, distance, score FROM LocalHighscoreTable";
+            commandText += displayMode != 0 ? " WHERE difficulty = " + displayMode : "";
+            commandText += " ORDER BY score DESC LIMIT 8";
+
+            // Display the top 8 scores of the current display.
+            dbCommandReadValues.CommandText = commandText;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             string scoreDisplay1 = "", scoreDisplay2 = "";
             int rowNum = 1;
@@ -66,11 +84,21 @@ namespace UI{
             }
             scoreText1.text = scoreDisplay1;
             scoreText2.text = scoreDisplay2;
+            modeText.text = "Displaying scores for mode: " + displayDiffs[displayMode];
 
             dbConnection.Close();
 
             // Only clear scores when there is a score in the database.
             clearScoreButton.interactable = count != 0;
+        }
+
+        /// <summary>
+        /// Change the display mode of the scores
+        /// </summary>
+        /// <param name="mode">The mode to change to</param>
+        public void ChangeDisplayMode(int mode){
+            displayMode = displayMode == 4 ? 0 : displayMode + 1;
+            UpdateScreen();
         }
     }
 }
