@@ -818,7 +818,7 @@ namespace RestPhase{
         private void DecrementFood(){
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health, food, inPhase " + 
+            dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health, food, inPhase, " + 
                                               "leaderMorale, friend1Morale, friend2Morale, friend3Morale, customIdLeader, customId1, customId2, customId3 FROM SaveFilesTable " + 
                                               "LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id WHERE SaveFilesTable.id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -879,8 +879,10 @@ namespace RestPhase{
                 
                 for(int i = 0; i < 4; i++){
                     if(!dataReader.IsDBNull(i)){
-                        int curHp = dataReader.GetInt32(4+i),
-                            curMorale = dataReader.GetInt32(10+i);
+                        int curHp = dataReader.GetInt32(4+i);
+                        Debug.Log(curHp);
+                        int curMorale = dataReader.GetInt32(10+i);
+                        Debug.Log(curMorale);
                         if(curHp > 0){
                             curHp = curHp - 5 < 0 ? 0: curHp - 5;
                             curMorale = curMorale - 5 < 0 ? 0 : curMorale - 5;
@@ -911,6 +913,7 @@ namespace RestPhase{
 
                 bool flag = false;
                 List<string> deadCharacters = new List<string>();
+                List<int> deadIds = new List<int>();
 
                 for(int i = 0; i < teamHealth.Count; i++){
                     int index = 20 + 9 * i;
@@ -919,6 +922,7 @@ namespace RestPhase{
                     if(teamHealth[i] == 0 && !Equals(names[i], "_____TEMPNULL")){
                         flag = true;
                         deadCharacters.Add(names[i]);
+                        deadIds.Add(customIds[i]);
 
                         // Leader died = game over
                         if(i == 0){
@@ -951,7 +955,7 @@ namespace RestPhase{
                     dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
                     int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar()); 
 
-                    foreach(int id in customIds){
+                    foreach(int id in deadIds){
                         if(id == -1){
                             continue;
                         }

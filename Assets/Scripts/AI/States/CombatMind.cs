@@ -4,6 +4,7 @@ using UnityEngine;
 using AI;
 using CombatPhase;
 using AI.Sensors;
+using CombatPhase.Pickups;
 
 namespace AI.States{
     [CreateAssetMenu(menuName = "AI/States/Combat Mind", fileName = "Combat Mind")]
@@ -27,12 +28,9 @@ namespace AI.States{
                     Mutant m = agent as Mutant;
                     Transform nearestChar = m.Sense<NearestPartySensor, Transform>();
 
-                    float time = 0.0f;
-                    time += m.DeltaTime;
-
                     // If player cannot be found, wander (pick a random position on the map)
                     if(nearestChar == null){
-                        if(m.Velocity.magnitude < m.minStopSpeed){
+                        if(m.GetVelocity().magnitude < m.minStopSpeed){
                             Vector2 pos = CombatManager.RandomPosition;
                             m.SetDestination(new Vector3(pos.x, 0, pos.y));
                         }
@@ -42,6 +40,7 @@ namespace AI.States{
                     else{
                         // Attempt attack when close enough, move closer otherwise
                         if(Vector3.Distance(nearestChar.position, m.transform.position) < 1.0f){
+                            m.StopMoving();
                             Player player = null;
                             Teammate partyMember = null;
 
@@ -63,9 +62,7 @@ namespace AI.States{
                             }
                         }
                         else{
-                            if(m.Velocity.magnitude < m.minStopSpeed){
-                                m.SetDestination(nearestChar.position);
-                            }
+                            m.SetDestination(nearestChar.position);
                         }
                     }
 
@@ -81,13 +78,15 @@ namespace AI.States{
                     if(nearestMutant == null){
                         Transform nearestCollectible = t.Sense<NearestCollectibleSensor, Transform>();
 
+                        // Collectible
                         if(nearestCollectible != null){
-                            if(t.Velocity.magnitude < t.minStopSpeed){
-                                //Debug.Log(t.allyName + ": Going to collectible.");
+                            if(t.GetVelocity().magnitude < t.minStopSpeed){
                                 t.SetDestination(nearestCollectible.position);
                             }
                         }
-                        else if(t.Velocity.magnitude < t.minStopSpeed){
+
+                        // Wander
+                        else if(t.GetVelocity().magnitude < t.minStopSpeed){
                             Vector2 pos = CombatManager.RandomPosition;
                             t.SetDestination(new Vector3(pos.x, 0, pos.y));
                         }
@@ -95,11 +94,22 @@ namespace AI.States{
 
                     // Find a defensive point not in use and attack if enemies visible
                     else if(nearestMutant != null){
+                        // Attempt to check for an ammo pickup
+                        Transform nearestCollectible = t.Sense<NearestCollectibleSensor, Transform>();
+
+                        // If the pickup is ammo and low on ammo, move towards it.
+                        if(t.ammoTotal <= 10 && nearestCollectible != null && t.GetComponent<AmmoPickup>() != null){
+                            if(t.GetVelocity().magnitude < t.minStopSpeed){
+                                t.SetDestination(nearestCollectible.position);
+                            }
+                        }
+
                         // If not at the defensive point using it, it is not in use.
-                        if(dp != null){
+                        else if(dp != null){
                             if(Equals(t.GetDestination(), dp.transform.position) && !dp.inUse){
+                                t.StopMoving();
                                 dp.inUse = true;
-                                if(t.Velocity.magnitude < t.minStopSpeed){
+                                if(t.GetVelocity().magnitude < t.minStopSpeed){
                                     t.SetDestination(dp.transform.position);
                                 }
                             }
@@ -110,7 +120,7 @@ namespace AI.States{
 
                         // Prefer ranged attacks over physical attacks
                         // Range attack
-                        if(t.usingGun && t.ammoLoaded > 0){
+                        else if(t.usingGun && t.ammoLoaded > 0){
                             Vector3.RotateTowards(t.transform.position, nearestMutant.transform.position, 1.0f * Time.deltaTime, 0.0f);
                             t.Shoot();
                             Debug.Log(t.name + " within shooting range");
@@ -122,25 +132,24 @@ namespace AI.States{
                             t.UpdateModel();
                         }
                         // Reload
-                        else if(t.ammoLoaded == 0 && t.ammoTotal > 0){
+                        else if(t.usingGun && t.ammoLoaded == 0 && t.ammoTotal > 0){
                             t.Reload();
                         }
                         // Out of ammo, switch to physical weapon
-                        else if(t.ammoTotal == 0 && t.ammoLoaded == 0 && t.usingGun){
+                        else if(t.usingGun && t.ammoTotal == 0 && t.ammoLoaded == 0){
                             t.usingGun = false;
                             t.UpdateModel();
                         }
                         // Physical attack within range
-                        else if(!t.usingGun && Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f){
+                        else if(!t.usingGun && Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f && t.hp > 25){
                             Debug.Log(t.name + " within physical range");
                             nearestMutant.PhysicalDamage(t.physicalDamageOutput);
                         }
-                        // Attempt to keep a safe distance away (mutant velocity should be faster than party members) [evasion steering]
-                        else if(!t.usingGun && Vector3.Distance(nearestMutant.transform.position, t.transform.position) >= 1.0f){
+                        // Attempt to keep a safe distance away if low hp
+                        else if(!t.usingGun && Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f && t.hp <= 25){
                             Debug.Log(t.name + " running away");
                         }
                     }
-
                     break;
             }
         }

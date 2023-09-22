@@ -199,9 +199,8 @@ namespace CombatPhase{
                     playerVelocity.y = 0.0f;
                 }
 
-                // Running
-                playerSpeed = isRunning ? 6.0f : 3.0f;
-                Debug.Log(playerSpeed);
+                // Running - only when key is hit and NOT zoomed in with a rifle
+                playerSpeed = isRunning && !ZoomedIn ? 6.0f : 3.0f;
 
                 // Movement
                 Vector2 input = playerMove.ReadValue<Vector2>();

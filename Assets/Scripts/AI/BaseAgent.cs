@@ -182,6 +182,9 @@ namespace AI{
             SetDestination(transform.position);
         }
 
+        /// <summary>
+        /// Increase individual agent delta time
+        /// </summary>
         public void IncreaseDeltaTime(){
             DeltaTime += Time.deltaTime;
         }

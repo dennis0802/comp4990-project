@@ -102,7 +102,7 @@ namespace TravelPhase{
                         if(Drive()){
                             int eventChance = Random.Range(1,101);
 
-                            // Random chance of generating an event or rerun the coroutine
+                            // 44/100 chance of generating an event
                             if(eventChance <= 44){
                                 GenerateEvent(eventChance);
                             }
@@ -174,8 +174,7 @@ namespace TravelPhase{
             towns.Clear();
             int distanceLeft = targetTownDistance - curDistance;
             popupText.text = distanceLeft.ToString() + " km to " + destinationTown;
-            popup.SetActive(true);
-            PopupActive = true;
+            LaunchPopup();
 
             RefreshScreen();
         }
@@ -399,12 +398,6 @@ namespace TravelPhase{
             destinationButton2.interactable = !CheckTownList(townNum);
             dbConnection.Close();
 
-            /*dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
-            dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
-            dataReader = dbCommandReadValue.ExecuteReader();
-            dataReader.Read();*/
-
             // Determine distance based on town #
             for(int i = 1; i <= 2; i++){
                 if(i == 2 && !destinationButton2.interactable){
@@ -415,7 +408,6 @@ namespace TravelPhase{
                 supplies = towns[i-1].SumTownResources() <= 330 ? "Light Supplies" : "Decent Supplies";
                 destinationTexts[i-1].text = nextDestinationLog[townNum][i-1]+ "\n" + distanceLog[townNum][i-1] + "km\n" + supplies;
             }
-            //dbConnection.Close();
         }
 
         /// <summary>
@@ -431,7 +423,6 @@ namespace TravelPhase{
 
             string nextTown = dataReader.GetString(0);
             targetTownDistance = dataReader.GetInt32(1);
-
             dbConnection.Close();
 
             dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
@@ -444,14 +435,6 @@ namespace TravelPhase{
                 gardenUpgrade = dataReader.GetInt32(4);
 
             dbConnection.Close();
-
-            // If the car is broken, do no driving.
-            if(carHP == 0){
-                popup.SetActive(true);
-                popupText.text = "The car is broken.\nRepair the car with some scrap.";
-                PopupActive = true;
-                return false;
-            }
 
             dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
@@ -466,18 +449,16 @@ namespace TravelPhase{
             int decay = speed == 1 ? 3 : speed == 2 ? 5 : 7, tire = dataReader.GetInt32(4), battery = dataReader.GetInt32(5); 
             float gas = dataReader.GetFloat(6);
 
-            // If the car is out of gas, has a dead battery, or a flat tire, do no driving. Alternatively, if a battery or tire is available, replace but still don't drive.
-            if(gas == 0f){
-                popup.SetActive(true);
-                popupText.text = "The car is out of gas.\nProcure some by trading or scavenging.";
-                PopupActive = true;
+            // If the car is out of gas, broke, has a dead battery, or a flat tire, do no driving. 
+            // Alternatively, if a battery or tire is available, replace but still don't drive.
+            if(gas == 0f || carHP == 0){
+                LaunchPopup();
+                popupText.text = gas == 0f ? "The car is out of gas.\nProcure some by trading or scavenging." : "The car is broken.\nRepair the car with some scrap.";
                 return false;
             }
-            else if(battery > 0 && batteryStatus == 1){
-                popup.SetActive(true);
-                popupText.text = "You spend an hour replacing your dead battery.";
-                PopupActive = true;
-
+            else if((battery > 0 && batteryStatus == 1) || (tire > 0 && tireStatus == 1)){
+                LaunchPopup();
+                popupText.text = battery > 0 && batteryStatus == 1 ? "You spend an hour replacing your dead battery." : "You spend an hour replacing your flat tire.";
                 GameLoop.Hour++;
 
                 if(GameLoop.Hour == 25){
@@ -485,53 +466,27 @@ namespace TravelPhase{
                 }
 
                 IDbCommand dbCommandUpdateValues = dbConnection.CreateCommand();
-                dbCommandUpdateValues.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", battery = " + (battery - 1) + 
+                string repairCommand = battery > 0 && batteryStatus == 1 ? "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", battery = " + (battery - 1) + 
+                                                " WHERE id = " + GameLoop.FileId : "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", tire = " + (tire - 1) + 
                                                 " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValues.CommandText = repairCommand;
                 dbCommandUpdateValues.ExecuteNonQuery();
                 dbConnection.Close();
+
+                repairCommand = battery > 0 && batteryStatus == 1 ? "UPDATE CarsTable SET isBatteryDead = 0 WHERE id = " + GameLoop.FileId : 
+                                                                    "UPDATE CarsTable SET isTireFlat = 0 WHERE id = " + GameLoop.FileId;
 
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandUpdateValues = dbConnection.CreateCommand();
-                dbCommandUpdateValues.CommandText = "UPDATE CarsTable SET isBatteryDead = 0 WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValues.CommandText = repairCommand;
                 dbCommandUpdateValues.ExecuteNonQuery();
                 dbConnection.Close();
 
                 return false;
             }
-            else if(tire > 0 && tireStatus == 1){
-                popup.SetActive(true);
-                popupText.text = "You spend an hour replacing your flat tire.";
-                PopupActive = true;
-                GameLoop.Hour++;
-
-                if(GameLoop.Hour == 25){
-                    GameLoop.Hour = 1;
-                }
-
-                IDbCommand dbCommandUpdateValues = dbConnection.CreateCommand();
-                dbCommandUpdateValues.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", tire = " + (tire - 1) + 
-                                                " WHERE id = " + GameLoop.FileId;
-                dbCommandUpdateValues.ExecuteNonQuery();
-                dbConnection.Close();
-
-                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
-                dbCommandUpdateValues = dbConnection.CreateCommand();
-                dbCommandUpdateValues.CommandText = "UPDATE CarsTable SET isTireFlat = 0 WHERE id = " + GameLoop.FileId;
-                dbCommandUpdateValues.ExecuteNonQuery();
-                dbConnection.Close();
-
-                return false;
-            }
-            else if(batteryStatus == 1){
-                popup.SetActive(true);
-                popupText.text = "The car has a dead battery.\nTrade for another one.";
-                PopupActive = true;
-                return false;
-            }
-            else if(tireStatus == 1){
-                popup.SetActive(true);
-                popupText.text = "The car has a flat tire.\nTrade for another one.";
-                PopupActive = true;
+            else if(batteryStatus == 1 || tireStatus == 1){
+                popupText.text = batteryStatus == 1 ? "The car has a dead battery.\nTrade for another one." : "The car has a flat tire.\nTrade for another one.";
+                LaunchPopup();
                 return false;
             }
 
@@ -565,8 +520,7 @@ namespace TravelPhase{
             dataReader.Read();
 
             int overallFood = dataReader.GetInt32(7), hpDecay = 0, moraleDecay = 0;
-            List<int> teamHealth = new List<int>();
-            List<int> teamMorale = new List<int>();
+            List<int> teamHealth = new List<int>(), teamMorale = new List<int>();
             List<string> names = new List<string>();
 
             // Decrement food and health (and morale if applicable)
@@ -689,12 +643,14 @@ namespace TravelPhase{
             
             bool flag = false;
             List<string> deadCharacters = new List<string>();
+            List<int> deadIds = new List<int>();
 
             for(int i = 0; i < teamHealth.Count; i++){
                 // A recently dead player will have their no hp but their name wasn't recorded as _____TEMPNULL
                 if(teamHealth[i] == 0 && !Equals(names[i], "_____TEMPNULL")){
                     flag = true;
                     deadCharacters.Add(names[i]);
+                    deadIds.Add(customIds[i]);
 
                     // Leader died = game over
                     if(i == 0){
@@ -702,8 +658,7 @@ namespace TravelPhase{
                         tempCommand += ", leaderName = null";
 
                         popupText.text = tempDisplayText;
-                        PopupActive = true;
-                        popup.SetActive(true);
+                        LaunchPopup();
                         RestMenu.LeaderName = names[0];
                         RestMenu.FriendsAlive = names.Where(s => !Equals(s, "_____TEMPNULL") && !Equals(s, names[0])).Count();
 
@@ -733,8 +688,7 @@ namespace TravelPhase{
                 tempDisplayText += deadCharacters.Count > 1 ? " have died." : " has died.";
 
                 popupText.text = tempDisplayText;
-                PopupActive = true;
-                popup.SetActive(true);
+                LaunchPopup();
 
                 dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
@@ -745,7 +699,7 @@ namespace TravelPhase{
                 dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
                 int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar()); 
 
-                foreach(int id in customIds){
+                foreach(int id in deadIds){
                     if(id == -1){
                         continue;
                     }
@@ -769,7 +723,7 @@ namespace TravelPhase{
         /// <summary>
         /// Generate a random event while driving
         /// </summary>
-        /// <param name="eventChance">The probability of the event happening, 40 or less guaranteed to be passed in</param>
+        /// <param name="eventChance">The probability of the event happening, 44 or less guaranteed to be passed in</param>
         private void GenerateEvent(int eventChance){
             // Get difficulty, perks, and traits, some events will play differently depending on it (more loss, more damage, etc.)
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
@@ -1022,31 +976,33 @@ namespace TravelPhase{
                 // Check that a slot is available.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT friend1Name, friend2Name, friend3Name, leaderId, customId1, customId2, customId3 FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT friend1Name, friend2Name, friend3Name, customIdLeader, customId1, customId2, customId3 FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
                 List<string> names = new List<string>();
+                List<int> customIds = new List<int>(){dataReader.GetInt32(3)};
                 for(int i = 0; i < 3 ; i++){
                     string name = dataReader.IsDBNull(i) ? "_____TEMPNULL" : dataReader.GetString(i);
+                    int id = dataReader.IsDBNull(i+4) ? -1 : dataReader.GetInt32(i+4);
                     names.Add(name);
+                    customIds.Add(id);
                 }
 
                 if(names.Where(n => Equals(n, "_____TEMPNULL")).Count() > 0){
                     int perk = -1, trait = -1, acc = -1, outfit = -1, color = -1, hat = -1, idRead = -1;
                     string name = "", perkRoll = "", traitRoll = "";
                     int index = names.IndexOf(names.Where(n => Equals(n, "_____TEMPNULL")).First());
-                    List<int> customIds = new List<int>(){dataReader.GetInt32(3), dataReader.GetInt32(4), dataReader.GetInt32(5), dataReader.GetInt32(6)};
-                    dbConnection.Close();
                     
-                    dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                    dbConnection.Close();
+                    dbConnection = GameDatabase.CreatePerishedCustomAndOpenDatabase();
                     dbCommandReadValue = dbConnection.CreateCommand();
                     dbCommandReadValue.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
                     int deadCount = Convert.ToInt32(dbCommandReadValue.ExecuteScalar());
 
                     dbConnection.Close();
 
-                    dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                    dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
                     dbCommandReadValue = dbConnection.CreateCommand();
                     dbCommandReadValue.CommandText = "SELECT COUNT(*) FROM CustomCharactersTable";
                     int customCharacterCount = Convert.ToInt32(dbCommandReadValue.ExecuteScalar());
@@ -1073,7 +1029,7 @@ namespace TravelPhase{
                         } while (customIds.Contains(rand));
 
                         dbCommandReadValue = dbConnection.CreateCommand();
-                        dbCommandReadValue.CommandText = "SELECT id, name, perk, trait, accessory, hat, color, outfit";
+                        dbCommandReadValue.CommandText = "SELECT id, name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable WHERE id = " + rand;
                         dataReader = dbCommandReadValue.ExecuteReader();
                         dataReader.Read();
 
@@ -1095,7 +1051,7 @@ namespace TravelPhase{
                     string commandText = "UPDATE ActiveCharactersTable SET friend" + (index+1) + "Name = '" + name + "', friend" + (index+1) + "Perk = " + perk + 
                                          ", friend" + (index+1) + "Trait = " + trait + ", friend" + (index+1) + "Acc = " + acc + ", friend" + (index+1) + "Color = " + color + 
                                          ", friend" + (index+1) + "Hat = " + hat + ", friend" + (index+1) + "Outfit = " + outfit + ", friend" + (index+1) + "Health = 100" +
-                                         ", friend" + (index+1) + "Morale = 75, customId " + (index + 1) + "= " + idRead + " WHERE id = " + GameLoop.FileId;
+                                         ", friend" + (index+1) + "Morale = 75, customId" + (index + 1) + " = " + idRead + " WHERE id = " + GameLoop.FileId;
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                     dbCommandUpdateValue.CommandText = commandText;
                     dbCommandUpdateValue.ExecuteNonQuery();
@@ -1540,8 +1496,7 @@ namespace TravelPhase{
             }
 
             RefreshScreen();
-            popup.SetActive(true);
-            PopupActive = true;
+            LaunchPopup();
         }
 
 
@@ -1560,6 +1515,14 @@ namespace TravelPhase{
             for(int i = 0; i < restScreens.Length; i++){
                 restScreens[i].SetActive(i == 0);
             }
+        }
+
+        /// <summary>
+        /// Utility function to launch popups
+        /// </summary>
+        private void LaunchPopup(){
+            popup.SetActive(true);
+            PopupActive = true;
         }
     }
 }

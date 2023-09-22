@@ -253,6 +253,7 @@ namespace UI{
                 hatNum = dataReader.GetInt32(4);
                 colorNum = dataReader.GetInt32(5);
                 outfitNum = dataReader.GetInt32(6);
+                customId = dataReader.GetInt32(7);
 
                 if(assigningPartner){
                     PartnerName = name;

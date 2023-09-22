@@ -319,6 +319,12 @@ namespace UI
             dbCommandDeleteValue.ExecuteNonQuery();
             dbConnection.Close();
 
+            dbConnection = GameDatabase.CreatePerishedCustomAndOpenDatabase();
+            dbCommandDeleteValue = dbConnection.CreateCommand();
+            dbCommandDeleteValue.CommandText = "DELETE FROM PerishedCustomTable WHERE saveFileId = " + targetFile + ";";
+            dbCommandDeleteValue.ExecuteNonQuery();
+            dbConnection.Close();
+
             fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n\n  No save file";
             deletionButtons[targetFile].interactable = false;
 

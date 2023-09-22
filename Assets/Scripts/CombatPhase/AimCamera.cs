@@ -50,12 +50,14 @@ namespace CombatPhase{
                     IsSwitched = false;
                     CombatManager.ZoomReticle.SetActive(false);
                     CombatManager.NormalReticle.SetActive(true);
+                    Player.ZoomedIn = false;
                     vcam.Priority -= priorityBoost;
                 }
                 else{
                     IsSwitched = true;
                     CombatManager.ZoomReticle.SetActive(true);
                     CombatManager.NormalReticle.SetActive(false);
+                    Player.ZoomedIn = true;
                     vcam.Priority += priorityBoost;
                 }
             }
