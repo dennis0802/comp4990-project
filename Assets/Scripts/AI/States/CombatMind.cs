@@ -40,27 +40,23 @@ namespace AI.States{
                     else{
                         // Attempt attack when close enough, move closer otherwise
                         if(Vector3.Distance(nearestChar.position, m.transform.position) < 1.0f){
-                            m.StopMoving();
-                            Player player = null;
-                            Teammate partyMember = null;
+                            Player player = nearestChar.GetComponent<Player>();
+                            Teammate partyMember = nearestChar.GetComponent<Teammate>();
 
-                            if(m.Target is null){
-                                player = nearestChar.GetComponent<Player>();
-                                partyMember = nearestChar.GetComponent<Teammate>();
-                            }
-
-                            if(player != null){
+                            // Set as target and attack
+                            if(player is not null){
                                 m.Target = player.transform;
                                 player.Damage(m.strength);
                             }
-                            else if(partyMember != null){
+                            else if(partyMember is not null){
                                 m.Target = partyMember.transform;
                                 partyMember.Damage(m.strength);
-                            }
-                            else{
-                                m.Target = null;
+                                if(partyMember.hp <= 0){
+                                    m.Target = null;
+                                }
                             }
                         }
+                        // Pursue the player until close enough
                         else{
                             m.SetDestination(nearestChar.position);
                         }
@@ -74,9 +70,15 @@ namespace AI.States{
                     Mutant nearestMutant = t.Sense<NearestMutantSensor, Mutant>();
                     DefensivePoint dp = t.Sense<NearestDefenseSensor, DefensivePoint>();
 
+                    // Add delay to shooting
+                    t.shotDelay -= t.shotDelay <= 0.0f ? 0.0f : t.DeltaTime;
+
                     // If in no particular danger (enemies not visible), wander for collectibles to collect or purely wander
                     if(nearestMutant == null){
                         Transform nearestCollectible = t.Sense<NearestCollectibleSensor, Transform>();
+                        
+                        // Wandering means leaving the defensive point
+                        t.LeaveDefensivePoint();
 
                         // Collectible
                         if(nearestCollectible != null){
@@ -100,29 +102,42 @@ namespace AI.States{
                         // If the pickup is ammo and low on ammo, move towards it.
                         if(t.ammoTotal <= 10 && nearestCollectible != null && t.GetComponent<AmmoPickup>() != null){
                             if(t.GetVelocity().magnitude < t.minStopSpeed){
+                                t.LeaveDefensivePoint();
                                 t.SetDestination(nearestCollectible.position);
                             }
                         }
 
                         // If not at the defensive point using it, it is not in use.
-                        else if(dp != null){
-                            if(Equals(t.GetDestination(), dp.transform.position) && !dp.inUse){
-                                t.StopMoving();
-                                dp.inUse = true;
-                                if(t.GetVelocity().magnitude < t.minStopSpeed){
-                                    t.SetDestination(dp.transform.position);
-                                }
-                            }
-                            else if(!Equals(t.GetDestination(), dp.transform.position) && dp.inUse){
-                                dp.inUse = false;
-                            }
+                        else if(dp != null && t.defensivePointUsed == null){
+                            t.SetDestination(dp.transform.position);
+                            dp.inUse = true;
+                            t.defensivePointUsed = dp;
+                        }
+
+                        // Attempt to keep a safe distance away (evade) if low hp
+                        else if(Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f && t.hp <= 25){
+                            t.LeaveDefensivePoint();
+                            
+                            // Calculate the steering behaviour for evasion
+                            float mutantSpeed = nearestMutant.GetSpeed();
+                            float lookaheadTime = (nearestMutant.transform.position - t.transform.position).magnitude/(t.GetSpeed() + mutantSpeed);
+                            Vector3 mutantVelocity = nearestMutant.GetVelocity();
+
+                            Vector3 fleePosition = (t.transform.position - (nearestMutant.transform.position + mutantVelocity) * t.DeltaTime).normalized * t.GetSpeed() 
+                                                    - mutantVelocity;
+
+                            t.SetDestination(new Vector3(fleePosition.x, t.transform.position.y, fleePosition.z));
                         }
 
                         // Prefer ranged attacks over physical attacks
                         // Range attack
                         else if(t.usingGun && t.ammoLoaded > 0){
-                            Vector3.RotateTowards(t.transform.position, nearestMutant.transform.position, 1.0f * Time.deltaTime, 0.0f);
-                            t.Shoot();
+                            t.LookToTarget(nearestMutant.transform);
+
+                            if(t.shotDelay <= 0.0f){
+                                t.Shoot();
+                            }
+
                             Debug.Log(t.name + " within shooting range");
                         }
                         // Reload upon finding ammo
@@ -140,14 +155,12 @@ namespace AI.States{
                             t.usingGun = false;
                             t.UpdateModel();
                         }
+
                         // Physical attack within range
                         else if(!t.usingGun && Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f && t.hp > 25){
                             Debug.Log(t.name + " within physical range");
+                            t.LookToTarget(nearestMutant.transform);
                             nearestMutant.PhysicalDamage(t.physicalDamageOutput);
-                        }
-                        // Attempt to keep a safe distance away if low hp
-                        else if(!t.usingGun && Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f && t.hp <= 25){
-                            Debug.Log(t.name + " running away");
                         }
                     }
                     break;

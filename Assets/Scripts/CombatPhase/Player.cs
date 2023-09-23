@@ -10,6 +10,7 @@ using Database;
 using UI;
 using TMPro;
 using Mono.Data.Sqlite;
+using AI;
 
 namespace CombatPhase{
     [DisallowMultipleComponent]
@@ -65,7 +66,12 @@ namespace CombatPhase{
         /// <summary>
         /// Values for player movement physics
         /// </summary>  
-        private float gravity = -9.81f, playerSpeed = 3.0f, rotationSpeed = 5f;
+        private float gravity = -9.81f, rotationSpeed = 5f;
+        
+        /// <summary>
+        /// Player speed
+        /// </summary>  
+        public float playerSpeed = 3.0f;
 
         /// <summary>
         /// Player current velocity
@@ -113,6 +119,11 @@ namespace CombatPhase{
         private AudioSource reloadAudio;
 
         /// <summary>
+        /// Physical attack audio, used for if attack missed
+        /// </summary> 
+        private AudioSource physSound;
+
+        /// <summary>
         /// Text to alert the player
         /// </summary>
         private TextMeshProUGUI alertText;
@@ -141,6 +152,11 @@ namespace CombatPhase{
         /// Reload timer
         /// </summary> 
         public int reloadTimer;
+
+        /// <summary>
+        /// Player's physical damage output
+        /// </summary>
+        public int physicalDamageOutput;
 
         /// <summary>
         /// Flag if gun is being used
@@ -179,6 +195,7 @@ namespace CombatPhase{
             shootingAudio = GetComponents<AudioSource>()[0];
             emptyAudio = GetComponents<AudioSource>()[1];
             reloadAudio = GetComponents<AudioSource>()[2];
+            physSound = GetComponents<AudioSource>()[3];
 
             // Read the database: customize character with values read and get ammo available.
             InitializeCharacter();
@@ -186,6 +203,8 @@ namespace CombatPhase{
             List<Collider> colliders = GetComponents<Collider>().ToList();
             colliders.AddRange(GetComponentsInChildren<Collider>());
             Colliders = colliders.Distinct().ToArray();
+
+            physicalDamageOutput = CombatManager.PhysSelected == 3 ? 1 : CombatManager.PhysSelected == 4 ? 2 : 3;
         }
 
         // Update is called once per frame
@@ -247,8 +266,17 @@ namespace CombatPhase{
                         emptyAudio.Play();
                     }
                     else{
-                        Debug.Log("Player wants to attack");
-                        // If close enough to a mutant, trigger the damage
+                        // Check for the closest enemy and attack if close enough
+                        GameObject[] mutants = GameObject.FindGameObjectsWithTag("Mutant");
+                        GameObject target = mutants.Where(m => Vector3.Distance(transform.position, m.transform.position) < 1.0f).First();
+
+                        if(target != null){
+                            Mutant m = target.GetComponent<Mutant>();
+                            m.PhysicalDamage(physicalDamageOutput);
+                        }
+                        else{
+                            physSound.Play();
+                        }
                     }
                 }
 
@@ -410,7 +438,7 @@ namespace CombatPhase{
             }
 
             int totalReplaced = maxAmmoLoaded - AmmoLoaded > 0 ? maxAmmoLoaded - AmmoLoaded : 0;
-            Player.TotalAvailableAmmo -= totalReplaced;
+            Player.TotalAvailableAmmo -= Player.TotalAvailableAmmo - totalReplaced > 0 ? totalReplaced : Player.TotalAvailableAmmo;
             AmmoLoaded = totalReplaced > 0 ? maxAmmoLoaded : 0;
             reloadAudio.Play();
             CanShoot = true;

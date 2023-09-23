@@ -21,6 +21,7 @@ TagManager:
   - NormalReticle
   - ShootLocation
   - ShotgunShootLocation
+  - Mutant
   layers:
   - Default
   - TransparentFX

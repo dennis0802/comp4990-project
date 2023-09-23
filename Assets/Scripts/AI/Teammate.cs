@@ -56,6 +56,11 @@ namespace AI{
         public int hp = 0;
 
         /// <summary>
+        /// Teammate's health
+        /// </summary>
+        public float shotDelay = 0.0f;
+
+        /// <summary>
         /// Teammate's ammo on hand
         /// </summary>
         public int ammoTotal = 0;
@@ -76,6 +81,11 @@ namespace AI{
         public bool usingGun;
 
         /// <summary>
+        /// If teammate is running away
+        /// </summary>
+        public bool isRunningAway;
+
+        /// <summary>
         /// If teammate was damaged recently (are invincibiltiy frames active?)
         /// </summary>
         public bool damagedRecently;
@@ -84,6 +94,11 @@ namespace AI{
         /// Name of the teammate
         /// </summary>
         public string allyName;
+
+        /// <summary>
+        /// The defensive point this ally is using
+        /// </summary>
+        public DefensivePoint defensivePointUsed;
 
         /// <summary>
         /// List of colliders on the agent
@@ -95,6 +110,11 @@ namespace AI{
         /// </summary> 
         private AudioSource shootingAudio;
 
+        /// <summary>
+        /// Reloading audio
+        /// </summary> 
+        private AudioSource reloadAudio;
+
         protected override void Start(){
             base.Start();
             InitializeCharacter();
@@ -102,7 +122,8 @@ namespace AI{
             List<Collider> colliders = GetComponents<Collider>().ToList();
             colliders.AddRange(GetComponentsInChildren<Collider>());
             Colliders = colliders.Distinct().ToArray();
-            shootingAudio = GetComponent<AudioSource>();
+            shootingAudio = GetComponents<AudioSource>()[0];
+            reloadAudio = GetComponents<AudioSource>()[1];
 
             physicalDamageOutput = CombatManager.PhysSelected == 3 ? 1 : CombatManager.PhysSelected == 4 ? 2 : 3;
         }
@@ -184,7 +205,8 @@ namespace AI{
             }
 
             alertText = GameObject.FindWithTag("AlertText").GetComponent<TextMeshProUGUI>();
-            shootLocation = GameObject.FindWithTag("ShootLocation");
+            shootLocation = GameObject.FindGameObjectsWithTag("ShootLocation").Where(s => s.GetComponentInParent<Teammate>() == this).First();
+            shotgunShootLocations = GameObject.FindGameObjectsWithTag("ShotgunShootLocation").Where(s => s.GetComponentInParent<Teammate>() == this).ToArray();
 
             ammoTotal = Player.TotalAvailableAmmo/livingMembers;
             Player.TotalAvailableAmmo -= ammoTotal;
@@ -244,6 +266,7 @@ namespace AI{
         public void Reload(){
             ammoLoaded = ammoTotal - 6 > 0 ? 6 : ammoTotal;
             ammoTotal -= ammoLoaded;
+            reloadAudio.Play();
         }
 
         /// <summary>
@@ -270,6 +293,18 @@ namespace AI{
                     bullet.GetComponent<Projectile>().Shooter = gameObject;
                     bullet.GetComponent<Projectile>().Velocity = 15;
                 }
+            }
+
+            shotDelay = 1.0f;
+        }
+
+        /// <summary>
+        /// Leave a defensive point
+        /// </summary>
+        public void LeaveDefensivePoint(){
+            if(defensivePointUsed != null){
+                defensivePointUsed.inUse = false;
+                defensivePointUsed = null;
             }
         }
     }

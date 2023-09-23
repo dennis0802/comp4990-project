@@ -176,6 +176,14 @@ namespace AI{
         }
 
         /// <summary>
+        /// Get the agent's max speed
+        /// </summary>
+        /// <returns>The agent's max speed</returns>
+        public float GetSpeed(){
+            return NavMeshAgent.speed;
+        }
+
+        /// <summary>
         /// Stop the agent (make its current position the destination)
         /// </summary>
         public void StopMoving(){
@@ -187,6 +195,21 @@ namespace AI{
         /// </summary>
         public void IncreaseDeltaTime(){
             DeltaTime += Time.deltaTime;
+        }
+
+        /// <summary>
+        /// Change agent rotation to look to a target.
+        /// </summary>
+        /// <param name="target"> The target to look towards </param>
+        public void LookToTarget(Transform target){
+            // Only rotate around the y-axis
+            Vector3 targetRotation = new(target.position.x, transform.position.y, target.position.z);
+            // For simplicity, assume instant look speed with Mathf.Infinity
+            Vector3 rotation = Vector3.RotateTowards(transform.forward, targetRotation - transform.position, Mathf.Infinity * Time.deltaTime, 0.0f);
+
+            // Face the target
+            transform.rotation = rotation == Vector3.zero || float.IsNaN(rotation.x) || float.IsNaN(rotation.y) || float.IsNaN(rotation.z) ? transform.rotation 
+                                    : Quaternion.LookRotation(rotation); 
         }
     }
 }

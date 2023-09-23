@@ -32,11 +32,22 @@ namespace AI{
         public Transform Target;
 
         /// <summary>
+        /// Physical damage audio
+        /// </summary> 
+        private AudioSource physDamageAudio;
+
+        protected override void Start(){
+            base.Start();
+            physDamageAudio = GetComponent<AudioSource>();
+        }
+
+        /// <summary>
         /// Receive physical damage from a party member and apply "invincibility frames"
         /// </summary>
         /// <param name="amt">The amount of damaged received</param>
         private IEnumerator ReceivePhysicalDamage(int amt){
             damagedRecently = true;
+            physDamageAudio.Play();
             hp -= amt;
 
             if(hp <= 0){

@@ -32,4 +32,5 @@ immersive the game environment is to end-users.
 * Camera control done with Cinemachine Package
 * Gun sounds from https://mixkit.co/free-sound-effects/gun/
 * Alert sound from https://mixkit.co/free-sound-effects/buzzer/
+* Physical attack sound from https://mixkit.co/free-sound-effects/sword/
 * Crosshairs from https://www.kenney.nl/assets/crosshair-pack

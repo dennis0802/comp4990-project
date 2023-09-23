@@ -312,7 +312,7 @@ namespace CombatPhase{
                     t.id = i;
                     t.allyName = dataReader.GetString(i);
                     t.leader = player.GetComponent<Player>();
-                    t.SetDetectionRange(10.0f);
+                    t.SetDetectionRange(15.0f);
                     t.usingGun = true;
                     teammates.Add(t);
                 }
