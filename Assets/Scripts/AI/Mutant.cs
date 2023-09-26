@@ -27,9 +27,9 @@ namespace AI{
         public bool damagedRecently;
 
         /// <summary>
-        /// If teammate was damaged recently (are invincibiltiy frames active?)
+        /// The target transform
         /// </summary>
-        public Transform Target;
+        public Transform TargetTransform;
 
         /// <summary>
         /// Physical damage audio
@@ -51,8 +51,6 @@ namespace AI{
             hp -= amt;
 
             if(hp <= 0){
-                // Display on screen "<allyName> has perished."
-
                 // Die
                 CombatManager.RemoveAgent(this);
                 Destroy(gameObject);

@@ -26,10 +26,14 @@ namespace AI.States{
                 case Mutant mutant:
                     // Mutants are only concerned with attacking the player - find the nearest one
                     Mutant m = agent as Mutant;
-                    Transform nearestChar = m.Sense<NearestPartySensor, Transform>();
+
+                    // Find a target if none set (this will also help mutants stay on one target and not move confused).
+                    if(m.TargetTransform == null){
+                        m.TargetTransform = m.Sense<NearestPartySensor, Transform>();
+                    }
 
                     // If player cannot be found, wander (pick a random position on the map)
-                    if(nearestChar == null){
+                    if(m.TargetTransform == null){
                         if(m.GetVelocity().magnitude < m.minStopSpeed){
                             Vector2 pos = CombatManager.RandomPosition;
                             m.SetDestination(new Vector3(pos.x, 0, pos.y));
@@ -38,27 +42,34 @@ namespace AI.States{
 
                     // Move towards and attack
                     else{
+                        Transform altTarget = m.Sense<NearestPartySensor, Transform>();
+
                         // Attempt attack when close enough, move closer otherwise
-                        if(Vector3.Distance(nearestChar.position, m.transform.position) < 1.0f){
-                            Player player = nearestChar.GetComponent<Player>();
-                            Teammate partyMember = nearestChar.GetComponent<Teammate>();
+                        if(Vector3.Distance(m.TargetTransform.position, m.transform.position) < 1.0f){
+                            Player player = m.TargetTransform.GetComponent<Player>();
+                            Teammate partyMember = m.TargetTransform.GetComponent<Teammate>();
 
                             // Set as target and attack
                             if(player is not null){
-                                m.Target = player.transform;
+                                m.TargetTransform = player.transform;
                                 player.Damage(m.strength);
                             }
                             else if(partyMember is not null){
-                                m.Target = partyMember.transform;
+                                m.TargetTransform = partyMember.transform;
                                 partyMember.Damage(m.strength);
                                 if(partyMember.hp <= 0){
-                                    m.Target = null;
+                                    m.TargetTransform = null;
                                 }
                             }
                         }
+                        // Detecting a character that is closer than the current target
+                        else if(altTarget is not null && Vector3.Distance(m.transform.position, altTarget.position) < Vector3.Distance(m.transform.position, m.TargetTransform.position)){
+                            m.TargetTransform = altTarget;
+                        }
                         // Pursue the player until close enough
+                        // NOTE: while there is steering behaviour for pursuit, would require knowing
                         else{
-                            m.SetDestination(nearestChar.position);
+                            m.SetDestination(m.TargetTransform.position);
                         }
                     }
 
@@ -137,8 +148,6 @@ namespace AI.States{
                             if(t.shotDelay <= 0.0f){
                                 t.Shoot();
                             }
-
-                            Debug.Log(t.name + " within shooting range");
                         }
                         // Reload upon finding ammo
                         else if(!t.usingGun && t.ammoTotal != 0 && t.ammoLoaded == 0){
