@@ -10,7 +10,7 @@ namespace CombatPhase{
     {
         // Based off of https://www.youtube.com/watch?v=bd4P5suj-L0 and https://github.com/Pang/ProceduralTerrainScripts
         Mesh mesh;
-        private int _mesh_scale = 100;
+        private int _mesh_scale = 12;
         public GameObject[] objects;
         [SerializeField]
         private AnimationCurve heightCurve;

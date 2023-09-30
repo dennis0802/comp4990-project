@@ -867,7 +867,7 @@ namespace RestPhase{
                 dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                                                     ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
                                                     ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3] +
-                                                    "WHERE id = " + GameLoop.FileId; 
+                                                    " WHERE id = " + GameLoop.FileId; 
                 
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();

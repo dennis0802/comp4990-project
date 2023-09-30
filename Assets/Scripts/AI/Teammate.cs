@@ -110,11 +110,6 @@ namespace AI{
         /// </summary> 
         private AudioSource shootingAudio;
 
-        /// <summary>
-        /// Reloading audio
-        /// </summary> 
-        private AudioSource reloadAudio;
-
         protected override void Start(){
             base.Start();
             InitializeCharacter();
@@ -123,7 +118,6 @@ namespace AI{
             colliders.AddRange(GetComponentsInChildren<Collider>());
             Colliders = colliders.Distinct().ToArray();
             shootingAudio = GetComponents<AudioSource>()[0];
-            reloadAudio = GetComponents<AudioSource>()[1];
 
             physicalDamageOutput = CombatManager.PhysSelected == 3 ? 1 : CombatManager.PhysSelected == 4 ? 2 : 3;
         }
@@ -266,7 +260,6 @@ namespace AI{
         public void Reload(){
             ammoLoaded = ammoTotal - 6 > 0 ? 6 : ammoTotal;
             ammoTotal -= ammoLoaded;
-            reloadAudio.Play();
         }
 
         /// <summary>

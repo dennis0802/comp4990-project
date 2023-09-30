@@ -46,6 +46,10 @@ namespace UI{
             GameOverScreen = gameOverScreen;
         }
 
+        private void Update(){
+
+        }
+
         /// <summary>
         /// Utility to generate random numbers and round to the nearest ten
         /// </summary>

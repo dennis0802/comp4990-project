@@ -107,7 +107,7 @@ namespace CombatPhase{
         public static bool InCombat = false;
         public static GameObject Camera, CombatEnvironment, RestMenuRef, GameOverScreen, ZoomReticle, NormalReticle;
         public static BaseState Mind => Singleton.mind;
-        public static Vector2 RandomPosition => Random.insideUnitCircle * 195;
+        public static Vector2 RandomPosition => Random.insideUnitCircle * 55;
         public static string LeaderName;
 
         // Start is called before the first frame update
