@@ -82,8 +82,8 @@ namespace CombatPhase{
 
             // Loop octaves
             for(int i = 0; i < octaves; i++){
-                float mapZ = z/scale * frequency + octaveOffsets[i].y;
-                float mapX = x/scale * frequency + octaveOffsets[i].x;
+                float mapZ = (float)(z/scale) * frequency + octaveOffsets[i].y;
+                float mapX = (float)(x/scale) * frequency + octaveOffsets[i].x;
 
                 // *2-1 creates a flat floor level
                 float perlinValue = (Mathf.PerlinNoise(mapZ, mapX)) * 2 - 1;
@@ -162,7 +162,7 @@ namespace CombatPhase{
             gameObject.transform.localScale = new Vector3(_mesh_scale, _mesh_scale, _mesh_scale);
 
             MapEmbellishments();
-            surface.BuildNavMesh();
+            //surface.BuildNavMesh();
         }
     }
 }

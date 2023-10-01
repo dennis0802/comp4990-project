@@ -301,6 +301,15 @@ namespace TravelPhase{
             PopupActive = true;
             timer = 0.0f;
             PrepRestScreen();
+
+            // Temporary end
+            if(townName.Equals("Vancouver")){
+                restScreens[0].transform.parent.gameObject.SetActive(false);
+                this.gameObject.SetActive(false);
+                GameLoop.GameOverScreen.SetActive(true);
+                backgroundPanel.SetActive(true);
+            }
+            
             SceneManager.LoadScene(1);
         }
 
