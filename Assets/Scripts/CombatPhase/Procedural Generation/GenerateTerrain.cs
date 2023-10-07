@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class GenerateTerrain : MonoBehaviour {
+    const float scale = 1.0f;
     const float viewerMoveThresholdForChunkUpdate = 25f;
     const float sqrviewerMoveThresholdForChunkUpdate = viewerMoveThresholdForChunkUpdate * viewerMoveThresholdForChunkUpdate;
 
@@ -18,7 +19,7 @@ public class GenerateTerrain : MonoBehaviour {
     int chunksVisibleInViewDst;
 
     Dictionary<Vector2, TerrainChunk> terrainChunkDictionary = new Dictionary<Vector2, TerrainChunk>();
-    List<TerrainChunk> terrainChunksVisibleLastUpdate = new List<TerrainChunk>();
+    static List<TerrainChunk> terrainChunksVisibleLastUpdate = new List<TerrainChunk>();
 
     void Start() {
         mapGenerator = FindObjectOfType<MapGeneratorV3>();
@@ -31,7 +32,7 @@ public class GenerateTerrain : MonoBehaviour {
     }
 
     void Update(){
-        viewerPosition = new Vector2(viewer.position.x, viewer.position.z);
+        viewerPosition = new Vector2(viewer.position.x, viewer.position.z)/scale;
         if((viewerPositionOld-viewerPosition).sqrMagnitude > sqrviewerMoveThresholdForChunkUpdate){
             viewerPositionOld = viewerPosition;
             UpdateVisibleChunks();
@@ -53,9 +54,6 @@ public class GenerateTerrain : MonoBehaviour {
             
                 if(terrainChunkDictionary.ContainsKey(viewedChunkCoord)){
                     terrainChunkDictionary[viewedChunkCoord].UpdateTerrainChunk();
-                    if(terrainChunkDictionary[viewedChunkCoord].IsVisible()){
-                        terrainChunksVisibleLastUpdate.Add(terrainChunkDictionary[viewedChunkCoord]);
-                    }
                 }
                 else{
                     terrainChunkDictionary.Add(viewedChunkCoord, new TerrainChunk(viewedChunkCoord, chunkSize, detailLevels, transform, mapMaterial));
@@ -71,8 +69,11 @@ public class GenerateTerrain : MonoBehaviour {
 
         MeshRenderer meshRenderer;
         MeshFilter meshFilter;
+        MeshCollider meshCollider;
+
         LODInfo[] detailLevels;
         LODMesh[] lodMeshes;
+        LODMesh collisionLODMesh;
 
         MapData mapData;
         bool mapDataReceived;
@@ -88,15 +89,21 @@ public class GenerateTerrain : MonoBehaviour {
             meshObject = new GameObject("Terrain Chunk");
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
             meshFilter = meshObject.AddComponent<MeshFilter>();
+            meshCollider = meshObject.AddComponent<MeshCollider>();
             meshRenderer.material = material;
 
-            meshObject.transform.position = positionV3;
+            meshObject.transform.position = positionV3 * scale;
             meshObject.transform.parent = parent;
+            meshObject.transform.localScale = Vector3.one * scale;
+
             SetVisible(false);
 
             lodMeshes = new LODMesh[detailLevels.Length];
             for(int i = 0; i < detailLevels.Length; i++){
                 lodMeshes[i] = new LODMesh(detailLevels[i].lod, UpdateTerrainChunk);
+                if(detailLevels[i].useForCollider){
+                    collisionLODMesh = lodMeshes[i];
+                }
             }
 
             mapGenerator.RequestMapData(position, OnMapDataReceived);
@@ -140,6 +147,16 @@ public class GenerateTerrain : MonoBehaviour {
                             lodMesh.RequestMesh(mapData);
                         }
                     }
+                    if(lodIndex == 0){
+                        if(collisionLODMesh.hasMesh){
+                            meshCollider.sharedMesh = collisionLODMesh.mesh;
+                        }
+                        else if(!collisionLODMesh.hasRequestedMesh){
+                            collisionLODMesh.RequestMesh(mapData);
+                        }
+                    }
+
+                    terrainChunksVisibleLastUpdate.Add(this);
                 }
 
                 SetVisible(visible);
@@ -185,5 +202,6 @@ public class GenerateTerrain : MonoBehaviour {
     public struct LODInfo{
         public int lod;
         public float visibleDstThreshold;
+        public bool useForCollider;
     }
 }
