@@ -4,13 +4,14 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-public class MapGeneratorV3 : MonoBehaviour {
+public class MapGenerator : MonoBehaviour {
     public enum DrawMode{NoiseMap, ColourMap, Mesh};
     public DrawMode drawMode;
 
     public TerrainData terrainData;
     public NoiseData noiseData;
 
+    [Range(0,6)]
     public int editorPreviewLOD;
 
     public bool autoUpdate;

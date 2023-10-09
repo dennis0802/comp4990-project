@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.AI.Navigation;
 
 public class GenerateTerrain : MonoBehaviour {
     const float viewerMoveThresholdForChunkUpdate = 25f;
@@ -13,7 +14,7 @@ public class GenerateTerrain : MonoBehaviour {
 
     public static Vector2 viewerPosition;
     Vector2 viewerPositionOld;
-    static MapGeneratorV3 mapGenerator;
+    static MapGenerator mapGenerator;
     int chunkSize;
     int chunksVisibleInViewDst;
 
@@ -21,7 +22,7 @@ public class GenerateTerrain : MonoBehaviour {
     static List<TerrainChunk> terrainChunksVisibleLastUpdate = new List<TerrainChunk>();
 
     void Start() {
-        mapGenerator = FindObjectOfType<MapGeneratorV3>();
+        mapGenerator = FindObjectOfType<MapGenerator>();
 
         maxViewDst = detailLevels[detailLevels.Length-1].visibleDstThreshold;
         chunkSize = mapGenerator.mapChunkSize - 1;
@@ -69,6 +70,7 @@ public class GenerateTerrain : MonoBehaviour {
         MeshRenderer meshRenderer;
         MeshFilter meshFilter;
         MeshCollider meshCollider;
+        NavMeshSurface navMeshSurface;
 
         LODInfo[] detailLevels;
         LODMesh[] lodMeshes;
@@ -76,6 +78,7 @@ public class GenerateTerrain : MonoBehaviour {
 
         MapData mapData;
         bool mapDataReceived;
+        bool hasBaked;
         int previousLODIndex = -1;
 
         public TerrainChunk(Vector2 coord, int size, LODInfo[] detailLevels, Transform parent, Material material){
@@ -89,6 +92,7 @@ public class GenerateTerrain : MonoBehaviour {
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
             meshFilter = meshObject.AddComponent<MeshFilter>();
             meshCollider = meshObject.AddComponent<MeshCollider>();
+            navMeshSurface = meshObject.AddComponent<NavMeshSurface>();
             meshRenderer.material = material;
 
             meshObject.transform.position = positionV3 * mapGenerator.terrainData.uniformScale;
@@ -153,6 +157,11 @@ public class GenerateTerrain : MonoBehaviour {
                         else if(!collisionLODMesh.hasRequestedMesh){
                             collisionLODMesh.RequestMesh(mapData);
                         }
+                    }
+                                
+                    if(!hasBaked){
+                        navMeshSurface.BuildNavMesh();
+                        hasBaked = true;
                     }
 
                     terrainChunksVisibleLastUpdate.Add(this);
