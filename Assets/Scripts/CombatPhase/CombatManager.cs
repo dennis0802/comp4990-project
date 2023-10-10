@@ -129,7 +129,7 @@ namespace CombatPhase{
             else if(SceneManager.GetActiveScene().buildIndex != 3 && CombatEnvironment != null){
                 CombatEnvironment = null;
             }
-            CombatEnvironment.SetActive(false);
+            //CombatEnvironment.SetActive(false);
             ZoomReticle.SetActive(false);
             NormalReticle.SetActive(false);
         }
@@ -285,7 +285,7 @@ namespace CombatPhase{
             do
             {
                 selected = Random.Range(0, playerSpawnPoints.Length);
-            } while (playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse); 
+            } while (playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse && playerSpawnPoints[selected].GetComponent<SpawnPoint>().set); 
             playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse = true;
 
             player = Instantiate(playerPrefab, playerSpawnPoints[selected].transform.position, playerSpawnPoints[selected].transform.rotation);
@@ -307,7 +307,7 @@ namespace CombatPhase{
                     do
                     {
                         selected = Random.Range(0, playerSpawnPoints.Length);
-                    } while (playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse); 
+                    } while (playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse && playerSpawnPoints[selected].GetComponent<SpawnPoint>().set); 
                     playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse = true;
 
                     ally = Instantiate(allyPrefab, playerSpawnPoints[selected].transform.position, playerSpawnPoints[selected].transform.rotation);

@@ -3,6 +3,7 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using UnityEngine.SceneManagement;
 
 public class MapGenerator : MonoBehaviour {
     public enum DrawMode{NoiseMap, ColourMap, Mesh};
@@ -37,23 +38,27 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
+    #if UNITY_EDITOR
     /// <summary>
     /// Draw the map into the editor, as noise, color, or mesh.
     /// </summary>
     public void DrawMapInEditor(){
-        MapData mapData = GenerateMapData(Vector2.zero);
+        if(SceneManager.GetActiveScene().buildIndex == 3){
+            MapData mapData = GenerateMapData(Vector2.zero);
 
-        MapDisplay display = FindObjectOfType<MapDisplay>();
-        if(drawMode == DrawMode.NoiseMap){
-            display.DrawTexture(TextureGenerator.TextureFromHeightMap(mapData.heightMap));
-        }
-        else if(drawMode == DrawMode.ColourMap){
-            display.DrawTexture(TextureGenerator.TextureFromColourMap(mapData.colourMap, mapChunkSize, mapChunkSize));
-        }
-        else if(drawMode == DrawMode.Mesh){
-            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(mapData.heightMap, terrainData.meshHeightMultiplier, terrainData.meshHeightCurve, editorPreviewLOD, terrainData.useFlatShading), TextureGenerator.TextureFromColourMap(mapData.colourMap, mapChunkSize, mapChunkSize));
+            MapDisplay display = FindObjectOfType<MapDisplay>();
+            if(drawMode == DrawMode.NoiseMap){
+                display.DrawTexture(TextureGenerator.TextureFromHeightMap(mapData.heightMap));
+            }
+            else if(drawMode == DrawMode.ColourMap){
+                display.DrawTexture(TextureGenerator.TextureFromColourMap(mapData.colourMap, mapChunkSize, mapChunkSize));
+            }
+            else if(drawMode == DrawMode.Mesh){
+                display.DrawMesh(MeshGenerator.GenerateTerrainMesh(mapData.heightMap, terrainData.meshHeightMultiplier, terrainData.meshHeightCurve, editorPreviewLOD, terrainData.useFlatShading), TextureGenerator.TextureFromColourMap(mapData.colourMap, mapChunkSize, mapChunkSize));
+            }
         }
     }
+    #endif
 
     /// <summary>
     /// Request map data
