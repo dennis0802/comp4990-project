@@ -2,6 +2,15 @@ using UnityEngine;
 using System.Collections;
 
 public static class MeshGenerator {
+
+    /// <summary>
+    /// Generate the terrain mesh
+    /// </summary>
+    /// <param name="heightMap">A map of heights for the mesh</param>
+    /// <param name="heightMultiplier">A factor to multiply into the heights for the mesh</param>
+    /// <param name="_heightCurve">Animation curve needed for smooth curves on heights</param>
+    /// <param name="levelOfDetail">The level of detail to apply on the mesh</param>
+    /// <param name="useFlatShading">True if using flat shading, false otherwise</param>
     public static MeshData GenerateTerrainMesh(float[,] heightMap, float heightMultiplier, AnimationCurve _heightCurve, int levelOfDetail, bool useFlatShading){
         AnimationCurve heightCurve = new AnimationCurve(_heightCurve.keys);
         
@@ -21,6 +30,7 @@ public static class MeshGenerator {
         int meshVertexIndex = 0;
         int borderVertexIndex = -1;
 
+        // Check if vertices on the mesh (made of triangles) are border vertices (to another mesh)
         for(int y = 0; y < borderedSize; y+= meshSimplificationIncrement){
             for(int x = 0; x < borderedSize; x+= meshSimplificationIncrement){
                 bool isBorderVertex = y == 0 || y == borderedSize - 1 || x == 0 || x == borderedSize - 1;
@@ -36,6 +46,7 @@ public static class MeshGenerator {
             }
         }
 
+        // Regular triangles for the mesh
         for(int y = 0; y < borderedSize; y+= meshSimplificationIncrement){
             for(int x = 0; x < borderedSize; x+= meshSimplificationIncrement){
                 int vertexIndex = vertexIndicesMap[x, y];
@@ -65,6 +76,9 @@ public static class MeshGenerator {
     }
 }
 
+/// <summary>
+/// Helper class to store mesh data
+/// </summary>
 public class MeshData{
     Vector3[] vertices;
     int[] triangles;
@@ -79,6 +93,11 @@ public class MeshData{
 
     bool useFlatShading;
 
+    /// <summary>
+    /// Mesh data constructor
+    /// </summary>
+    /// <param name="verticesPerLine">Number of vertices to use per line on the mesh triangles</param>
+    /// <param name="useFlatShading">True if using flat shading, false otherwise</param>
     public MeshData(int verticesPerLine, bool useFlatShading){
         this.useFlatShading = useFlatShading;
         vertices = new Vector3[verticesPerLine * verticesPerLine];
@@ -89,6 +108,12 @@ public class MeshData{
         borderTriangles = new int[24 * verticesPerLine];
     }
 
+    /// <summary>
+    /// Add a vertex
+    /// </summary>
+    /// <param name="vertexPosition">Position to place the vertex</param>
+    /// <param name="uv">Texture coordinate for the mesh</param>
+    /// <param name="vertexIndex">current vertex index</param>
     public void AddVertex(Vector3 vertexPosition, Vector2 uv, int vertexIndex){
         if(vertexIndex < 0){
             borderVertices[-vertexIndex-1] = vertexPosition;
@@ -99,6 +124,12 @@ public class MeshData{
         }
     }
 
+    /// <summary>
+    /// Add a triangle
+    /// </summary>
+    /// <param name="a">Vertex 1</param>
+    /// <param name="b">Vertex 2</param>
+    /// <param name="c">Vertex 3</param>
     public void AddTriangle(int a, int b, int c){
         if(a < 0 || b < 0 || c < 0){
             borderTriangles[borderTriangleIndex] = a;
@@ -114,6 +145,10 @@ public class MeshData{
         }
     }
 
+    /// <summary>
+    /// Calculate the normals for the mesh
+    /// </summary>
+    /// <returns>The vertex normals for the mesh</returns>
     Vector3[] CalculateNormals(){
         Vector3[] vertexNormals = new Vector3[vertices.Length];
         int triangleCount = triangles.Length / 3;
@@ -156,6 +191,13 @@ public class MeshData{
         return vertexNormals;
     }
 
+    /// <summary>
+    /// Get the surface normal from the vertices
+    /// </summary>
+    /// <param name="indexA">Vertex 1</param>
+    /// <param name="indexB">Vertex 2</param>
+    /// <param name="indexC">Vertex 3</param>
+    /// <returns>The surface normal from the indices</returns>
     Vector3 SurfaceNormalFromIndices(int indexA, int indexB, int indexC){
         Vector3 pointA = (indexA < 0) ? borderVertices[-indexA-1] : vertices[indexA];
         Vector3 pointB = (indexB < 0) ? borderVertices[-indexB-1] : vertices[indexB];
@@ -166,6 +208,9 @@ public class MeshData{
         return Vector3.Cross(sideAB, sideAC).normalized;
     }
 
+    /// <summary>
+    /// Process the mesh as flat shading or baked normals
+    /// </summary>
     public void ProcessMesh(){
         if(useFlatShading){
             FlatShading();
@@ -175,10 +220,16 @@ public class MeshData{
         }
     }
 
+    /// <summary>
+    /// Bake the normals for the mesh
+    /// </summary>
     private void BakeNormals(){
         bakedNormals = CalculateNormals();
     }
 
+    /// <summary>
+    /// Process flat shading for the mesh
+    /// </summary>
     void FlatShading(){
         Vector3[] flatShadedVertices = new Vector3[triangles.Length];
         Vector2[] flatShadedUvs = new Vector2[triangles.Length];
@@ -193,6 +244,10 @@ public class MeshData{
         uvs = flatShadedUvs;
     }
 
+    /// <summary>
+    /// Get the surface normal from the vertices
+    /// </summary>
+    /// <returns>The mesh created</returns>
     public Mesh CreateMesh(){
         Mesh mesh = new Mesh();
         mesh.vertices = vertices;

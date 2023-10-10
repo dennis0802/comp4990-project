@@ -2,9 +2,25 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public static class Noise 
-{   public enum NormalizeMode{Local, Global}
+public static class Noise {
+    /// <summary>
+    /// Enumerator to either generate the noise with heights regarded locally or globally
+    /// </summary>
+   public enum NormalizeMode{Local, Global}
 
+    /// <summary>
+    /// Generate a noise map using Perlin noise
+    /// </summary>
+    /// <param name="mapWidth">The height of the map</param>
+    /// <param name="mapHeight">The width of the map</param>
+    /// <param name="seed">The map seed to randomize features with</param>
+    /// <param name="scale">The scale of the noise</param>
+    /// <param name="octaves">The number of levels of detail for the noise</param>
+    /// <param name="persistence">Determines how much detail is added or removed at each octave (amplitude)</param>
+    /// <param name="lacunarity">Determines how much detail is added or removed at each octave (frequency)</param>
+    /// <param name="offset">The offset from the centre of the noise map</param>
+    /// <param name="normalizeMode">The mode to generate the noise with</param>
+    /// <returns>A noise map</returns>
     public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, int octaves, float persistence, float lacunarity, Vector2 offset, NormalizeMode normalizeMode){
         float [,] noiseMap = new float[mapWidth, mapHeight];
 

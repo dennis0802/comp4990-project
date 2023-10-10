@@ -83,6 +83,8 @@ namespace CombatPhase{
         [SerializeField]
         private int maxAgentsPerUpdate;
 
+        private static MapGenerator mapGenerator;
+
         // All agents in the scene
         public List<BaseAgent> Agents {get; private set;} = new();
 
@@ -243,6 +245,8 @@ namespace CombatPhase{
             CombatEnvironment.SetActive(true);
             NormalReticle.SetActive(true);
             Cursor.lockState = CursorLockMode.Locked;
+            mapGenerator = FindObjectOfType<MapGenerator>();
+            mapGenerator.noiseData.seed = Random.Range(0,10000);
 
             for(int i = 0; i < weaponButtons.Length; i++){
                 if(!weaponButtons[i].interactable && i <= 2){

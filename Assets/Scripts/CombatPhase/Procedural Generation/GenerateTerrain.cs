@@ -7,6 +7,7 @@ public class GenerateTerrain : MonoBehaviour {
     const float viewerMoveThresholdForChunkUpdate = 25f;
     const float sqrviewerMoveThresholdForChunkUpdate = viewerMoveThresholdForChunkUpdate * viewerMoveThresholdForChunkUpdate;
 
+    // Map generator info
     public LODInfo[] detailLevels;
     public static float maxViewDst;
     public Transform viewer;
@@ -18,6 +19,7 @@ public class GenerateTerrain : MonoBehaviour {
     int chunkSize;
     int chunksVisibleInViewDst;
 
+    // To track chunks
     Dictionary<Vector2, TerrainChunk> terrainChunkDictionary = new Dictionary<Vector2, TerrainChunk>();
     static List<TerrainChunk> terrainChunksVisibleLastUpdate = new List<TerrainChunk>();
 
@@ -32,6 +34,7 @@ public class GenerateTerrain : MonoBehaviour {
     }
 
     void Update(){
+        // Check player position and if to update
         viewerPosition = new Vector2(viewer.position.x, viewer.position.z)/mapGenerator.terrainData.uniformScale;
         if((viewerPositionOld-viewerPosition).sqrMagnitude > sqrviewerMoveThresholdForChunkUpdate){
             viewerPositionOld = viewerPosition;
@@ -39,7 +42,11 @@ public class GenerateTerrain : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Updates all visible terrain chunks on the map
+    /// </summary>
     void UpdateVisibleChunks(){
+        // Clear the chunks that were visible last update to avoid issues with chunks not unrendering when too far away
         for(int i = 0; i < terrainChunksVisibleLastUpdate.Count; i++){
             terrainChunksVisibleLastUpdate[i].SetVisible(false);
         }
@@ -48,6 +55,7 @@ public class GenerateTerrain : MonoBehaviour {
         int currentChunkCoordX = Mathf.RoundToInt(viewerPosition.x/chunkSize);
         int currentChunkCoordY = Mathf.RoundToInt(viewerPosition.y/chunkSize);
         
+        // Loop through all chunks to update existing chunks or add new chunks
         for(int yOffset = -chunksVisibleInViewDst; yOffset <= chunksVisibleInViewDst; yOffset++){
             for(int xOffset = -chunksVisibleInViewDst; xOffset <= chunksVisibleInViewDst; xOffset++){
                 Vector2 viewedChunkCoord = new Vector2(currentChunkCoordX + xOffset, currentChunkCoordY + yOffset);
@@ -62,6 +70,9 @@ public class GenerateTerrain : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Helper class to store terrain chunk data
+    /// </summary>
     public class TerrainChunk{
         GameObject meshObject;
         Vector2 position;
@@ -81,6 +92,14 @@ public class GenerateTerrain : MonoBehaviour {
         bool hasBaked;
         int previousLODIndex = -1;
 
+        /// <summary>
+        /// Terrain chunk constructor
+        /// </summary>
+        /// <param name="coord">The coordinate of the chunk</param>
+        /// <param name="size">The size of the chunk</param>
+        /// <param name="detailLevels">The detail levels of the chunk</param>
+        /// <param name="parent">The parent object to be set as the parent of the chunk</param>
+        /// <param name="material">The material to apply on the chunk</param>
         public TerrainChunk(Vector2 coord, int size, LODInfo[] detailLevels, Transform parent, Material material){
             this.detailLevels = detailLevels;
             
@@ -101,6 +120,7 @@ public class GenerateTerrain : MonoBehaviour {
 
             SetVisible(false);
 
+            // Check if collider should be used
             lodMeshes = new LODMesh[detailLevels.Length];
             for(int i = 0; i < detailLevels.Length; i++){
                 lodMeshes[i] = new LODMesh(detailLevels[i].lod, UpdateTerrainChunk);
@@ -112,6 +132,10 @@ public class GenerateTerrain : MonoBehaviour {
             mapGenerator.RequestMapData(position, OnMapDataReceived);
         }
 
+        /// <summary>
+        /// Update the chunk on receiving map data
+        /// </summary>
+        /// <param name="mapData">Map data for the chunk, such as colors, noise, and details</param>
         void OnMapDataReceived(MapData mapData){
             this.mapData = mapData;
             mapDataReceived = true;
@@ -122,12 +146,16 @@ public class GenerateTerrain : MonoBehaviour {
             UpdateTerrainChunk();
         }
 
+        /// <summary>
+        /// Update the chunk
+        /// </summary>
         public void UpdateTerrainChunk(){
             if(mapDataReceived){
-
+                // Check if viewer within nearest edge
                 float viewerDstFromNearestEdge = Mathf.Sqrt(bounds.SqrDistance(viewerPosition));
                 bool visible = viewerDstFromNearestEdge <= maxViewDst;
 
+                // If already visible, check if additional detailing should be done
                 if(visible){
                     int lodIndex = 0;
 
@@ -171,15 +199,25 @@ public class GenerateTerrain : MonoBehaviour {
             }
         }
 
+        /// <summary>
+        /// Set the visibility of the chunk
+        /// </summary>
+        /// <param name="visible">True if visible, false otherwise</param>
         public void SetVisible(bool visible){
             meshObject.SetActive(visible);
         }
 
+        /// <summary>
+        /// Check if the chunk is visible
+        /// </summary>
         public bool IsVisible(){
             return meshObject.activeSelf;
         }
     }
 
+    /// <summary>
+    /// Helper class for a level of detail mesh
+    /// </summary>
     class LODMesh{
         public Mesh mesh;
         public bool hasRequestedMesh;
@@ -187,11 +225,20 @@ public class GenerateTerrain : MonoBehaviour {
         int lod;
         System.Action updateCallback;
 
+        /// <summary>
+        /// LODMesh constructor
+        /// </summary>
+        /// <param name="lod">The level of detail of the mesh</param>
+        /// <param name="updateCallback">The callback function to use during threading</param>
         public LODMesh(int lod, System.Action updateCallback){
             this.lod = lod;
             this.updateCallback = updateCallback;
         }
 
+        /// <summary>
+        /// Update the mesh on receiving mesh data
+        /// </summary>
+        /// <param name="meshData">Map data for the chunk, such as triangles, height, lighting, and curves</param>
         void OnMeshDataReceived(MeshData meshData){
             mesh = meshData.CreateMesh();
             hasMesh = true;
@@ -199,6 +246,10 @@ public class GenerateTerrain : MonoBehaviour {
             updateCallback();
         }
 
+        /// <summary>
+        /// Request mesh data for the mesh
+        /// </summary>
+        /// <param name="mapData">The map data for the current mesh</param>
         public void RequestMesh(MapData mapData){
             hasRequestedMesh = true;
             mapGenerator.RequestMeshData(mapData, lod, OnMeshDataReceived);
@@ -206,6 +257,9 @@ public class GenerateTerrain : MonoBehaviour {
         
     }
 
+    /// <summary>
+    /// Struct for level of detail info
+    /// </summary>
     [System.Serializable]
     public struct LODInfo{
         public int lod;

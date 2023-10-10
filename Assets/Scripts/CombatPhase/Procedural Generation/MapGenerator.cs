@@ -37,6 +37,9 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Draw the map into the editor, as noise, color, or mesh.
+    /// </summary>
     public void DrawMapInEditor(){
         MapData mapData = GenerateMapData(Vector2.zero);
 
@@ -52,6 +55,11 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Request map data
+    /// </summary>
+    /// <param name="centre">The centre of the noise map</param>
+    /// <param name="callback">The callback function in the thread</param>
     public void RequestMapData(Vector2 centre, Action<MapData> callback){
         ThreadStart threadStart = delegate {
             MapDataThread(centre, callback);
@@ -59,6 +67,11 @@ public class MapGenerator : MonoBehaviour {
         new Thread(threadStart).Start();
     }
     
+    /// <summary>
+    /// Use a thread to generate the map data.
+    /// </summary>
+    /// <param name="centre">The centre of the noise map</param>
+    /// <param name="callback">The callback function in the thread</param>
     void MapDataThread(Vector2 centre, Action<MapData> callback){
         MapData mapData = GenerateMapData(centre);
         lock (mapDataThreadInfoQueue){
@@ -66,6 +79,12 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Request mesh data
+    /// </summary>
+    /// <param name="mapData">The map data for the mesh</param>
+    /// <param name="lod">The level of detail for the mesh</param>
+    /// <param name="callback">The callback function in the thread</param>
     public void RequestMeshData(MapData mapData, int lod, Action<MeshData> callback){
         ThreadStart threadStart = delegate {
             MeshDataThread(mapData, lod, callback);
@@ -73,6 +92,12 @@ public class MapGenerator : MonoBehaviour {
         new Thread(threadStart).Start();        
     }
 
+    /// <summary>
+    /// Use a thread to generate the map data
+    /// </summary>
+    /// <param name="mapData">The map data for the mesh</param>
+    /// <param name="lod">The level of detail for the mesh</param>
+    /// <param name="callback">The callback function in the thread</param>
     void MeshDataThread(MapData mapData, int lod, Action<MeshData> callback){
         MeshData meshdata = MeshGenerator.GenerateTerrainMesh(mapData.heightMap, terrainData.meshHeightMultiplier, terrainData.meshHeightCurve, lod, terrainData.useFlatShading);
         lock(meshDataThreadInfoQueue){
@@ -96,6 +121,11 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Generate map data
+    /// </summary>
+    /// <param name="centre">The centre of the noise map</param>
+    /// <returns>The map data as specified from the centre of the noise map</returns>
     private MapData GenerateMapData(Vector2 centre){
         float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize + 2, mapChunkSize + 2, noiseData.seed, noiseData.noiseScale, noiseData.octaves, noiseData.persistence, noiseData.lacunarity, centre+noiseData.offset, noiseData.normalizeMode);
     
@@ -129,10 +159,19 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
+
+    /// <summary>
+    /// Struct to store map thread of info of a generic type
+    /// </summary>
     struct MapThreadInfo<T>{
         public readonly Action<T> callback;
         public readonly T parameter;
 
+        /// <summary>
+        /// MapThreadInfo constructor
+        /// </summary>
+        /// <param name="callback">The callback function for the thread</param>
+        /// <param name="parameter">The parameter to pass into the thread</param>
         public MapThreadInfo(Action<T> callback, T parameter){
             this.callback = callback;
             this.parameter = parameter;
@@ -140,6 +179,9 @@ public class MapGenerator : MonoBehaviour {
     }	
 }
 
+/// <summary>
+/// Struct to store the terrain types
+/// </summary>
 [System.Serializable]
 public struct TerrainType{
     public float height;
@@ -147,10 +189,18 @@ public struct TerrainType{
     public Color colour;
 }
 
+/// <summary>
+/// Struct to store map data
+/// </summary>
 public struct MapData {
     public readonly float[,] heightMap;
     public readonly  Color[] colourMap;
 
+    /// <summary>
+    /// MapData constructor
+    /// </summary>
+    /// <param name="heightMap">The height map for the terrain</param>
+    /// <param name="colourMap">The colour map for the terrain</param>
     public MapData(float [,] heightMap, Color[] colourMap){
         this.heightMap = heightMap;
         this.colourMap = colourMap;
