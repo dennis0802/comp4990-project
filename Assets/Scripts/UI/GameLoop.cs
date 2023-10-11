@@ -55,10 +55,24 @@ namespace UI{
         /// </summary>
         /// <param name="lower">The lower bound</param>
         /// <param name="upper">The upper bound</param>
+        /// <returns>A random number rounded to the nearest ten.</returns>
         public static int RoundTo10(int lower, int upper){
             float gen = (float)(Random.Range(lower, upper))/10;
             gen = Mathf.Round(gen);
             return (int)(gen)*10;
+        }
+
+        public static void LoadAsync(int index){
+
+        }
+
+        public static IEnumerator LoadAsynchronously(int index){
+            AsyncOperation op = SceneManager.LoadSceneAsync(index);
+
+            while(!op.isDone){
+                Debug.Log(op.progress);
+                yield return null;
+            }
         }
     }
 }

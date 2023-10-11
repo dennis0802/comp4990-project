@@ -96,6 +96,7 @@ namespace CombatPhase{
         private GameObject player, ally, restMenu;
         private int diff;
         private int _currentAgentIndex;
+        private bool flag = false;
         private List<Teammate> teammates = new List<Teammate>();
         // For scavenging, to allow scavenging up to x seconds.
         private float scavengeTimeLimit = 0.0f, itemTimer = 0.0f, spawnItemTime = 0.0f;
@@ -109,7 +110,7 @@ namespace CombatPhase{
         public static bool InCombat = false;
         public static GameObject Camera, CombatEnvironment, RestMenuRef, GameOverScreen, ZoomReticle, NormalReticle;
         public static BaseState Mind => Singleton.mind;
-        public static Vector2 RandomPosition => Random.insideUnitCircle * 55;
+        public static Vector2 RandomPosition => Random.insideUnitCircle * 45;
         public static string LeaderName;
 
         // Start is called before the first frame update
@@ -129,14 +130,20 @@ namespace CombatPhase{
             else if(SceneManager.GetActiveScene().buildIndex != 3 && CombatEnvironment != null){
                 CombatEnvironment = null;
             }
-            //CombatEnvironment.SetActive(false);
             ZoomReticle.SetActive(false);
             NormalReticle.SetActive(false);
+            //CombatEnvironment.SetActive(false);
         }
 
         // Update is called once per frame
         void Update()
         {   
+            // Initially terrain will clip through the canvas, correct it by pushing in z-direction
+            if(!flag && CombatEnvironment != null){
+                CombatEnvironment.transform.position = new Vector3(CombatEnvironment.transform.position.x, CombatEnvironment.transform.position.y, CombatEnvironment.transform.position.z + 60f);
+                flag = true;
+            }
+
             combatCamera[0].SetActive(InCombat && !PauseMenu.IsPaused);
             combatCamera[1].SetActive(InCombat && !PauseMenu.IsPaused);
             if(InCombat){

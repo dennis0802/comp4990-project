@@ -43,7 +43,7 @@ public class MapGenerator : MonoBehaviour {
     /// Draw the map into the editor, as noise, color, or mesh.
     /// </summary>
     public void DrawMapInEditor(){
-        if(SceneManager.GetActiveScene().buildIndex == 3){
+        if(SceneManager.GetActiveScene().buildIndex == 3 || Equals(SceneManager.GetActiveScene().name, "Test")){
             MapData mapData = GenerateMapData(Vector2.zero);
 
             MapDisplay display = FindObjectOfType<MapDisplay>();
