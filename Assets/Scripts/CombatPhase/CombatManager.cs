@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using CombatPhase.ProceduralGeneration;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -433,6 +434,9 @@ namespace CombatPhase{
             endCombatText.text = temp;
         }
 
+        /// <summary>
+        /// End combat from leader death
+        /// </summary>
         public void EndCombatDeath(){
             InCombat = false;
             RestMenu.IsScavenging = false;
@@ -450,6 +454,13 @@ namespace CombatPhase{
             Singleton._currentAgentIndex = 0;
             CombatEnvironment.SetActive(false);
             Cursor.lockState = CursorLockMode.None;
+        }
+
+        /// <summary>
+        /// Return to the ravel menu
+        /// </summary>
+        public void ReturnToTravel(){
+            SceneManager.LoadScene(2);
         }
 
         /// <summary>

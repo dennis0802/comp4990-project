@@ -62,15 +62,13 @@ namespace UI{
             return (int)(gen)*10;
         }
 
-        public static void LoadAsync(int index){
-
-        }
-
+        /// <summary>
+        /// Utility to load a scene asynchronously
+        /// </summary>
         public static IEnumerator LoadAsynchronously(int index){
             AsyncOperation op = SceneManager.LoadSceneAsync(index);
 
             while(!op.isDone){
-                Debug.Log(op.progress);
                 yield return null;
             }
         }

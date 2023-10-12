@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using Unity.AI.Navigation;
+using CombatPhase.ProceduralGeneration;
 
-namespace CombatPhase{
+namespace CombatPhase.ProceduralGeneration{
     public class ObstacleGenerator : MonoBehaviour
     {
         private NavMeshSurface surface;

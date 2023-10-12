@@ -82,7 +82,7 @@ namespace TravelPhase{
         private Dictionary<int, List<int>> distanceLog = new Dictionary<int, List<int>>();
         private Dictionary<int, List<string>> nextDestinationLog = new Dictionary<int, List<string>>();
         // To time the driving loop
-        private float timer = 0.0f;
+        public static float Timer = 0.0f;
 
         void OnEnable(){
             if(!logInitialized){
@@ -95,20 +95,19 @@ namespace TravelPhase{
         void Update(){
             // NOTE: Previous solution used a coroutine, running into problems when the game was paused.
             if(!PopupActive){
-                timer += Time.deltaTime;
-                if(timer >= 3.0f){
-                    if(timer >= 8.0f){
-                        Debug.Log("Timestep done");
-                        if(Drive()){
-                            int eventChance = Random.Range(1,101);
+                Timer += Time.deltaTime;
 
-                            // 44/100 chance of generating an event
-                            if(eventChance <= 44){
-                                GenerateEvent(eventChance);
-                            }
+                if(Timer >= 8.0f){
+                    Debug.Log("Timestep done");
+                    if(Drive()){
+                        int eventChance = Random.Range(1,101);
+
+                        // 44/100 chance of generating an event
+                        if(eventChance <= 44){
+                            GenerateEvent(eventChance);
                         }
-                        timer = 0.0f;
                     }
+                    Timer = 0.0f;
                 }
             }
         }
@@ -273,7 +272,7 @@ namespace TravelPhase{
             dbConnection.Close();
 
             PopupActive = true;
-            timer = 0.0f;
+            Timer = 0.0f;
             PrepRestScreen();
             SceneManager.LoadScene(1);
         }
@@ -299,7 +298,7 @@ namespace TravelPhase{
             dbConnection.Close();
 
             PopupActive = true;
-            timer = 0.0f;
+            Timer = 0.0f;
             PrepRestScreen();
 
             // Temporary end
@@ -319,6 +318,19 @@ namespace TravelPhase{
         public void ResumeTravel(){
             PopupActive = false;
             HasCharacterDied();
+        }
+
+        public static bool IsCarBroken(){
+            IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
+            dbCommandReadValue.CommandText = "SELECT carHp, isBatteryDead, isTireFlat FROM CarsTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
+            dataReader.Read();
+
+            bool status = dataReader.GetInt32(0) == 0 || dataReader.GetInt32(1) == 1 || dataReader.GetInt32(2) == 1;
+
+            dbConnection.Close();
+            return status;
         }
 
         /// <summary>
@@ -463,6 +475,7 @@ namespace TravelPhase{
             if(gas == 0f || carHP == 0){
                 LaunchPopup();
                 popupText.text = gas == 0f ? "The car is out of gas.\nProcure some by trading or scavenging." : "The car is broken.\nRepair the car with some scrap.";
+                dbConnection.Close();
                 return false;
             }
             else if((battery > 0 && batteryStatus == 1) || (tire > 0 && tireStatus == 1)){
@@ -496,6 +509,7 @@ namespace TravelPhase{
             else if(batteryStatus == 1 || tireStatus == 1){
                 popupText.text = batteryStatus == 1 ? "The car has a dead battery.\nTrade for another one." : "The car has a flat tire.\nTrade for another one.";
                 LaunchPopup();
+                dbConnection.Close();
                 return false;
             }
 
@@ -1152,7 +1166,7 @@ namespace TravelPhase{
                 // If the car has upgraded tires, display the attempt at popping the tire.
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT tireUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT wheelUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -1484,7 +1498,7 @@ namespace TravelPhase{
                     selected = Random.Range(1,4);
                 } while (!dataReader.IsDBNull(1+9*selected));
 
-                int nameIndex = selected == 0 ? 10 : selected == 1 ? 19 : 28;
+                int nameIndex = selected == 1 ? 10 : selected == 2 ? 19 : 28;
                 string name = dataReader.GetString(nameIndex), commandText = "UPDATE ActiveCharactersTable SET ";
 
                 if(morale[nameIndex+7] < 40){
