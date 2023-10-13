@@ -540,6 +540,7 @@ namespace RestPhase{
         /// </summary>
         public void GoScavenge(){
             IsScavenging = true;
+            Panel.SetActive(false);
             CombatManager.RestMenuRef = this.gameObject;
             StartCoroutine(GameLoop.LoadAsynchronously(3));
         }

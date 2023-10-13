@@ -36,7 +36,7 @@ namespace AI.States{
                     if(m.TargetTransform == null){
                         if(m.GetVelocity().magnitude < m.minStopSpeed){
                             Vector2 pos = CombatManager.RandomPosition;
-                            m.SetDestination(new Vector3(pos.x, 0, pos.y));
+                            m.SetDestination(new Vector3(pos.x, 0, pos.y + 60f));
                         }
                     }
 
@@ -101,7 +101,7 @@ namespace AI.States{
                         // Wander
                         else if(t.GetVelocity().magnitude < t.minStopSpeed){
                             Vector2 pos = CombatManager.RandomPosition;
-                            t.SetDestination(new Vector3(pos.x, 0, pos.y));
+                            t.SetDestination(new Vector3(pos.x, 0, pos.y + 60f));
                         }
                     }
 

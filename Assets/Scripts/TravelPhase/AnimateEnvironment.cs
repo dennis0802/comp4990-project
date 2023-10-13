@@ -10,24 +10,21 @@ using UI;
 namespace TravelPhase{
     public class AnimateEnvironment : MonoBehaviour
     {
-        public GameObject markerUsed, genericMarker, cityMarker;
-        public GameObject[] carTires, carAxles;
-        private Vector3 movement, normalMovement;
-        private Vector3 originalPos, normalPos;
+        public GameObject genericMarker, cityMarker;
+        public GameObject[] carTires;
+        private Vector3 movement, originalPos;
         private bool statusRead, carIsBroken;
-        private static bool nearingTown;
+        public static bool NearingTown;
         private float rotationSpeed;
 
         // Start is called before the first frame update
         void Start()
         {
-            SetMovementSpeed();
-            originalPos = markerUsed.transform.position;
-            normalPos = originalPos;
+            originalPos = genericMarker.transform.position;
         }
 
         void OnEnable(){
-            markerUsed = genericMarker;
+            SetMovementSpeed();
         }
 
         // Update is called once per frame
@@ -46,6 +43,17 @@ namespace TravelPhase{
             AnimateBackground();
         }
 
+        /// <summary>
+        /// Reset the position of markers when reaching a destination
+        /// </summary>
+        public void OnLeaveTravel(){
+            genericMarker.transform.position = originalPos;
+            cityMarker.transform.position = originalPos;
+        }
+
+        /// <summary>
+        /// Set the movement speed of items in the travel phase
+        /// </summary>
         void SetMovementSpeed(){
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
@@ -66,17 +74,20 @@ namespace TravelPhase{
         /// Animate elements on the road
         /// </summary>
         void AnimateBackground(){
-            // Animate if car is actively driving (ie. interval from 3-8s)
+            // Animate generic object if car is actively driving (ie. interval from 3-8s)
             if(!carIsBroken && TravelLoop.Timer >= 3.0f && TravelLoop.Timer < 8.0f){
-                markerUsed.transform.Translate(movement * Time.deltaTime);
+                genericMarker.transform.Translate(movement * Time.deltaTime);
+                if(NearingTown){
+                    cityMarker.transform.Translate(movement * Time.deltaTime);
+                }
             }
             else{
                 statusRead = false;
             }
 
             // Reset marker when offscreen to the right
-            if(markerUsed.transform.position.x > 150f){
-                markerUsed.transform.position = originalPos;
+            if(genericMarker.transform.position.x > 150f){
+                genericMarker.transform.position = originalPos;
             }
         }
 

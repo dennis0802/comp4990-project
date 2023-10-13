@@ -33,6 +33,10 @@ namespace CombatPhase{
         [SerializeField]
         private GameObject[] pickupPrefabs;
 
+        [Tooltip("Panel object")]
+        [SerializeField]
+        private GameObject panel;
+
         [Tooltip("Player object")]
         [SerializeField]
         private GameObject playerPrefab;
@@ -70,16 +74,12 @@ namespace CombatPhase{
         [SerializeField]
         private TextMeshProUGUI endCombatText;
 
-        [Tooltip("End of combat screen due to player death")]
-        [SerializeField]
-        private GameObject gameOverScreen;
-
         [Header("Agents")]
         [Tooltip("The mind or global state agents are in.")]
         [SerializeField]
         private BaseState mind;
 
-        [Tooltip("The maimum number of agents that can be updated in a single frame.")]
+        [Tooltip("The maximum number of agents that can be updated in a single frame.")]
         [Min(0)]
         [SerializeField]
         private int maxAgentsPerUpdate;
@@ -109,7 +109,7 @@ namespace CombatPhase{
         public static List<int> DeadMembers = new List<int>();
         protected static CombatManager Singleton;
         public static bool InCombat = false;
-        public static GameObject Camera, CombatEnvironment, RestMenuRef, GameOverScreen, ZoomReticle, NormalReticle;
+        public static GameObject Camera, CombatEnvironment, RestMenuRef, ZoomReticle, NormalReticle;
         public static BaseState Mind => Singleton.mind;
         public static Vector2 RandomPosition => Random.insideUnitCircle * 45;
         public static string LeaderName;
@@ -117,7 +117,6 @@ namespace CombatPhase{
         // Start is called before the first frame update
         void Start(){
             Camera = combatCamera[0];
-            GameOverScreen = gameOverScreen;
         }
 
         void OnEnable()
@@ -133,6 +132,8 @@ namespace CombatPhase{
             }
             ZoomReticle.SetActive(false);
             NormalReticle.SetActive(false);
+            mapGenerator = FindObjectOfType<MapGenerator>();
+            mapGenerator.noiseData.seed = Random.Range(0,10000);
             //CombatEnvironment.SetActive(false);
         }
 
@@ -249,12 +250,10 @@ namespace CombatPhase{
         /// </summary>
         public void StartCombat(){
             InCombat = true;
-            RestMenu.Panel.SetActive(false);
+            panel.SetActive(false);
             CombatEnvironment.SetActive(true);
             NormalReticle.SetActive(true);
             Cursor.lockState = CursorLockMode.Locked;
-            mapGenerator = FindObjectOfType<MapGenerator>();
-            mapGenerator.noiseData.seed = Random.Range(0,10000);
 
             for(int i = 0; i < weaponButtons.Length; i++){
                 if(!weaponButtons[i].interactable && i <= 2){

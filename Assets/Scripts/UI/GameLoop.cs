@@ -69,6 +69,7 @@ namespace UI{
             AsyncOperation op = SceneManager.LoadSceneAsync(index);
 
             while(!op.isDone){
+                Debug.Log(op.progress);
                 yield return null;
             }
         }

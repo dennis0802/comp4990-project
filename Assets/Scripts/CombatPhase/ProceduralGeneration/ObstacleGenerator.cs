@@ -12,8 +12,10 @@ namespace CombatPhase.ProceduralGeneration{
         private int maxObjects = 50;
         private float yOffset = 12f;
         public GameObject[] obstacleObjects;
+        private GameObject environment;
 
         void Start(){
+            environment = GameObject.FindWithTag("CombatEnvironment");
             SpawnObjects();
         }
 
@@ -28,11 +30,10 @@ namespace CombatPhase.ProceduralGeneration{
                 float zPos = Random.Range(-45, 45);
                 float yRot = Random.Range(0, 361);
                 Vector3 spawnPos = new Vector3(xPos, yOffset, zPos);
-                
 
                 // If no collisions found, spawn the object
                 if(FindCollisions(spawnPos) < 1){
-                    GameObject obj = Instantiate(obstacleObjects[objNum], spawnPos, Quaternion.identity);
+                    GameObject obj = Instantiate(obstacleObjects[objNum], spawnPos, Quaternion.identity, environment.transform);
                     obj.transform.rotation = Quaternion.Euler(0, yRot, 0);
                 }
             }
