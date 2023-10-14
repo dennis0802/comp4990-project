@@ -49399,7 +49399,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -73703,6 +73703,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 1573380718}
+        m_TargetAssemblyTypeName: TravelPhase.AnimateEnvironment, Assembly-CSharp
+        m_MethodName: OnLeaveTravel
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1380403860
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -87739,6 +87751,18 @@ MonoBehaviour:
       - m_Target: {fileID: 1986573149}
         m_TargetAssemblyTypeName: RestPhase.RestMenu, Assembly-CSharp
         m_MethodName: RefreshScreen
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 1573380718}
+        m_TargetAssemblyTypeName: TravelPhase.AnimateEnvironment, Assembly-CSharp
+        m_MethodName: OnLeaveTravel
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -104454,6 +104478,31 @@ MonoBehaviour:
   - {fileID: 786034588}
   - {fileID: 1115460174}
   - {fileID: 404754069}
+  maps:
+  - {fileID: 21300000, guid: 19c77b8fb4386e84e80ae18000bbeee4, type: 3}
+  - {fileID: 21300000, guid: 192621ead9ba1a144893343a7425b2f3, type: 3}
+  - {fileID: 21300000, guid: 33a37c7c4e16492418ce168410ad04f7, type: 3}
+  - {fileID: 21300000, guid: bfac8e8c73698b0488c168420fe4f170, type: 3}
+  - {fileID: 21300000, guid: 4e27380cb9ea72841a370e7d7f8791c0, type: 3}
+  - {fileID: 21300000, guid: 4d460351d3306654cbc63edef174f411, type: 3}
+  - {fileID: 21300000, guid: 77295ffb6fc8a4643bf29ae8d96505bf, type: 3}
+  - {fileID: 21300000, guid: dbb2e68b14c535849bcb5dc2766953b5, type: 3}
+  - {fileID: 21300000, guid: adea8e26b832274498998dcec17e57d7, type: 3}
+  - {fileID: 21300000, guid: d82e177b007ca854caf4283a80a30c00, type: 3}
+  - {fileID: 21300000, guid: c809a2bf896f50240a815aa518466782, type: 3}
+  - {fileID: 21300000, guid: e76121bfc84945645ab5f5c046f2a51b, type: 3}
+  - {fileID: 21300000, guid: 1923860cff939e140bb39f2e024d2a8f, type: 3}
+  - {fileID: 21300000, guid: 163032c28dfa90c458406f3c1a7be60c, type: 3}
+  - {fileID: 21300000, guid: 149ec3cab50297043ae0af490dd33565, type: 3}
+  - {fileID: 21300000, guid: 140fde918587c9747b472c56ee81209d, type: 3}
+  - {fileID: 21300000, guid: d26278ac98c680848a4586dbafd8b66f, type: 3}
+  - {fileID: 21300000, guid: 1f2489a256a9ad6498edac8404242594, type: 3}
+  - {fileID: 21300000, guid: a5b0a9376a599b14c852573171544f20, type: 3}
+  - {fileID: 21300000, guid: 988ed1f83a7ce08418bc3758f05b17f7, type: 3}
+  - {fileID: 21300000, guid: c33360d04facf1b4fb00c3b3d01d4da3, type: 3}
+  - {fileID: 21300000, guid: 2c904331f918e4847a389968459a4126, type: 3}
+  - {fileID: 21300000, guid: 0c5b0b4709a859d47a4f1d15615d7f5f, type: 3}
+  mapImageDisplay: {fileID: 929142023}
   shopButtonTexts:
   - {fileID: 1015029960}
   - {fileID: 1364504296}

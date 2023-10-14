@@ -385,7 +385,7 @@ namespace TravelPhase{
                 // Check that a slot is available.
                 dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
+                dbCommandReadValue.CommandText = "SELECT wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
                                                     GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
@@ -671,6 +671,10 @@ namespace TravelPhase{
                 int nameIndex = availablePerks.IndexOf(3), healMember = 0;
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
 
+                if(!livingMembers.Contains(nameIndex)){
+                    return "";
+                }
+
                 dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
@@ -681,9 +685,10 @@ namespace TravelPhase{
                 do
                 {
                     healMember = Random.Range(0,4);
-                } while (healMember == nameIndex && dataReader.IsDBNull(1+9*healMember) && !livingMembers.Contains(healMember));
+                } while (healMember == nameIndex || dataReader.IsDBNull(1+9*healMember) || !livingMembers.Contains(healMember));
 
-                string name = dataReader.GetString(nameIndex), healName = dataReader.GetString(1+9*healMember);
+                string name = dataReader.GetString(nameIndex);
+                string healName = dataReader.GetString(1+9*healMember);
                 int hpGain = diff % 2 == 0 ? 5 : 10, healHP = dataReader.GetInt32(9+9*healMember) + hpGain > 100 ? 100 : dataReader.GetInt32(9+9*healMember) + hpGain;
                 string commandText = "UPDATE ActiveCharactersTable SET ";
                 commandText += healMember == 0 ? "leaderHealth = " + healHP : "friend" + healMember + "Health = " + healHP;

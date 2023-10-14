@@ -34,3 +34,4 @@ immersive the game environment is to end-users.
 * Alert sound from https://mixkit.co/free-sound-effects/buzzer/
 * Physical attack sound from https://mixkit.co/free-sound-effects/sword/
 * Crosshairs from https://www.kenney.nl/assets/crosshair-pack
+* Map from https://www.freeusandworldmaps.com/html/USAandCanada/USPrintableOutline.html

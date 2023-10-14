@@ -380,7 +380,7 @@ namespace UI
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO TownTable(id, foodPrice, gasPrice, scrapPrice, medkitPrice, tirePrice, batteryPrice, ammoPrice, " +
                                                "foodStock, gasStock, scrapStock, medkitStock, tireStock, batteryStock, ammoStock, side1Reward, side1Qty, side1Diff, side1Type, " +
-                                               "side2Reward, side2Qty, side2Diff, side2Type, side3Reward, side3Qty, side3Diff, side3Type, curTown) VALUES" +
+                                               "side2Reward, side2Qty, side2Diff, side2Type, side3Reward, side3Qty, side3Diff, side3Type, curTown, prevTown) VALUES" +
                                                "(" + targetFile + ", " + start.GetFoodPrice() + ", " +  + start.GetGasPrice() + ", " + start.GetScrapPrice() + ", " + 
                                                 start.GetMedkitPrice() + ", " + start.GetTirePrice() + ", " + start.GetBatteryPrice() + ", " + start.GetAmmoPrice() + ", " +
                                                 start.GetFoodStock() +  ", " + start.GetGasStock() +  ", "  + start.GetScrapStock() +  ", " + 
@@ -390,7 +390,7 @@ namespace UI
                                                 start.GetMissions()[1].GetMissionReward() + ", " + start.GetMissions()[1].GetMissionQty() + ", " + 
                                                 start.GetMissions()[1].GetMissionDifficulty()  + ", " + start.GetMissions()[1].GetMissionType() + ", " + 
                                                 start.GetMissions()[2].GetMissionReward() + ", " + start.GetMissions()[2].GetMissionQty() + ", " + 
-                                                start.GetMissions()[2].GetMissionDifficulty()  + ", " + start.GetMissions()[2].GetMissionType() + ", 0)";
+                                                start.GetMissions()[2].GetMissionDifficulty()  + ", " + start.GetMissions()[2].GetMissionType() + ", 0, -1)";
 
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();

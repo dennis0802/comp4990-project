@@ -113,11 +113,11 @@ namespace TravelPhase{
                         // 44/100 chance of generating an event
                         if(eventChance <= 44){
                             string msg = eventGenerator.GenerateEvent(eventChance);
-                            if(msg.Equals("You suddenly find yourself surrounded by mutants.")){
-                                goingToCombat = true;
-                            }
-                            else if(!msg.Equals("")){
+                            if(!msg.Equals("")){
                                 LaunchPopup(msg);
+                                if(msg.Equals("You suddenly find yourself surrounded by mutants.")){
+                                    goingToCombat = true;
+                                }
                             }
                             RefreshScreen();
                         }
@@ -168,6 +168,9 @@ namespace TravelPhase{
 
             newTown = id == 1 ? oldTownNum + id : oldTownNum + 10;
 
+            // Special cases due to mapping
+            newTown = newTown == 4 ? 16 : newTown;
+
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE TownTable SET curTown = " + newTown + ", foodPrice = " + towns[id-1].GetFoodPrice() + ", gasPrice = " +  towns[id-1].GetGasPrice() +
                                                 ", scrapPrice = " + towns[id-1].GetScrapPrice()  + ", medkitPrice = " +  towns[id-1].GetMedkitPrice()  + ", tirePrice = " +  towns[id-1].GetTirePrice()  +
@@ -180,7 +183,7 @@ namespace TravelPhase{
                                                 ", side2Diff = " + towns[id-1].GetMissions()[1].GetMissionDifficulty() + ", side2Type = " + towns[id-1].GetMissions()[1].GetMissionType() + 
                                                 ", side3Reward = " + towns[id-1].GetMissions()[2].GetMissionReward() + ", side3Qty = " + towns[id-1].GetMissions()[2].GetMissionQty() + 
                                                 ", side3Diff = " + towns[id-1].GetMissions()[2].GetMissionDifficulty() + ", side3Type = " + towns[id-1].GetMissions()[2].GetMissionType() + 
-                                                ", nextDistanceAway = " + targetTownDistance + ", nextTownName = '" + destinationTown + "' " + 
+                                                ", nextDistanceAway = " + targetTownDistance + ", nextTownName = '" + destinationTown + "', prevTown = " + oldTownNum + 
                                                 " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();

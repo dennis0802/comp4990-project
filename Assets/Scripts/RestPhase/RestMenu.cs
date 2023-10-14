@@ -140,6 +140,14 @@ namespace RestPhase{
         [Tooltip("Job button descriptions")]
         [SerializeField]
         private TextMeshProUGUI[] jobButtonDescs;
+
+        [Tooltip("Sprites for map screen")]
+        [SerializeField]
+        private Sprite[] maps;
+
+        [Tooltip("Image object to display map")]
+        [SerializeField]
+        private Image mapImageDisplay;
         
         [Header("Town Shop Components")]
         [Tooltip("Button text for buying/selling")]
@@ -401,9 +409,58 @@ namespace RestPhase{
             }
 
             // Map
-            int nextDistance = phaseNum == 2 ? dataReader.GetInt32(28)-curDistance : 0;
+            int nextDistance = phaseNum == 2 ? dataReader.GetInt32(28)-curDistance : 0, curTown = dataReader.GetInt32(27), prevTown = dataReader.GetInt32(30);
             distanceText.text = "Distance Travelled: " + curDistance + " km\nDistance to Next Stop: " + nextDistance + " km";
+            List<int> oneWayTowns = new List<int>(){0,2,3,11,12,13,14,15,17,18,20,26,27,29};
 
+            // 0 = Montreal, 1 = Ottawa, 2 = Timmins, 3 = Thunder Bay, 11 = Toronto, 12 = Windsor, 13 = Chicago, 14 = Milwaukee, 15 = Minneapolis,
+            // 16 = Winnipeg, 17 = Regina, 18 = Calgary, 19 = Banff, 20/38 = Kelowna, 26 = Saskatoon, 27 = Edmonton, 28 = Hinton, 29 = Kamloops 
+            
+            // Ottawa is a special case
+            if(prevTown == 1 && curTown == 2){
+                mapImageDisplay.sprite = maps[prevTown+1];
+            }
+            else if(prevTown == 1 && curTown == 11){
+                mapImageDisplay.sprite = maps[5];
+            }
+            // Winnipeg is a special case
+            else if(prevTown == 16 && curTown == 17){
+                mapImageDisplay.sprite = maps[11];
+            }
+            else if(prevTown == 16 && curTown == 26){
+                mapImageDisplay.sprite = maps[16];
+            }
+            // Banff is a special case
+            else if(prevTown == 19 && curTown == 20){
+                mapImageDisplay.sprite = maps[14];
+            }
+            else if(prevTown == 19 && curTown == 29){
+                mapImageDisplay.sprite = maps[15];
+            }
+            // Hinton is a special case
+            else if(prevTown == 28 && curTown == 29){
+                mapImageDisplay.sprite = maps[20];                
+            }
+            else if(prevTown == 28 && curTown == 38){
+                mapImageDisplay.sprite = maps[19];                
+            }
+            // Cases 20, 38
+            else if(prevTown == 20 || prevTown == 38){
+                mapImageDisplay.sprite = maps[21];  
+            }
+            // Case 29
+            else if(prevTown == 29){
+                mapImageDisplay.sprite = maps[22];                  
+            }
+            // Cases 11-15, 17-18
+            else if((prevTown >= 11 && prevTown <= 15) || (prevTown >= 17 && prevTown <= 18)){
+                mapImageDisplay.sprite = maps[prevTown-5];
+            }
+            // Cases 0, 2, 3
+            else if(prevTown <= 3){
+                mapImageDisplay.sprite = maps[prevTown+1];
+            }
+            
             // Job listings
             for(int i = 0; i < 3; i++){
                 if(dataReader.GetInt32(15+4*i) != 0){
@@ -414,7 +471,7 @@ namespace RestPhase{
                     string reward = "";
 
                     int rewardType = dataReader.GetInt32(15+4*i);
-                                // 1-3 = food, 4-6 = gas, 7-9 = scrap, 10-12 = money, 13 = medkit, 14 = tire, 15 = battery, 16-18 = ammo
+                    // 1-3 = food, 4-6 = gas, 7-9 = scrap, 10-12 = money, 13 = medkit, 14 = tire, 15 = battery, 16-18 = ammo
                     if(rewardType >= 1 && rewardType <= 3){
                         reward = dataReader.GetInt32(16+4*i) + "kg food";
                     }
