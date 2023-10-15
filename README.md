@@ -9,7 +9,7 @@ the replay value are player-made characters which will be stored in a database a
 difficulty, custom characters, and hard mode. The game will also support up to four different save files for the 
 player.
 
-Players must carefully manage their resources and possibly their team of up to 4 AI-controlled companions while 
+Players must carefully manage their resources and possibly their team of up to 3 AI-controlled companions while 
 surviving three major phases that iterate during the game – a travel phase where resource consumption and events 
 may occur during travel from A to B, a combat phase where the player must survive for x amount of time against 
 enemy AI before being able to escape, and a rest phase where the player can heal up their team and manage 

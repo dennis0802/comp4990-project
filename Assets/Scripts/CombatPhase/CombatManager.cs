@@ -15,6 +15,7 @@ using AI;
 using TMPro;
 using Mono.Data.Sqlite;
 using AI.States;
+using TravelPhase;
 
 namespace CombatPhase{
     [DisallowMultipleComponent]
@@ -32,6 +33,10 @@ namespace CombatPhase{
         [Tooltip("Pickups that the player can collect")]
         [SerializeField]
         private GameObject[] pickupPrefabs;
+
+        [Tooltip("Target pickup for collection jobs")]
+        [SerializeField]
+        private GameObject targetPickup;
 
         [Tooltip("Panel object")]
         [SerializeField]
@@ -83,9 +88,7 @@ namespace CombatPhase{
         [Min(0)]
         [SerializeField]
         private int maxAgentsPerUpdate;
-
         private static MapGenerator mapGenerator;
-
         // All agents in the scene
         public List<BaseAgent> Agents {get; private set;} = new();
 
@@ -95,12 +98,14 @@ namespace CombatPhase{
         private GameObject[] playerSpawnPoints, enemySpawnPoints, pickupSpawnPoints;
         // To track the player
         private GameObject player, ally, restMenu;
-        private int diff;
-        private int _currentAgentIndex;
+        // Difficult and agent index
+        private int diff, _currentAgentIndex, jobDiff, jobType;
+        // Flags for generating the combat world
         private bool flag = false;
         private List<Teammate> teammates = new List<Teammate>();
         // For scavenging, to allow scavenging up to x seconds.
         private float scavengeTimeLimit = 0.0f, itemTimer = 0.0f, spawnItemTime = 0.0f;
+        // Spawn timing
         private float spawnEnemyTime = 0.0f, enemyTimer = 0.0f;
         // To determine weapons selected
         public static int GunSelected = -1, PhysSelected = -1;
@@ -108,7 +113,7 @@ namespace CombatPhase{
         private List<string> weaponList = new List<string>(){"Pistol", "Rifle", "Shotgun", "Knife", "Bat", "Shovel"};
         public static List<int> DeadMembers = new List<int>();
         protected static CombatManager Singleton;
-        public static bool InCombat = false;
+        public static bool InCombat = false, SucceededJob = false, TargetItemFound = false;
         public static GameObject Camera, CombatEnvironment, RestMenuRef, ZoomReticle, NormalReticle;
         public static BaseState Mind => Singleton.mind;
         public static Vector2 RandomPosition => Random.insideUnitCircle * 45;
@@ -134,7 +139,6 @@ namespace CombatPhase{
             NormalReticle.SetActive(false);
             mapGenerator = FindObjectOfType<MapGenerator>();
             mapGenerator.noiseData.seed = Random.Range(0,10000);
-            //CombatEnvironment.SetActive(false);
         }
 
         // Update is called once per frame
@@ -146,18 +150,28 @@ namespace CombatPhase{
                 flag = true;
             }
 
-            combatCamera[0].SetActive(InCombat && !PauseMenu.IsPaused);
-            combatCamera[1].SetActive(InCombat && !PauseMenu.IsPaused);
+            combatCamera[0].SetActive(InCombat);
+            combatCamera[1].SetActive(InCombat);
             if(InCombat){
                 combatText.gameObject.SetActive(!PauseMenu.IsPaused);
                 playerHealthBar.gameObject.SetActive(!PauseMenu.IsPaused);
                 playerHealthText.gameObject.SetActive(!PauseMenu.IsPaused);
+                enemyTimer += Time.deltaTime;
 
-                // Players have limited time per scavenge session
-                if(RestMenu.IsScavenging){
+                // Job combat functions
+                if(RestMenu.JobNum != 0){
+                    // End combat when the item has been found
+                    if(TargetItemFound){
+                        EndCombat();
+                        return;
+                    }
+                }
+
+                // Scavenging functions
+                else if(RestMenu.IsScavenging){
+                    // Players have limited time to find items that spawn periodically
                     scavengeTimeLimit -= Time.deltaTime;
                     itemTimer += Time.deltaTime;
-                    enemyTimer += Time.deltaTime;
 
                     if(scavengeTimeLimit <= 0.0f){
                         EndCombat();
@@ -167,35 +181,14 @@ namespace CombatPhase{
                     // Spawn pickup after enough time has passed
                     if(itemTimer >= spawnItemTime){
                         itemTimer = 0.0f;
-                        int itemSpawnSelected, itemSelected;
-
-                        do{
-                            itemSpawnSelected = Random.Range(0, pickupSpawnPoints.Length);
-                        }while(pickupSpawnPoints[itemSpawnSelected].GetComponent<SpawnPoint>().inUse);
-
-                        pickupSpawnPoints[itemSpawnSelected].GetComponent<SpawnPoint>().inUse = true;
-                        itemSelected = Random.Range(1, 101);
-                        // 20% for food (0), 10% for gas (1), 20% for scrap (2), 20% for money (3), 10% for medkit (4), 20% for ammo (5)
-                        itemSelected = itemSelected <= 20 ? 0 : itemSelected <= 30 ? 1 : itemSelected <= 50 ? 2 : itemSelected <= 70 ? 3 : itemSelected <= 80 ? 4 : 5; 
-
-                        GameObject itemSpawn = Instantiate(pickupPrefabs[itemSelected], pickupSpawnPoints[itemSpawnSelected].transform.position, pickupSpawnPoints[itemSpawnSelected].transform.rotation);
-                        itemSpawn.transform.SetParent(CombatEnvironment.transform);
+                        SpawnEntity(1, false, false);
                     }
                 }
-                // Spawn enemy after some time, depending on difficulty.
-                if(enemyTimer >= spawnEnemyTime){
+                
+                // Regularly spawn enemies if not a defence job
+                if(jobType != 1 && enemyTimer >= spawnEnemyTime){
                     enemyTimer = 0.0f;
-                    int enemySpawnSelected = Random.Range(0, enemySpawnPoints.Length);
-                    GameObject enemySpawn = Instantiate(enemyPrefab, enemySpawnPoints[enemySpawnSelected].transform.position, enemySpawnPoints[enemySpawnSelected].transform.rotation);
-                    enemySpawn.transform.SetParent(CombatEnvironment.transform);
-                    
-                    Mutant m = enemySpawn.GetComponent<Mutant>();
-                    float upperBoundDetection = diff == 1 || diff == 3 ? 8.0f : 14.0f;
-                    m.SetDetectionRange(Random.Range(8.0f, upperBoundDetection));
-                    m.SetDestination(m.gameObject.transform.position);
-                    m.SetHP(Random.Range(10,15));
-                    int damage = diff == 1 || diff == 3 ? Random.Range(6,11) : Random.Range(10,15);
-                    m.SetStrength(damage);
+                    InitializeMutant();
                 }
 
                 combatText.text = Player.UsingGun ? "Equipped: " + weaponList[GunSelected] + "\nLoaded = " + Player.AmmoLoaded + "\nTotal Ammo: " + Player.TotalAvailableAmmo 
@@ -286,17 +279,7 @@ namespace CombatPhase{
             playerSpawnPoints = GameObject.FindGameObjectsWithTag("PlayerSpawn");
             enemySpawnPoints = GameObject.FindGameObjectsWithTag("EnemySpawn");
             pickupSpawnPoints = GameObject.FindGameObjectsWithTag("PickupSpawn");
-
-            int selected;
-            
-            do
-            {
-                selected = Random.Range(0, playerSpawnPoints.Length);
-            } while (playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse && playerSpawnPoints[selected].GetComponent<SpawnPoint>().set); 
-            playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse = true;
-
-            player = Instantiate(playerPrefab, playerSpawnPoints[selected].transform.position, playerSpawnPoints[selected].transform.rotation);
-            player.transform.SetParent(CombatEnvironment.transform);
+            player = SpawnEntity(2, true, false);
 
             dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
@@ -311,14 +294,7 @@ namespace CombatPhase{
             // Load AI teammates in
             for(int i = 1; i <= 3; i++){
                 if(!dataReader.IsDBNull(i)){
-                    do
-                    {
-                        selected = Random.Range(0, playerSpawnPoints.Length);
-                    } while (playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse && playerSpawnPoints[selected].GetComponent<SpawnPoint>().set); 
-                    playerSpawnPoints[selected].GetComponent<SpawnPoint>().inUse = true;
-
-                    ally = Instantiate(allyPrefab, playerSpawnPoints[selected].transform.position, playerSpawnPoints[selected].transform.rotation);
-                    ally.transform.SetParent(CombatEnvironment.transform);
+                    ally = SpawnEntity(2, false, false);
                     Teammate t = ally.GetComponent<Teammate>();
                     t.id = i;
                     t.allyName = dataReader.GetString(i);
@@ -328,28 +304,52 @@ namespace CombatPhase{
                     teammates.Add(t);
                 }
             }
-
             dbConnection.Close();
+
+            // Job settings
+            if(RestMenu.JobNum != 0){
+                dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+                dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT side" + RestMenu.JobNum + "Diff, side" + RestMenu.JobNum + "Type FROM TownTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                jobDiff = dataReader.GetInt32(0);
+                jobType = dataReader.GetInt32(1);
+
+                dbConnection.Close();
+
+                // Spawn the target if a collection job
+                if(jobType == 2){
+                    SpawnEntity(1, false, true);
+                }
+                // Spawn enemies if a defence job
+                else{
+                    int enemiesToSpawn = jobDiff <= 20 ? 8 : jobDiff <= 40 ? 11 : 15;
+
+                    for(int i = 0; i < enemiesToSpawn; i++){
+                        InitializeMutant();
+                    }
+                }
+            }
+
+            // If coming from the travel menu, treat as a defence mission
+            else if(TravelLoop.GoingToCombat){
+                int enemiesToSpawn = GameLoop.Activity == 1 ? 5 : GameLoop.Activity == 2 ? 10 : GameLoop.Activity == 3 ? 15 : 20;
+
+                for(int i = 0; i < enemiesToSpawn; i++){
+                    InitializeMutant();
+                }
+            }
         }
 
         /// <summary>
         /// End combat and save results
         /// </summary>
         public void EndCombat(){
-            InCombat = false;
-            RestMenu.IsScavenging = false;
-            RestMenu.Panel.SetActive(true);
-            combatCamera[0].SetActive(false);
-            combatCamera[1].SetActive(false);
-            combatText.gameObject.SetActive(false);
-            CombatEnvironment.SetActive(false);
+            UnloadCombat();
             endCombatScreen.SetActive(true);
-            NormalReticle.SetActive(false);
-            ZoomReticle.SetActive(false);
-            playerHealthBar.gameObject.SetActive(false);
-            playerHealthText.gameObject.SetActive(false);
-            Cursor.lockState = CursorLockMode.None;
-            
+
             int foodFound = player.GetComponent<Player>().suppliesGathered[0] * 20, gasFound = player.GetComponent<Player>().suppliesGathered[1],
                 scrapFound = player.GetComponent<Player>().suppliesGathered[2] * 10, moneyFound = player.GetComponent<Player>().suppliesGathered[3] * 15,
                 medkitFound = player.GetComponent<Player>().suppliesGathered[4], ammoFound = player.GetComponent<Player>().suppliesGathered[5] * 10;
@@ -437,39 +437,98 @@ namespace CombatPhase{
         /// End combat from leader death
         /// </summary>
         public void EndCombatDeath(){
-            InCombat = false;
-            RestMenu.IsScavenging = false;
-            RestMenu.Panel.SetActive(true);
+            UnloadCombat();
             GameLoop.GameOverScreen.SetActive(true);
-            combatCamera[0].SetActive(false);
-            combatCamera[1].SetActive(false);
-            combatText.gameObject.SetActive(false);
-            playerHealthBar.gameObject.SetActive(false);
-            playerHealthText.gameObject.SetActive(false);
-            NormalReticle.SetActive(false);
-            ZoomReticle.SetActive(false);
             Agents.Clear();
             Singleton.Agents.Clear();
             Singleton._currentAgentIndex = 0;
-            CombatEnvironment.SetActive(false);
+        }
+
+        /// <summary>
+        /// Return to previously visited menu (rest if scavenge or job, travel otherwise)
+        /// </summary>
+        public void ReturnToNonCombat(){
+            if(RestMenu.JobNum != 0){
+                SucceededJob = true;
+                TargetItemFound = false;
+                SceneManager.LoadScene(1);
+            }
+            else if(RestMenu.IsScavenging){
+                RestMenu.IsScavenging = false;
+                SceneManager.LoadScene(1);
+            }
+            else{
+                SceneManager.LoadScene(2);
+            }
+        }
+
+        /// <summary>
+        /// Unload combat scene elements
+        /// </summary>
+        private void UnloadCombat(){
+            InCombat = false;
+            RestMenu.Panel.SetActive(true);
+            TravelLoop.GoingToCombat = false;
+            combatCamera[0].SetActive(false);
+            combatCamera[1].SetActive(false);
+            combatText.gameObject.SetActive(false);
+            NormalReticle.SetActive(false);
+            ZoomReticle.SetActive(false);
+            playerHealthBar.gameObject.SetActive(false);
+            playerHealthText.gameObject.SetActive(false);
             Cursor.lockState = CursorLockMode.None;
         }
 
         /// <summary>
-        /// Return to the ravel menu
+        /// Select a spawnpoint to spawn an entity at
         /// </summary>
-        public void ReturnToTravel(){
-            SceneManager.LoadScene(2);
+        /// <param name="type">The type of spawnpoint to select (1 = pickup, 2 = ally, 3 = enemy)</param>
+        /// <param name="isPlayer">If the entity spawned is the player</param>
+        /// <param name="isTarget">If the entity spawned is the target collectible for jobs</param>
+        /// <returns>The entity spawned</returns>
+        private GameObject SpawnEntity(int type, bool isPlayer, bool isTarget){
+            int spawnSelected, itemSelected = Random.Range(1, 101);
+            
+            // 20% for food (0), 10% for gas (1), 20% for scrap (2), 20% for money (3), 10% for medkit (4), 20% for ammo (5)
+            itemSelected = itemSelected <= 20 ? 0 : itemSelected <= 30 ? 1 : itemSelected <= 50 ? 2 : itemSelected <= 70 ? 3 : itemSelected <= 80 ? 4 : 5; 
+            GameObject[] spawnPointsOfInterest = type == 1 ? pickupSpawnPoints : type == 2 ? playerSpawnPoints: enemySpawnPoints;
+            GameObject toSpawn = type == 1 ? pickupPrefabs[itemSelected] : type == 2 ? allyPrefab : enemyPrefab;
+            toSpawn = type == 1 && isTarget ? targetPickup : type == 2 && isPlayer ? playerPrefab : toSpawn;
+
+            // If spawning an enemy during non-defence missions, spawn wherever. Otherwise pick an unused spawnpoint
+            if(type == 3 && (jobType == 0 || jobType == 2)){
+                spawnSelected = Random.Range(0, spawnPointsOfInterest.Length);
+            }
+            else{
+                do{
+                    spawnSelected = Random.Range(0, spawnPointsOfInterest.Length);
+                }while(spawnPointsOfInterest[spawnSelected].GetComponent<SpawnPoint>().inUse);
+                spawnPointsOfInterest[spawnSelected].GetComponent<SpawnPoint>().inUse = true; 
+            }
+            GameObject spawned = Instantiate(toSpawn, spawnPointsOfInterest[spawnSelected].transform.position, spawnPointsOfInterest[spawnSelected].transform.rotation);
+            spawned.transform.SetParent(CombatEnvironment.transform); 
+            return spawned;
         }
 
         /// <summary>
-        /// Return to the rest menu
+        /// Initialize an enemy
         /// </summary>
-        public void ReturnToRest(){
-            RestMenuRef.SetActive(true);
-            SceneManager.LoadScene(1);
+        private void InitializeMutant(){
+            GameObject enemySpawn = SpawnEntity(3, false, false);
+            
+            Mutant m = enemySpawn.GetComponent<Mutant>();
+            float upperBoundDetection = diff == 1 || diff == 3 ? 8.0f : 14.0f;
+            if(RestMenu.JobNum != 0){
+                upperBoundDetection += jobDiff <= 20 ? -2 : jobDiff <= 40 ? 0 : 2;
+            }
+            m.SetDetectionRange(Random.Range(8.0f, upperBoundDetection));
+            m.SetDestination(m.gameObject.transform.position);
+            m.SetHP(Random.Range(10,15));
+            int damage = diff == 1 || diff == 3 ? Random.Range(6,11) : Random.Range(10,15);
+            m.SetStrength(damage);
         }
-
+        
+        // ------------------------ STATES AND AI --------------------------------------------------------------
         /// <summary>
         /// Lookup a state type from the dictionary.
         /// </summary>

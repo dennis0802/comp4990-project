@@ -141,6 +141,14 @@ namespace RestPhase{
         [SerializeField]
         private TextMeshProUGUI[] jobButtonDescs;
 
+        [Tooltip("Job complete button")]
+        [SerializeField]
+        private Button jobCompleteButton;
+
+        [Tooltip("Job complete text")]
+        [SerializeField]
+        private TextMeshProUGUI jobCompleteText;
+
         [Tooltip("Sprites for map screen")]
         [SerializeField]
         private Sprite[] maps;
@@ -258,7 +266,7 @@ namespace RestPhase{
         // To track leader name for game over
         public static string LeaderName = "";
         // To track friends alive for game over
-        public static int FriendsAlive = 0;
+        public static int FriendsAlive = 0, JobNum;
         public static bool IsScavenging;
         public static GameObject Panel;
 
@@ -311,19 +319,7 @@ namespace RestPhase{
             GameLoop.RationsMode = dataReader.GetInt32(17);
             GameLoop.Hour = dataReader.GetInt32(15);
             GameLoop.Pace = dataReader.GetInt32(18);
-
-            if(GameLoop.Hour >= 21 || GameLoop.Hour <= 5){
-                GameLoop.Activity = 4;
-            }
-            else if(GameLoop.Hour >= 18 || GameLoop.Hour <= 8){
-                GameLoop.Activity = 3;
-            }
-            else if(GameLoop.Hour >= 16 || GameLoop.Hour <= 10){
-                GameLoop.Activity = 2;
-            }
-            else{
-                GameLoop.Activity = 1;
-            }
+            GameLoop.Activity = GameLoop.Hour >= 21 || GameLoop.Hour <= 5 ? 4 : GameLoop.Hour >= 18 || GameLoop.Hour <= 8 ? 3 : GameLoop.Hour >= 16 || GameLoop.Hour <= 10 ? 2 : 1;
 
             // 22 + 9 * i gets the traits
             List<int> foundTraits = new List<int>();
@@ -411,11 +407,9 @@ namespace RestPhase{
             // Map
             int nextDistance = phaseNum == 2 ? dataReader.GetInt32(28)-curDistance : 0, curTown = dataReader.GetInt32(27), prevTown = dataReader.GetInt32(30);
             distanceText.text = "Distance Travelled: " + curDistance + " km\nDistance to Next Stop: " + nextDistance + " km";
-            List<int> oneWayTowns = new List<int>(){0,2,3,11,12,13,14,15,17,18,20,26,27,29};
 
-            // 0 = Montreal, 1 = Ottawa, 2 = Timmins, 3 = Thunder Bay, 11 = Toronto, 12 = Windsor, 13 = Chicago, 14 = Milwaukee, 15 = Minneapolis,
+            // RECALL: 0 = Montreal, 1 = Ottawa, 2 = Timmins, 3 = Thunder Bay, 11 = Toronto, 12 = Windsor, 13 = Chicago, 14 = Milwaukee, 15 = Minneapolis,
             // 16 = Winnipeg, 17 = Regina, 18 = Calgary, 19 = Banff, 20/38 = Kelowna, 26 = Saskatoon, 27 = Edmonton, 28 = Hinton, 29 = Kamloops 
-            
             // Ottawa is a special case
             if(prevTown == 1 && curTown == 2){
                 mapImageDisplay.sprite = maps[prevTown+1];
@@ -593,10 +587,18 @@ namespace RestPhase{
         }
 
         /// <summary>
-        /// Go to scavenging mode
+        /// Go to combat modes
         /// </summary>
-        public void GoScavenge(){
-            IsScavenging = true;
+        /// <param name="id">The id of the button pressed (0 for scavenging, 1-3 for jobs</param>
+        public void GoToCombat(int id){
+            // NOTE: RestMenuUI must be set active to false or loading will be slow!
+            if(id == 0){
+                IsScavenging = true;
+            }
+            else if(id > 0){
+                JobNum = id;
+            }
+
             Panel.SetActive(false);
             CombatManager.RestMenuRef = this.gameObject;
             StartCoroutine(GameLoop.LoadAsynchronously(3));
@@ -835,6 +837,27 @@ namespace RestPhase{
         }
 
         /// <summary>
+        /// Check leader status.
+        /// </summary>
+        public void CheckLeaderStatus(){
+            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            // If leader name is null, they are dead. Bring to game over screen. Otherwise visibilities are toggled by the engine.
+            if(dataReader.IsDBNull(0)){
+                this.gameObject.SetActive(false);
+                travelScreen.SetActive(false);
+                gameOverScreen.SetActive(true);
+                backgroundPanel.SetActive(true);
+            }
+
+            dbConnection.Close();
+        }
+
+        /// <summary>
         /// Filter the trade item.
         /// </summary>
         /// <param name="id">Item id</param>
@@ -1054,27 +1077,6 @@ namespace RestPhase{
         }
 
         /// <summary>
-        /// Check leader status.
-        /// </summary>
-        public void CheckLeaderStatus(){
-            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
-
-            // If leader name is null, they are dead. Bring to game over screen. Otherwise visibilities are toggled by the engine.
-            if(dataReader.IsDBNull(0)){
-                this.gameObject.SetActive(false);
-                travelScreen.SetActive(false);
-                gameOverScreen.SetActive(true);
-                backgroundPanel.SetActive(true);
-            }
-
-            dbConnection.Close();
-        }
-
-        /// <summary>
         /// Display party members in the menu.
         /// </summary>
         /// <param name="index">The index to start at in the left joined table</param>
@@ -1234,6 +1236,47 @@ namespace RestPhase{
 
             // Check current stock and update the accept button accordingly.
             acceptButton.interactable = curPartyStock >= tradeDemandQty;
+        }
+
+        /// <summary>
+        /// Manage rewards from jobs
+        /// </summary>
+        private void ManageRewards(){
+            if(CombatManager.SucceededJob){
+                IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+                IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
+                dbCommandReadValue.CommandText = "SELECT side" + RestMenu.JobNum + "Qty, side" + RestMenu.JobNum + "Reward FROM TownTable WHERE id = " + GameLoop.FileId;
+                IDataReader dataReader = dbCommandReadValue.ExecuteReader();
+                dataReader.Read();
+
+                int reward = dataReader.GetInt32(1);
+                int qty = dataReader.GetInt32(0);
+
+                dbConnection.Close();
+
+                string displayText = "You have received the following for completing the job:\n* " + qty;
+
+                // 1-3 = food, 4-6 = gas, 7-9 = scrap, 10-12 = money, 13 = medkit, 14 = tire, 15 = battery, 16-18 = ammo
+                displayText += reward <= 3 ?  " kg of food" : reward <= 6 ? " cans of gas" : reward <= 9 ? " scrap" : reward <= 12 ? " dollars" :
+                               reward == 13 ? " medkits" : reward <= 14 ? " tires" : reward == 15 ? " batteries" : " ammo";
+
+                string temp = reward <= 3 ?  "food" : reward <= 6 ? "gas" : reward <= 9 ? "scrap" : reward <= 12 ? "money" :
+                               reward == 13 ? "medkit" : reward <= 14 ? "tire" : reward == 15 ? " battery" : "ammo";
+
+                // Update the database
+                dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = reward >= 4 && reward <= 6 ? "UPDATE SaveFilesTable SET " + temp + " = " + temp + " + " + (float)(qty) + " WHERE id = " + GameLoop.FileId
+                                                                              : "UPDATE SaveFilesTable SET " + temp + " = " + temp + " + " +  qty + " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValue.ExecuteNonQuery();
+                dbConnection.Close();
+
+                // Launch popup
+                JobNum = 0;
+                CombatManager.SucceededJob = false;
+                jobCompleteText.text = displayText;
+                jobCompleteButton.gameObject.SetActive(true);
+            }
         }
 
         /// <summary>

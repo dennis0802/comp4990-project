@@ -79,7 +79,7 @@ namespace TravelPhase{
         // To track the new town number and the distance away
         private int newTown, targetTownDistance = 0, currentDistance;
         // To track if the log of destinations has been initialized
-        private bool logInitialized = false, goingToCombat;
+        private bool logInitialized = false;
         // To track generated towns
         private List<Town> towns = new List<Town>();
         // To manage destinations
@@ -87,6 +87,8 @@ namespace TravelPhase{
         private Dictionary<int, List<string>> nextDestinationLog = new Dictionary<int, List<string>>();
         // To time the driving loop
         public static float Timer = 0.0f;
+        // Flag for going to combat
+        public static bool GoingToCombat = false;
 
         void OnEnable(){
             if(!logInitialized){
@@ -116,7 +118,7 @@ namespace TravelPhase{
                             if(!msg.Equals("")){
                                 LaunchPopup(msg);
                                 if(msg.Equals("You suddenly find yourself surrounded by mutants.")){
-                                    goingToCombat = true;
+                                    GoingToCombat = true;
                                 }
                             }
                             RefreshScreen();
@@ -255,19 +257,7 @@ namespace TravelPhase{
             dataReader.Read();
 
             GameLoop.Hour = dataReader.GetInt32(0);
-
-            if(GameLoop.Hour >= 21 || GameLoop.Hour <= 5){
-                GameLoop.Activity = 4;
-            }
-            else if(GameLoop.Hour >= 18 || GameLoop.Hour <= 8){
-                GameLoop.Activity = 3;
-            }
-            else if(GameLoop.Hour >= 16 || GameLoop.Hour <= 10){
-                GameLoop.Activity = 2;
-            }
-            else{
-                GameLoop.Activity = 1;
-            }
+            GameLoop.Activity = GameLoop.Hour >= 21 || GameLoop.Hour <= 5 ? 4 : GameLoop.Hour >= 18 || GameLoop.Hour <= 8 ? 3 : GameLoop.Hour >= 16 || GameLoop.Hour <= 10 ? 2 : 1;
 
             int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour, distanceLeft = targetTownDistance - dataReader.GetInt32(1);
             string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
@@ -335,8 +325,8 @@ namespace TravelPhase{
             PopupActive = false;
             HasCharacterDied();
 
-            if(goingToCombat){
-                Debug.Log("Load scene here");
+            if(GoingToCombat){
+                StartCoroutine(GameLoop.LoadAsynchronously(3));
             }
         }
 
