@@ -12,6 +12,7 @@ using UI;
 using TMPro;
 using Database;
 using RestPhase;
+using CombatPhase;
 
 namespace TravelPhase{
     [DisallowMultipleComponent]
@@ -53,6 +54,10 @@ namespace TravelPhase{
         [Tooltip("Destination popup window object")]
         [SerializeField]
         private GameObject destinationPopup;
+
+        [Tooltip("Destination popup image")]
+        [SerializeField]
+        private Image destinationImageDisplay;
 
         [Tooltip("Destination popup text")]
         [SerializeField]
@@ -108,9 +113,9 @@ namespace TravelPhase{
                 }
 
                 if(Timer >= 8.0f){
-                    Debug.Log("Timestep done");
                     if(Drive()){
                         int eventChance = Random.Range(1,101);
+                        Debug.Log("Event rolled: " + eventChance + "completed " + System.DateTime.Now.ToString());
 
                         // 44/100 chance of generating an event
                         if(eventChance <= 44){
@@ -287,7 +292,7 @@ namespace TravelPhase{
         /// Stop the car on the road because of destination arrival
         /// </summary>
         public void Arrive(){
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT nextTownName FROM TownTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
@@ -314,8 +319,10 @@ namespace TravelPhase{
                 GameLoop.GameOverScreen.SetActive(true);
                 backgroundPanel.SetActive(true);
             }
-            
-            SceneManager.LoadScene(1);
+            else{
+                restScreens[0].transform.parent.GetComponent<RestMenu>().RefreshScreen();
+                SceneManager.LoadScene(1);
+            }
         }
 
         /// <summary>
@@ -326,6 +333,7 @@ namespace TravelPhase{
             HasCharacterDied();
 
             if(GoingToCombat){
+                CombatManager.PrevMenuRef = this.gameObject;
                 StartCoroutine(GameLoop.LoadAsynchronously(3));
             }
         }
@@ -358,7 +366,7 @@ namespace TravelPhase{
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
-            int curDistance = dataReader.GetInt32(0), speed = dataReader.GetInt32(1), speedActual = speed == 1 ? 40 : speed == 2 ? 50 : 60;
+            int curDistance = dataReader.GetInt32(0), speed = dataReader.GetInt32(1), speedActual = speed == 1 ? 65 : speed == 2 ? 80 : 95;
 
             dbConnection.Close();
 
@@ -388,6 +396,11 @@ namespace TravelPhase{
 
             int townNum = dataReader.GetInt32(0), index = townNum;
             string supplies = "";
+
+            // If on-route to Vancouver, no need to proceed with updating
+            if(townNum == 21 || townNum == 39 || townNum == 30){
+                return;
+            }
 
             // If the current town number has only one way to go, disable the 2nd option
             destinationButton2.interactable = !CheckTownList(townNum);
@@ -438,7 +451,7 @@ namespace TravelPhase{
             dataReader.Read();
 
             int overallTime = dataReader.GetInt32(0), speed = dataReader.GetInt32(1), oldDistance = dataReader.GetInt32(2), rations = dataReader.GetInt32(3),
-                speedActual = speed == 1 ? 40 : speed == 2 ? 50 : 60;
+                speedActual = speed == 1 ? 65 : speed == 2 ? 80 : 95;
             int newDistance = oldDistance + speedActual, decay = speed == 1 ? 3 : speed == 2 ? 5 : 7, tire = dataReader.GetInt32(4), battery = dataReader.GetInt32(5);
             float gas = dataReader.GetFloat(6);
 
@@ -584,6 +597,17 @@ namespace TravelPhase{
             if(newDistance == targetTownDistance){
                 PopupActive = true;
                 
+                dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+                dbCommandReadValues = dbConnection.CreateCommand();
+                dbCommandReadValues.CommandText = "SELECT prevTown, curTown FROM TownTable WHERE id = " + GameLoop.FileId;
+                dataReader = dbCommandReadValues.ExecuteReader();
+                dataReader.Read();
+
+                int prevTown = dataReader.GetInt32(0), curTown = dataReader.GetInt32(1);
+
+                dbConnection.Close();
+
+                destinationImageDisplay.sprite = GameLoop.RetrieveMapImage(prevTown, curTown);
                 destinationPopup.SetActive(true);
                 destinationPopupText.text = nextTown;
                 travelViewObject.SetActive(false);

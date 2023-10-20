@@ -149,10 +149,6 @@ namespace RestPhase{
         [SerializeField]
         private TextMeshProUGUI jobCompleteText;
 
-        [Tooltip("Sprites for map screen")]
-        [SerializeField]
-        private Sprite[] maps;
-
         [Tooltip("Image object to display map")]
         [SerializeField]
         private Image mapImageDisplay;
@@ -282,6 +278,8 @@ namespace RestPhase{
         /// Refresh the screen upon loading the rest menu.
         /// </summary>
         public void RefreshScreen(){
+            ManageRewards();
+
             // Main menus
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
@@ -333,7 +331,7 @@ namespace RestPhase{
             }
             
             rationsText.text = GameLoop.RationsMode == 1 ? "Current Rations: Low" : GameLoop.RationsMode == 2 ?  "Current Rations: Medium" : "Current Rations: High";
-            paceText.text = GameLoop.Pace== 1 ? "Slow\n40km/h" : GameLoop.Pace == 2 ?  "Average\n50km/h" : "Fast\n60km/h";
+            paceText.text = GameLoop.Pace== 1 ? "Slow\n65km/h" : GameLoop.Pace == 2 ?  "Average\n80km/h" : "Fast\n95km/h";
             int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour;
             string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
 
@@ -407,53 +405,7 @@ namespace RestPhase{
             // Map
             int nextDistance = phaseNum == 2 ? dataReader.GetInt32(28)-curDistance : 0, curTown = dataReader.GetInt32(27), prevTown = dataReader.GetInt32(30);
             distanceText.text = "Distance Travelled: " + curDistance + " km\nDistance to Next Stop: " + nextDistance + " km";
-
-            // RECALL: 0 = Montreal, 1 = Ottawa, 2 = Timmins, 3 = Thunder Bay, 11 = Toronto, 12 = Windsor, 13 = Chicago, 14 = Milwaukee, 15 = Minneapolis,
-            // 16 = Winnipeg, 17 = Regina, 18 = Calgary, 19 = Banff, 20/38 = Kelowna, 26 = Saskatoon, 27 = Edmonton, 28 = Hinton, 29 = Kamloops 
-            // Ottawa is a special case
-            if(prevTown == 1 && curTown == 2){
-                mapImageDisplay.sprite = maps[prevTown+1];
-            }
-            else if(prevTown == 1 && curTown == 11){
-                mapImageDisplay.sprite = maps[5];
-            }
-            // Winnipeg is a special case
-            else if(prevTown == 16 && curTown == 17){
-                mapImageDisplay.sprite = maps[11];
-            }
-            else if(prevTown == 16 && curTown == 26){
-                mapImageDisplay.sprite = maps[16];
-            }
-            // Banff is a special case
-            else if(prevTown == 19 && curTown == 20){
-                mapImageDisplay.sprite = maps[14];
-            }
-            else if(prevTown == 19 && curTown == 29){
-                mapImageDisplay.sprite = maps[15];
-            }
-            // Hinton is a special case
-            else if(prevTown == 28 && curTown == 29){
-                mapImageDisplay.sprite = maps[20];                
-            }
-            else if(prevTown == 28 && curTown == 38){
-                mapImageDisplay.sprite = maps[19];                
-            }
-            // Cases 20, 38
-            else if(prevTown == 20 || prevTown == 38){
-                mapImageDisplay.sprite = maps[21];  
-            }
-            // Case 29
-            else if(prevTown == 29){
-                mapImageDisplay.sprite = maps[22];                  
-            }
-            // Cases 11-15, 17-18
-            else if((prevTown >= 11 && prevTown <= 15) || (prevTown >= 17 && prevTown <= 18)){
-                mapImageDisplay.sprite = maps[prevTown-5];
-            }
-            // Cases 0, 2, 3
-            else if(prevTown <= 3){
-                mapImageDisplay.sprite = maps[prevTown+1];
-            }
+            mapImageDisplay.sprite = GameLoop.RetrieveMapImage(prevTown, curTown);
             
             // Job listings
             for(int i = 0; i < 3; i++){
@@ -600,8 +552,8 @@ namespace RestPhase{
             }
 
             Panel.SetActive(false);
-            CombatManager.RestMenuRef = this.gameObject;
             StartCoroutine(GameLoop.LoadAsynchronously(3));
+            CombatManager.PrevMenuRef = this.gameObject;
         }
 
         /// <summary>
@@ -1252,6 +1204,10 @@ namespace RestPhase{
                 int reward = dataReader.GetInt32(1);
                 int qty = dataReader.GetInt32(0);
 
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = "UPDATE TownTable SET side" + JobNum + "Type = 0, side" + JobNum + "Diff = 0, side" + JobNum + "Reward = 0, side" + JobNum 
+                                                    + "Qty = 0 WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
 
                 string displayText = "You have received the following for completing the job:\n* " + qty;
@@ -1263,9 +1219,9 @@ namespace RestPhase{
                 string temp = reward <= 3 ?  "food" : reward <= 6 ? "gas" : reward <= 9 ? "scrap" : reward <= 12 ? "money" :
                                reward == 13 ? "medkit" : reward <= 14 ? "tire" : reward == 15 ? " battery" : "ammo";
 
-                // Update the database
-                dbConnection = GameDatabase.CreateTownAndOpenDatabase();
-                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                // Update the database (change resources and clear the board)
+                dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = reward >= 4 && reward <= 6 ? "UPDATE SaveFilesTable SET " + temp + " = " + temp + " + " + (float)(qty) + " WHERE id = " + GameLoop.FileId
                                                                               : "UPDATE SaveFilesTable SET " + temp + " = " + temp + " + " +  qty + " WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
@@ -1273,9 +1229,9 @@ namespace RestPhase{
 
                 // Launch popup
                 JobNum = 0;
-                CombatManager.SucceededJob = false;
                 jobCompleteText.text = displayText;
                 jobCompleteButton.gameObject.SetActive(true);
+                CombatManager.SucceededJob = false;
             }
         }
 

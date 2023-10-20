@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using CombatPhase;
+using RestPhase;
+using TravelPhase;
 
 namespace AI{
     public class Mutant : BaseAgent
@@ -79,6 +81,11 @@ namespace AI{
             // Since this relies on a collision (ie. not frame-by-frame in Update, no invincibility frames are needed)
             hp -= amt;
             if(hp <= 0){
+                // Check if counters need to change
+                if(RestMenu.JobNum == 1 || TravelLoop.GoingToCombat){
+                    CombatManager.EnemiesToKill--;
+                }
+
                 CombatManager.RemoveAgent(this);
                 Destroy(gameObject);
             }

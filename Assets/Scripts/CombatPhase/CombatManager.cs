@@ -101,7 +101,7 @@ namespace CombatPhase{
         // Difficult and agent index
         private int diff, _currentAgentIndex, jobDiff, jobType;
         // Flags for generating the combat world
-        private bool flag = false;
+        private bool flag = false, defenceMissionSet = false;
         private List<Teammate> teammates = new List<Teammate>();
         // For scavenging, to allow scavenging up to x seconds.
         private float scavengeTimeLimit = 0.0f, itemTimer = 0.0f, spawnItemTime = 0.0f;
@@ -114,10 +114,11 @@ namespace CombatPhase{
         public static List<int> DeadMembers = new List<int>();
         protected static CombatManager Singleton;
         public static bool InCombat = false, SucceededJob = false, TargetItemFound = false;
-        public static GameObject Camera, CombatEnvironment, RestMenuRef, ZoomReticle, NormalReticle;
+        public static GameObject Camera, CombatEnvironment, PrevMenuRef, ZoomReticle, NormalReticle;
         public static BaseState Mind => Singleton.mind;
         public static Vector2 RandomPosition => Random.insideUnitCircle * 45;
         public static string LeaderName;
+        public static int EnemiesToKill;
 
         // Start is called before the first frame update
         void Start(){
@@ -127,6 +128,7 @@ namespace CombatPhase{
         void OnEnable()
         {
             UpdateIntroScreen();
+            PrevMenuRef.SetActive(false);
             ZoomReticle = GameObject.FindWithTag("ZoomReticle");
             NormalReticle = GameObject.FindWithTag("NormalReticle");
             if(SceneManager.GetActiveScene().buildIndex == 3 && CombatEnvironment == null){
@@ -182,6 +184,14 @@ namespace CombatPhase{
                     if(itemTimer >= spawnItemTime){
                         itemTimer = 0.0f;
                         SpawnEntity(1, false, false);
+                    }
+                }
+
+                // Defence functions
+                else if(defenceMissionSet && (RestMenu.JobNum == 1 || TravelLoop.GoingToCombat)){
+                    if(EnemiesToKill <= 0){
+                        EndCombat();
+                        return;
                     }
                 }
                 
@@ -325,21 +335,24 @@ namespace CombatPhase{
                 }
                 // Spawn enemies if a defence job
                 else{
-                    int enemiesToSpawn = jobDiff <= 20 ? 8 : jobDiff <= 40 ? 11 : 15;
+                    int enemiesToSpawn = jobDiff <= 20 ? 5 : jobDiff <= 40 ? 7 : 9;
 
                     for(int i = 0; i < enemiesToSpawn; i++){
                         InitializeMutant();
+                        EnemiesToKill++;
                     }
                 }
             }
 
             // If coming from the travel menu, treat as a defence mission
             else if(TravelLoop.GoingToCombat){
-                int enemiesToSpawn = GameLoop.Activity == 1 ? 5 : GameLoop.Activity == 2 ? 10 : GameLoop.Activity == 3 ? 15 : 20;
+                int enemiesToSpawn = GameLoop.Activity == 1 ? 5 : GameLoop.Activity == 2 ? 7 : GameLoop.Activity == 3 ? 9 : 11;
 
                 for(int i = 0; i < enemiesToSpawn; i++){
                     InitializeMutant();
+                    EnemiesToKill++;
                 }
+                defenceMissionSet = true;
             }
         }
 
@@ -460,6 +473,7 @@ namespace CombatPhase{
             else{
                 SceneManager.LoadScene(2);
             }
+            PrevMenuRef.SetActive(true);
         }
 
         /// <summary>
@@ -467,6 +481,7 @@ namespace CombatPhase{
         /// </summary>
         private void UnloadCombat(){
             InCombat = false;
+            CombatEnvironment.SetActive(false);
             RestMenu.Panel.SetActive(true);
             TravelLoop.GoingToCombat = false;
             combatCamera[0].SetActive(false);

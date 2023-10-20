@@ -169,6 +169,12 @@ namespace TravelPhase{
                         commandText += curGasStock.ToString();
                         lost = lost > (int)(curGasStock) ? (int)(curGasStock) : lost;
                     }
+
+                    // If nothing was lost (ie. above check resulted with lost = 0), drive is uneventful
+                    if(lost == 0){
+                        return "";
+                    }
+
                     commandText += " WHERE id = " + GameLoop.FileId;
 
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
@@ -184,13 +190,13 @@ namespace TravelPhase{
 
                     // Change grammar if singular for some items
                     if(lost == 1){
-                        if(type == 1){
+                        if(type == 8){
                             temp = "can of gas";
                         }
-                        else if(type >= 3 && type <= 5){
+                        else if(type >= 10 && type <= 12){
                             temp = temp.Remove(temp.Length-1, 1);
                         }
-                        else if(type == 6){
+                        else if(type == 13){
                             temp = "battery";
                         }
                     }
@@ -267,6 +273,19 @@ namespace TravelPhase{
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
+
+                // Change grammar if singular for some items
+                if(gain == 1){
+                    if(type == 8){
+                        temp = "can of gas";
+                    }
+                    else if(type >= 10 && type <= 12){
+                        temp = temp.Remove(temp.Length-1, 1);
+                    }
+                    else if(type == 13){
+                        temp = "battery";
+                    }
+                }
 
                 // Keep randomly picking until not a dead player
                 do
@@ -650,7 +669,7 @@ namespace TravelPhase{
                 do
                 {
                     hurtMember = Random.Range(0,4);
-                } while (hurtMember == availableTraits.IndexOf(4) && !dataReader.IsDBNull(1+9*hurtMember) && !livingMembers.Contains(hurtMember));
+                } while (hurtMember == nameIndex || !dataReader.IsDBNull(1+9*hurtMember) || !livingMembers.Contains(hurtMember));
 
                 string name = dataReader.GetString(nameIndex), hurtName = dataReader.GetString(1+9*hurtMember);
                 int hpLoss = diff % 2 == 0 ? 10 : 5, hurtHP = dataReader.GetInt32(9+9*hurtMember) - hpLoss > 0 ? dataReader.GetInt32(9+9*hurtMember) - hpLoss : 0;
@@ -668,10 +687,10 @@ namespace TravelPhase{
             // 2/44 possibility for surgeon characters to fully heal an injured character (ex. Bob's medical skills come in handy for mid-drive surgery on Ann)
             else if(eventChance <= 38 && availablePerks.Where(p => p == 3).Count() > 0 && livingMembers.Count > 1){
                 // Get the name of the first member who has the surgeon trait
-                int nameIndex = availablePerks.IndexOf(3), healMember = 0;
-                nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
+                int index = availablePerks.IndexOf(3), healMember = 0;
+                int nameIndex = index == 0 ? 1 : index == 1 ? 10 : index == 2 ? 19 : 28;
 
-                if(!livingMembers.Contains(nameIndex)){
+                if(!livingMembers.Contains(index)){
                     return "";
                 }
 
@@ -685,7 +704,7 @@ namespace TravelPhase{
                 do
                 {
                     healMember = Random.Range(0,4);
-                } while (healMember == nameIndex || dataReader.IsDBNull(1+9*healMember) || !livingMembers.Contains(healMember));
+                } while (healMember == index || dataReader.IsDBNull(1+9*healMember) || !livingMembers.Contains(healMember));
 
                 string name = dataReader.GetString(nameIndex);
                 string healName = dataReader.GetString(1+9*healMember);

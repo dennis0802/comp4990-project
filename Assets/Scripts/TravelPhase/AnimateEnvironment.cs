@@ -12,7 +12,7 @@ namespace TravelPhase{
     {
         public GameObject genericMarker, cityMarker;
         public GameObject[] carTires;
-        private Vector3 movement, originalPos;
+        private Vector3 movement, originalGenPos, originalCityPos;
         private bool statusRead, carIsBroken;
         public static bool NearingTown;
         private float rotationSpeed;
@@ -20,7 +20,8 @@ namespace TravelPhase{
         // Start is called before the first frame update
         void Start()
         {
-            originalPos = genericMarker.transform.position;
+            originalGenPos = genericMarker.transform.position;
+            originalCityPos = cityMarker.transform.position;
         }
 
         void OnEnable(){
@@ -47,8 +48,8 @@ namespace TravelPhase{
         /// Reset the position of markers when reaching a destination
         /// </summary>
         public void OnLeaveTravel(){
-            genericMarker.transform.position = originalPos;
-            cityMarker.transform.position = originalPos;
+            genericMarker.transform.position = originalGenPos;
+            cityMarker.transform.position = originalCityPos;
         }
 
         /// <summary>
@@ -87,7 +88,7 @@ namespace TravelPhase{
 
             // Reset marker when offscreen to the right
             if(genericMarker.transform.position.x > 150f){
-                genericMarker.transform.position = originalPos;
+                genericMarker.transform.position = originalGenPos;
             }
         }
 

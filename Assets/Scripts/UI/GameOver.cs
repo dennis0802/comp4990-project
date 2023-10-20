@@ -51,12 +51,16 @@ namespace UI{
             // Check for friends alive
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT friend1Name, friend2Name, friend3Name FROM ActiveCharactersTable";
+            dbCommandReadValues.CommandText = "SELECT friend1Name, friend2Name, friend3Name, leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
             for(int i = 0; i < 3; i++){
                 friendsAlive += dataReader.IsDBNull(i) ? 0 : 1;
+            }
+
+            if(!dataReader.IsDBNull(3)){
+                leaderName = dataReader.GetString(3);
             }
 
             dbConnection.Close();
