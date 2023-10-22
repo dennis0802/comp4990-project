@@ -99,7 +99,7 @@ namespace CombatPhase{
         // To track the player
         private GameObject player, ally, restMenu;
         // Difficult and agent index
-        private int diff, _currentAgentIndex, jobDiff, jobType;
+        private int diff, _currentAgentIndex, jobDiff;
         // Flags for generating the combat world
         private bool flag = false, defenceMissionSet = false;
         private List<Teammate> teammates = new List<Teammate>();
@@ -118,7 +118,7 @@ namespace CombatPhase{
         public static BaseState Mind => Singleton.mind;
         public static Vector2 RandomPosition => Random.insideUnitCircle * 45;
         public static string LeaderName;
-        public static int EnemiesToKill;
+        public static int EnemiesToKill, JobType;
 
         // Start is called before the first frame update
         void Start(){
@@ -161,11 +161,19 @@ namespace CombatPhase{
                 enemyTimer += Time.deltaTime;
 
                 // Job combat functions
-                if(RestMenu.JobNum != 0){
-                    // End combat when the item has been found
-                    if(TargetItemFound){
+                if(RestMenu.JobNum != 0 || TravelLoop.GoingToCombat){
+                    // Collection job
+                    if(JobType == 2 && TargetItemFound){
                         EndCombat();
                         return;
+                    }
+
+                    // Defence job
+                    else if(defenceMissionSet){
+                        if(EnemiesToKill <= 0){
+                            EndCombat();
+                            return;
+                        }
                     }
                 }
 
@@ -186,17 +194,9 @@ namespace CombatPhase{
                         SpawnEntity(1, false, false);
                     }
                 }
-
-                // Defence functions
-                else if(defenceMissionSet && (RestMenu.JobNum == 1 || TravelLoop.GoingToCombat)){
-                    if(EnemiesToKill <= 0){
-                        EndCombat();
-                        return;
-                    }
-                }
                 
                 // Regularly spawn enemies if not a defence job
-                if(jobType != 1 && enemyTimer >= spawnEnemyTime){
+                if(!TravelLoop.InFinalCombat && !TravelLoop.GoingToCombat && JobType != 1 && enemyTimer >= spawnEnemyTime){
                     enemyTimer = 0.0f;
                     InitializeMutant();
                 }
@@ -204,6 +204,7 @@ namespace CombatPhase{
                 combatText.text = Player.UsingGun ? "Equipped: " + weaponList[GunSelected] + "\nLoaded = " + Player.AmmoLoaded + "\nTotal Ammo: " + Player.TotalAvailableAmmo 
                                     : "Equipped: " + weaponList[PhysSelected];
                 combatText.text += RestMenu.IsScavenging ? "\nTime: " + System.Math.Round(scavengeTimeLimit, 2) : "";
+                combatText.text += JobType == 1 || TravelLoop.GoingToCombat ? "\nEnemies Remaining: " + EnemiesToKill : "";
 
                 // AI actions
                 if(Time.timeScale != 0){
@@ -325,34 +326,30 @@ namespace CombatPhase{
                 dataReader.Read();
 
                 jobDiff = dataReader.GetInt32(0);
-                jobType = dataReader.GetInt32(1);
+                JobType = dataReader.GetInt32(1);
 
                 dbConnection.Close();
 
                 // Spawn the target if a collection job
-                if(jobType == 2){
+                if(JobType == 2){
                     SpawnEntity(1, false, true);
+                }
+                // Final combat section
+                else if(TravelLoop.InFinalCombat){
+                    InitializeDefenceMission(9);
+                    SpawnEntity(4, false, false);
                 }
                 // Spawn enemies if a defence job
                 else{
                     int enemiesToSpawn = jobDiff <= 20 ? 5 : jobDiff <= 40 ? 7 : 9;
-
-                    for(int i = 0; i < enemiesToSpawn; i++){
-                        InitializeMutant();
-                        EnemiesToKill++;
-                    }
+                    InitializeDefenceMission(enemiesToSpawn);
                 }
             }
 
             // If coming from the travel menu, treat as a defence mission
             else if(TravelLoop.GoingToCombat){
                 int enemiesToSpawn = GameLoop.Activity == 1 ? 5 : GameLoop.Activity == 2 ? 7 : GameLoop.Activity == 3 ? 9 : 11;
-
-                for(int i = 0; i < enemiesToSpawn; i++){
-                    InitializeMutant();
-                    EnemiesToKill++;
-                }
-                defenceMissionSet = true;
+                InitializeDefenceMission(enemiesToSpawn);
             }
         }
 
@@ -433,16 +430,29 @@ namespace CombatPhase{
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
+            string temp = "";
             // Display final results
-            string temp = "You collected:\n";
-            temp += foodFound > 0 ? "* " + foodFound + " kg of food\n" : "";
-            temp += gasFound > 0 ? gasFound == 1 ? "* " + gasFound + " can of gas\n" : "* " + gasFound + " cans of gas\n" : "";
-            temp += scrapFound > 0 ? "* " + scrapFound + " scrap\n" : "";
-            temp += moneyFound > 0 ? "* $" + moneyFound : "";
-            temp += medkitFound > 0 ? medkitFound == 1 ? "* " + medkitFound + " medkit\n" : "* " + medkitFound + " medkits\n" : "";
-            temp += ammoFound > 0 ? "* " + ammoFound + " ammo\n" : "";
+            if(RestMenu.JobNum == 0){
+                temp += "You collected:\n";
+                temp += foodFound > 0 ? "* " + foodFound + " kg of food\n" : "";
+                temp += gasFound > 0 ? gasFound == 1 ? "* " + gasFound + " can of gas\n" : "* " + gasFound + " cans of gas\n" : "";
+                temp += scrapFound > 0 ? "* " + scrapFound + " scrap\n" : "";
+                temp += moneyFound > 0 ? "* $" + moneyFound : "";
+                temp += medkitFound > 0 ? medkitFound == 1 ? "* " + medkitFound + " medkit\n" : "* " + medkitFound + " medkits\n" : "";
+                temp += ammoFound > 0 ? "* " + ammoFound + " ammo\n" : "";
 
-            temp += Equals(temp, "You collected:\n") ? "Nothing." : "";
+                temp += Equals(temp, "You collected:\n") ? "Nothing." : "";
+            }
+            else if(RestMenu.JobNum != 0){
+                temp += "You successfully completed the task.\n";
+            }
+            else if(TravelLoop.GoingToCombat){
+                temp += "You successfully defended your party.\n";
+            }
+            else if(TravelLoop.InFinalCombat){
+                temp += "You successfully arrive in Vancouver.\n";
+            }
+
             endCombatText.text = temp;
         }
 
@@ -458,7 +468,7 @@ namespace CombatPhase{
         }
 
         /// <summary>
-        /// Return to previously visited menu (rest if scavenge or job, travel otherwise)
+        /// Return to previously visited menu (rest if scavenge or job, game over if last combat, travel otherwise)
         /// </summary>
         public void ReturnToNonCombat(){
             if(RestMenu.JobNum != 0){
@@ -469,6 +479,11 @@ namespace CombatPhase{
             else if(RestMenu.IsScavenging){
                 RestMenu.IsScavenging = false;
                 SceneManager.LoadScene(1);
+            }
+            else if(TravelLoop.InFinalCombat){
+                UnloadCombat();
+                GameLoop.GameOverScreen.SetActive(true);
+                RestMenu.Panel.SetActive(true);
             }
             else{
                 SceneManager.LoadScene(2);
@@ -495,9 +510,21 @@ namespace CombatPhase{
         }
 
         /// <summary>
+        /// Initialize defence mission
+        /// </summary>
+        /// <param name="enemiesToSpawn">The number of enemies to spawn</param>
+        private void InitializeDefenceMission(int enemiesToSpawn){
+            for(int i = 0; i < enemiesToSpawn; i++){
+                InitializeMutant();
+                EnemiesToKill++;
+            }
+            defenceMissionSet = true;
+        }
+
+        /// <summary>
         /// Select a spawnpoint to spawn an entity at
         /// </summary>
-        /// <param name="type">The type of spawnpoint to select (1 = pickup, 2 = ally, 3 = enemy)</param>
+        /// <param name="type">The type of spawnpoint to select (1 = pickup, 2 = ally, 3 = enemy, 4 = boss)</param>
         /// <param name="isPlayer">If the entity spawned is the player</param>
         /// <param name="isTarget">If the entity spawned is the target collectible for jobs</param>
         /// <returns>The entity spawned</returns>
@@ -511,7 +538,11 @@ namespace CombatPhase{
             toSpawn = type == 1 && isTarget ? targetPickup : type == 2 && isPlayer ? playerPrefab : toSpawn;
 
             // If spawning an enemy during non-defence missions, spawn wherever. Otherwise pick an unused spawnpoint
-            if(type == 3 && (jobType == 0 || jobType == 2)){
+            if(type == 3 && (JobType == 1 || JobType == 2)){
+                spawnSelected = Random.Range(0, spawnPointsOfInterest.Length);
+            }
+            else if(type == 4 && TravelLoop.InFinalCombat){
+                toSpawn = null;
                 spawnSelected = Random.Range(0, spawnPointsOfInterest.Length);
             }
             else{

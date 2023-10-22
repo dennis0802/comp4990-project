@@ -41,6 +41,27 @@ namespace CombatPhase.ProceduralGeneration {
                 viewerPositionOld = viewerPosition;
                 UpdateVisibleChunks();
             }
+            EnsureBake();
+        }
+
+        void EnsureBake(){
+            int currentChunkCoordX = Mathf.RoundToInt(viewerPosition.x/chunkSize);
+            int currentChunkCoordY = Mathf.RoundToInt(viewerPosition.y/chunkSize);
+
+            for(int yOffset = -chunksVisibleInViewDst; yOffset <= chunksVisibleInViewDst; yOffset++){
+                for(int xOffset = -chunksVisibleInViewDst; xOffset <= chunksVisibleInViewDst; xOffset++){
+                    Vector2 viewedChunkCoord = new Vector2(currentChunkCoordX + xOffset, currentChunkCoordY + yOffset);
+                
+                    if(terrainChunkDictionary.ContainsKey(viewedChunkCoord)){
+                        TerrainChunk t = terrainChunkDictionary[viewedChunkCoord];
+
+                        if(t.IsVisible()){
+                            Debug.Log("Chunk baked");
+                            t.BakeNavMesh();
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -90,7 +111,7 @@ namespace CombatPhase.ProceduralGeneration {
 
             MapData mapData;
             bool mapDataReceived;
-            bool hasBaked;
+            public bool hasBaked;
             int previousLODIndex = -1;
 
             /// <summary>
@@ -178,6 +199,7 @@ namespace CombatPhase.ProceduralGeneration {
                             else if(!lodMesh.hasRequestedMesh){
                                 lodMesh.RequestMesh(mapData);
                             }
+                            //BakeNavMesh();
                         }
                         if(lodIndex == 0){
                             if(collisionLODMesh.hasMesh){
@@ -186,13 +208,9 @@ namespace CombatPhase.ProceduralGeneration {
                             else if(!collisionLODMesh.hasRequestedMesh){
                                 collisionLODMesh.RequestMesh(mapData);
                             }
+                            //BakeNavMesh();
                         }
-                                    
-                        if(!hasBaked){
-                            navMeshSurface.BuildNavMesh();
-                            hasBaked = true;
-                        }
-
+                        //BakeNavMesh();        
                         terrainChunksVisibleLastUpdate.Add(this);
                     }
 
@@ -213,6 +231,13 @@ namespace CombatPhase.ProceduralGeneration {
             /// </summary>
             public bool IsVisible(){
                 return meshObject.activeSelf;
+            }
+
+            public void BakeNavMesh(){
+                if(!hasBaked){
+                    navMeshSurface.BuildNavMesh();
+                    hasBaked = true;
+                }
             }
         }
 

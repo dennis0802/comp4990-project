@@ -80,7 +80,7 @@ namespace TravelPhase{
         private GameObject[] restScreens;
 
         // To track if a popup is active, will restrict when driving loop occurs.
-        public static bool PopupActive = false;
+        public static bool PopupActive = false, InFinalCombat = false;
         // To track the new town number and the distance away
         private int newTown, targetTownDistance = 0, currentDistance;
         // To track if the log of destinations has been initialized
@@ -312,12 +312,11 @@ namespace TravelPhase{
             Timer = 0.0f;
             PrepRestScreen();
 
-            // Temporary end
+            // Final combat section
             if(townName.Equals("Vancouver")){
-                restScreens[0].transform.parent.gameObject.SetActive(false);
-                this.gameObject.SetActive(false);
-                GameLoop.GameOverScreen.SetActive(true);
-                backgroundPanel.SetActive(true);
+                InFinalCombat = true;
+                CombatManager.PrevMenuRef = this.gameObject;
+                StartCoroutine(GameLoop.LoadAsynchronously(3));
             }
             else{
                 restScreens[0].transform.parent.GetComponent<RestMenu>().RefreshScreen();

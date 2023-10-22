@@ -265,7 +265,7 @@ namespace CombatPhase{
                     else if(CanShoot && UsingGun && AmmoLoaded == 0){
                         emptyAudio.Play();
                     }
-                    else{
+                    else if(!UsingGun){
                         // Check for the closest enemy and attack if close enough
                         GameObject[] mutants = GameObject.FindGameObjectsWithTag("Mutant");
                         GameObject target = mutants.Where(m => Vector3.Distance(transform.position, m.transform.position) < 1.0f).First();

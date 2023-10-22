@@ -52,8 +52,13 @@ namespace AI{
             physDamageAudio.Play();
             hp -= amt;
 
+            // Die
             if(hp <= 0){
-                // Die
+                // Check if counters need to change
+                if(CombatManager.JobType == 1 || TravelLoop.GoingToCombat){
+                    CombatManager.EnemiesToKill--;
+                }
+                
                 CombatManager.RemoveAgent(this);
                 Destroy(gameObject);
             }
@@ -82,7 +87,7 @@ namespace AI{
             hp -= amt;
             if(hp <= 0){
                 // Check if counters need to change
-                if(RestMenu.JobNum == 1 || TravelLoop.GoingToCombat){
+                if(CombatManager.JobType == 1 || TravelLoop.GoingToCombat){
                     CombatManager.EnemiesToKill--;
                 }
 
