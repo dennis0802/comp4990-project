@@ -103,6 +103,10 @@ namespace UI
             SetFileDesc();
         }
 
+        void Update(){
+            
+        }
+
         /// <summary>
         /// Access save files
         /// </summary>
@@ -337,7 +341,8 @@ namespace UI
         /// Start a new game
         /// </summary>
         public void StartNewGame(){
-            int startingFood = 100, startingGas = 20, startingScrap = 25, startingMoney = 30, startingMedkit = 1, startingBattery = 1, startingTire = 1, startingAmmo = 150;
+            int startingFood = 100, startingGas = 20, startingScrap = 25, startingMoney = 30, startingMedkit = 1, startingBattery = 1, startingTire = 1, startingAmmo = 150,
+                startingLeaderMorale = 75, startingPartnerMorale = 75;
 
             if(GamemodeSelect.Difficulty == 2 || GamemodeSelect.Difficulty == 4){
                 startingFood = 50; 
@@ -351,6 +356,9 @@ namespace UI
             }
             // Add medkits if healthcare perk is used
             startingMedkit += GamemodeSelect.LeaderPerk == 2 || GamemodeSelect.PartnerPerk == 2 ? 2 : 0;
+            // Increase morale if optimist
+            startingLeaderMorale += GamemodeSelect.LeaderTrait == 2 ? 15 : 0;
+            startingPartnerMorale += GamemodeSelect.PartnerTrait == 2 ? 15 : 0; 
 
             // Create table of active characters as a separate table
             IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
@@ -358,9 +366,9 @@ namespace UI
             dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO ActiveCharactersTable(id, leaderName, leaderPerk, leaderTrait, leaderColor, leaderAcc, leaderHat, leaderOutfit, leaderMorale, leaderHealth, " +
                                                "friend1Name, friend1Perk, friend1Trait, friend1Color, friend1Acc, friend1Hat, friend1Outfit, friend1Morale, friend1Health, customIdLeader, customId1) VALUES (" + 
                                                 targetFile + ", '" + GamemodeSelect.LeaderName + "', " + GamemodeSelect.LeaderPerk + ", " + GamemodeSelect.LeaderTrait + ", " + GamemodeSelect.LeaderColor +
-                                                ", " + GamemodeSelect.LeaderAcc + ", " + GamemodeSelect.LeaderHat + ", " + GamemodeSelect.LeaderOutfit + ", " + 75 + ", " + 100 + ", '" +
+                                                ", " + GamemodeSelect.LeaderAcc + ", " + GamemodeSelect.LeaderHat + ", " + GamemodeSelect.LeaderOutfit + ", " + startingLeaderMorale + ", " + 100 + ", '" +
                                                 GamemodeSelect.PartnerName + "', " + GamemodeSelect.PartnerPerk + ", " + GamemodeSelect.PartnerTrait + ", " + GamemodeSelect.PartnerColor + ", " +
-                                                GamemodeSelect.PartnerAcc + ", " + GamemodeSelect.PartnerHat + ", " + GamemodeSelect.PartnerOutfit + ", " + 75 + ", " + 100 + ", " + 
+                                                GamemodeSelect.PartnerAcc + ", " + GamemodeSelect.PartnerHat + ", " + GamemodeSelect.PartnerOutfit + ", " + startingPartnerMorale + ", " + 100 + ", " + 
                                                 GamemodeSelect.CustomIDs[0] + ", " + GamemodeSelect.CustomIDs[1] + ")";
             dbCommandInsertValue.ExecuteNonQuery();
             dbConnection.Close();

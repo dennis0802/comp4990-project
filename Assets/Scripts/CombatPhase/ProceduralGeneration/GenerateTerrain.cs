@@ -41,27 +41,6 @@ namespace CombatPhase.ProceduralGeneration {
                 viewerPositionOld = viewerPosition;
                 UpdateVisibleChunks();
             }
-            EnsureBake();
-        }
-
-        void EnsureBake(){
-            int currentChunkCoordX = Mathf.RoundToInt(viewerPosition.x/chunkSize);
-            int currentChunkCoordY = Mathf.RoundToInt(viewerPosition.y/chunkSize);
-
-            for(int yOffset = -chunksVisibleInViewDst; yOffset <= chunksVisibleInViewDst; yOffset++){
-                for(int xOffset = -chunksVisibleInViewDst; xOffset <= chunksVisibleInViewDst; xOffset++){
-                    Vector2 viewedChunkCoord = new Vector2(currentChunkCoordX + xOffset, currentChunkCoordY + yOffset);
-                
-                    if(terrainChunkDictionary.ContainsKey(viewedChunkCoord)){
-                        TerrainChunk t = terrainChunkDictionary[viewedChunkCoord];
-
-                        if(t.IsVisible()){
-                            Debug.Log("Chunk baked");
-                            t.BakeNavMesh();
-                        }
-                    }
-                }
-            }
         }
 
         /// <summary>
@@ -87,6 +66,9 @@ namespace CombatPhase.ProceduralGeneration {
                     }
                     else{
                         terrainChunkDictionary.Add(viewedChunkCoord, new TerrainChunk(viewedChunkCoord, chunkSize, detailLevels, transform, mapMaterial));
+                        if(!terrainChunkDictionary[viewedChunkCoord].hasBaked){
+                            StartCoroutine(terrainChunkDictionary[viewedChunkCoord].BakeCoroutine());
+                        }
                     }
                 }
             }
@@ -199,7 +181,6 @@ namespace CombatPhase.ProceduralGeneration {
                             else if(!lodMesh.hasRequestedMesh){
                                 lodMesh.RequestMesh(mapData);
                             }
-                            //BakeNavMesh();
                         }
                         if(lodIndex == 0){
                             if(collisionLODMesh.hasMesh){
@@ -208,9 +189,7 @@ namespace CombatPhase.ProceduralGeneration {
                             else if(!collisionLODMesh.hasRequestedMesh){
                                 collisionLODMesh.RequestMesh(mapData);
                             }
-                            //BakeNavMesh();
-                        }
-                        //BakeNavMesh();        
+                        }       
                         terrainChunksVisibleLastUpdate.Add(this);
                     }
 
@@ -233,11 +212,16 @@ namespace CombatPhase.ProceduralGeneration {
                 return meshObject.activeSelf;
             }
 
-            public void BakeNavMesh(){
-                if(!hasBaked){
-                    navMeshSurface.BuildNavMesh();
-                    hasBaked = true;
-                }
+            /// <summary>
+            /// Coroutine to bake the navmesh
+            /// </summary>
+            /// <returns>Coroutine to bake navmesh</returns>
+            public IEnumerator BakeCoroutine(){
+                // Delay required to ensure all terrain is visible before baking
+                yield return new WaitForSeconds(1);
+                // There is some required cost on the CPU for this to work but delay is about 10-15s for 1-time baking
+                navMeshSurface.BuildNavMesh();
+                hasBaked = true;
             }
         }
 

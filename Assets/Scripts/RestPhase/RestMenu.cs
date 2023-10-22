@@ -253,6 +253,7 @@ namespace RestPhase{
         private float restHours = 1;
         // To track the coroutine running for waiting actions
         private Coroutine coroutine;
+        private int paranoidPresent = 0;
         // To track prices in town shops
         private int[] sellingPrices = new int[7], buyingPrices = new int[7], shopStocks = new int[7];
         // For supply trading (not towns)
@@ -328,6 +329,13 @@ namespace RestPhase{
                 else{
                     foundTraits.Add(-1);
                 }
+            }
+
+            if(foundTraits.Contains(1)){
+                paranoidPresent = 1;
+            }
+            else{
+                paranoidPresent = 0;
             }
             
             rationsText.text = GameLoop.RationsMode == 1 ? "Current Rations: Low" : GameLoop.RationsMode == 2 ?  "Current Rations: Medium" : "Current Rations: High";
@@ -1115,33 +1123,10 @@ namespace RestPhase{
 
             tradeDemandQty = tradeDemand >= 5 && tradeDemand <= 7 ? Random.Range(2,4) : Random.Range(1,20);
             tradeOfferQty = tradeOffer >= 5 && tradeOffer <= 7 ? Random.Range(2,4) : Random.Range(1,20);
+            tradeOfferQty += paranoidPresent == 1 ? 5 : 0;
 
-            switch(tradeOffer){
-                case 1:
-                    offerItem = "kg of food";
-                    break;
-                case 2:
-                    offerItem = "cans of gas";
-                    break;
-                case 3:
-                    offerItem = "scrap";
-                    break;
-                case 4:
-                    offerItem = "dollars";
-                    break;
-                case 5:
-                    offerItem = "medkits";
-                    break;
-                case 6:
-                    offerItem = "tires";
-                    break;
-                case 7:
-                    offerItem = "batteries";
-                    break;
-                case 8:
-                    offerItem = "ammo";
-                    break;
-            }
+            offerItem = tradeOffer == 1 ? "kg of food" : tradeOffer == 2 ? "cans of gas" : tradeOffer == 3 ? "scrap" : tradeOffer == 4 ? "dollars" :
+                        tradeOffer == 5 ? "medkits" : tradeOffer == 6 ? "tires" : tradeOffer == 7 ? "batteries" : "ammo";
 
             IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
@@ -1149,40 +1134,11 @@ namespace RestPhase{
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            switch(tradeDemand){
-                case 1:
-                    demandItem = "kg of food";
-                    curPartyStock = dataReader.GetInt32(7);
-                    break;
-                case 2:
-                    demandItem = "cans of gas";
-                    curPartyStock = (int)(dataReader.GetFloat(8));
-                    break;
-                case 3:
-                    demandItem = "scrap";
-                    curPartyStock = dataReader.GetInt32(9);
-                    break;
-                case 4:
-                    demandItem = "dollars";
-                    curPartyStock = dataReader.GetInt32(10);
-                    break;
-                case 5:
-                    demandItem = "medkits";
-                    curPartyStock = dataReader.GetInt32(11);
-                    break;
-                case 6:
-                    demandItem = "tires";
-                    curPartyStock = dataReader.GetInt32(12);
-                    break;
-                case 7:
-                    demandItem = "batteries";
-                    curPartyStock = dataReader.GetInt32(13);
-                    break;
-                case 8:
-                    demandItem = "ammo";
-                    curPartyStock = dataReader.GetInt32(14);
-                    break;
-            }
+            demandItem = tradeDemand == 1 ? "kg of food" : tradeDemand == 2 ? "cans of gas" : tradeDemand == 3 ? "scrap" : tradeDemand == 4 ? "dollars" :
+                        tradeDemand == 5 ? "medkits" : tradeDemand == 6 ? "tires" : tradeDemand == 7 ? "batteries" : "ammo";
+            curPartyStock = tradeDemand == 1 ? dataReader.GetInt32(7) : tradeDemand == 2 ? (int)(dataReader.GetFloat(8)) : tradeDemand == 3 ? dataReader.GetInt32(9) : 
+                            tradeDemand == 4 ? dataReader.GetInt32(10) : tradeDemand == 5 ? dataReader.GetInt32(11) : tradeDemand == 6 ? dataReader.GetInt32(12) : 
+                            tradeDemand == 7 ? dataReader.GetInt32(13) : dataReader.GetInt32(14);
             dbConnection.Close();
             traderOfferText.text = "I request your " + tradeDemandQty + " " + demandItem + " in return for " + tradeOfferQty + " " + offerItem;
 
@@ -1254,7 +1210,7 @@ namespace RestPhase{
                 RefreshScreen();
                 ChangeTime();
 
-                int traderChange = Random.Range(1,6);
+                int traderChange = Random.Range(1,6) + paranoidPresent;
                 if(traderChange <= 2){
                     acceptButton.interactable = true;
                     declineButton.interactable = true;
@@ -1268,6 +1224,8 @@ namespace RestPhase{
                     tradeReturnButton.interactable = true;
                 }
                 traderText.text = traderChange <= 2 ? "A trader appeared making the following offer:" : "No one appeared.";
+                traderText.text = traderChange <= 2 && paranoidPresent == 1 ? "The group's paranoia has paid off with the generous offer.\n" + traderText.text : traderText.text;
+                traderText.text = traderChange == 3 && paranoidPresent == 1 ? "A trader appeared but the group's paranoia drives them off." : traderText.text;
             }
 
             // Resting

@@ -126,9 +126,9 @@ namespace UI{
             "Increasing the group's morale will be easier."
         };
 
-        // List of traits (charming, paranoid, civilized, bandit, hot headed, creative)
+        // List of traits (charming, paranoid, optimist, bandit, hot headed, creative)
         private List<string> traitDescs = new List<string>(){
-            "Smooth-talk traders on the road for better deals.", "More wary of the world and strangers around them.", "Will look for peaceful solutions to problems.",  
+            "Smooth-talk traders on the road for better deals.", "More wary of the world and strangers around them.", "Starts with higher morale.",  
             "Will not feel guilty about destructive choices.", "Stronger, but will get into more arguments.", "Will solve problems in a 'creative' manner."  
         };
 

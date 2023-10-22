@@ -54,6 +54,10 @@ namespace CombatPhase{
         [SerializeField]
         private GameObject enemyPrefab;
 
+        [Tooltip("Boss enemy object")]
+        [SerializeField]
+        private GameObject bossEnemyPrefab;
+
         [Tooltip("Cameras used during combat phase")]
         [SerializeField]
         private GameObject[] combatCamera;
@@ -294,13 +298,14 @@ namespace CombatPhase{
 
             dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT leaderHealth, friend1Name, friend2Name, friend3Name, leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT leaderHealth, friend1Name, friend2Name, friend3Name, friend1Perk, friend2Perk, friend3Perk, friend1Trait, friend2Trait, " + 
+                                             "friend3Trait, leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
             playerHealthBar.value = dataReader.GetInt32(0);
             playerHealthText.text = "HP: " + playerHealthBar.value + "/100";
-            LeaderName = dataReader.GetString(4);
+            LeaderName = dataReader.GetString(10);
 
             // Load AI teammates in
             for(int i = 1; i <= 3; i++){
@@ -312,6 +317,8 @@ namespace CombatPhase{
                     t.leader = player.GetComponent<Player>();
                     t.SetDetectionRange(15.0f);
                     t.usingGun = true;
+                    t.isSharpshooter = dataReader.GetInt32(i+3) == 1;
+                    t.isHotHeaded = dataReader.GetInt32(i+6) == 4;
                     teammates.Add(t);
                 }
             }
@@ -337,7 +344,16 @@ namespace CombatPhase{
                 // Final combat section
                 else if(TravelLoop.InFinalCombat){
                     InitializeDefenceMission(9);
-                    SpawnEntity(4, false, false);
+                    GameObject bossObj = SpawnEntity(4, false, false);
+
+                    Mutant m = bossObj.GetComponent<Mutant>();
+                    float upperBoundDetection = diff == 1 || diff == 3 ? 10.0f : 16.0f;
+
+                    m.SetDetectionRange(Random.Range(10.0f, upperBoundDetection));
+                    m.SetDestination(m.gameObject.transform.position);
+                    m.SetHP(Random.Range(30,45));
+                    int damage = diff == 1 || diff == 3 ? Random.Range(10,15) : Random.Range(15,20);
+                    m.SetStrength(damage);
                 }
                 // Spawn enemies if a defence job
                 else{
@@ -542,7 +558,7 @@ namespace CombatPhase{
                 spawnSelected = Random.Range(0, spawnPointsOfInterest.Length);
             }
             else if(type == 4 && TravelLoop.InFinalCombat){
-                toSpawn = null;
+                toSpawn = bossEnemyPrefab;
                 spawnSelected = Random.Range(0, spawnPointsOfInterest.Length);
             }
             else{

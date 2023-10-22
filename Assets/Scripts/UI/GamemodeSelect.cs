@@ -79,7 +79,7 @@ namespace UI{
         public static List<string> Perks = new List<string>(){"Mechanic", "Sharpshooter", "Health Care", "Surgeon", "Programmer", "Musician"};
         
         // Trait list
-        public static List<string> Traits = new List<string>(){"Charming", "Paranoid", "Civilized", "Bandit", "Hot Headed", "Creative"};
+        public static List<string> Traits = new List<string>(){"Charming", "Paranoid", "Optimist", "Bandit", "Hot Headed", "Creative"};
 
         // Mode list
         private List<string> modes = new List<string>(){"Standard", "Deadlier", "Standard Custom", "Deadlier Custom"};

@@ -110,6 +110,16 @@ namespace AI{
         /// </summary> 
         private AudioSource shootingAudio;
 
+        /// <summary>
+        /// If player has sharpshooter perk
+        /// </summary>
+        public bool isSharpshooter;
+
+        /// <summary>
+        /// If player has hotheaded trait
+        /// </summary>
+        public bool isHotHeaded;
+
         protected override void Start(){
             base.Start();
             InitializeCharacter();
@@ -120,6 +130,7 @@ namespace AI{
             shootingAudio = GetComponents<AudioSource>()[0];
 
             physicalDamageOutput = CombatManager.PhysSelected == 3 ? 1 : CombatManager.PhysSelected == 4 ? 2 : 3;
+            physicalDamageOutput += isHotHeaded ? 3 : 0;
         }
 
         /// <summary>
@@ -277,6 +288,11 @@ namespace AI{
             projectile.Shooter = gameObject;
             projectile.Velocity = gun == 0 || gun == 1 ? 20 : 15;
             projectile.Damage = gun == 0 ? 2 : gun == 2 ? 4 : 6;
+
+            // 40% of piercing if a sharpshooter 
+            if(isSharpshooter && Random.Range(1,101) <= 40){
+                projectile.Damage += 5;
+            }
 
             // Shoot 2 additional bullets if using a shotgun, 45 degrees left and right of the main one
             if(gun == 2){
