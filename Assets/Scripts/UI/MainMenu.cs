@@ -117,7 +117,7 @@ namespace UI
             // Temp list to track which ids are used
             List<int> ids = new List<int>(){0,1,2,3};
 
-            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -157,7 +157,7 @@ namespace UI
         /// <param name="id">The id of the save file specified in the editor</param>
         public void AccessGame(int id){
             idFound = false;
-            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
             idFound = GameDatabase.MatchId(dbCommandReadValues, id);
@@ -224,7 +224,7 @@ namespace UI
         public void SetFileDesc(){
             string diff = "";
             List<int> nullFiles = new List<int>();
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT id FROM ActiveCharactersTable WHERE leaderName is NULL";
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -240,7 +240,7 @@ namespace UI
             }
             targetFile = -1;
 
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT SaveFilesTable.id, leaderName, distance, location, difficulty FROM SaveFilesTable LEFT JOIN ActiveCharactersTable" + 
                                               " ON SaveFilesTable.charactersId = ActiveCharactersTable.id";
@@ -270,7 +270,7 @@ namespace UI
         /// Replace the file
         /// </summary>
         public void ReplaceFile(){
-            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
             dbCommandInsertValue.CommandText = "REPLACE INTO SaveFilesTable(id, charactersId) VALUES (" + targetFile + ", " + targetFile + ")";
             dbCommandInsertValue.ExecuteNonQuery();
@@ -299,31 +299,31 @@ namespace UI
         public void DeleteFile(){
             targetFile = GameLoop.FileId == -1 ? targetFile : GameLoop.FileId;
 
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM SaveFilesTable WHERE id = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM ActiveCharactersTable WHERE id = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM CarsTable WHERE id = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM TownTable WHERE id = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreatePerishedCustomAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandDeleteValue = dbConnection.CreateCommand();
             dbCommandDeleteValue.CommandText = "DELETE FROM PerishedCustomTable WHERE saveFileId = " + targetFile + ";";
             dbCommandDeleteValue.ExecuteNonQuery();
@@ -361,7 +361,7 @@ namespace UI
             startingPartnerMorale += GamemodeSelect.PartnerTrait == 2 ? 15 : 0; 
 
             // Create table of active characters as a separate table
-            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
             dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO ActiveCharactersTable(id, leaderName, leaderPerk, leaderTrait, leaderColor, leaderAcc, leaderHat, leaderOutfit, leaderMorale, leaderHealth, " +
                                                "friend1Name, friend1Perk, friend1Trait, friend1Color, friend1Acc, friend1Hat, friend1Outfit, friend1Morale, friend1Health, customIdLeader, customId1) VALUES (" + 
@@ -373,7 +373,7 @@ namespace UI
             dbCommandInsertValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, carId, distance, difficulty, location, inPhase, food, gas, scrap, " +
                                                 "money, medkit, tire, battery, ammo, time, overallTime, rations, speed) VALUES (" + targetFile + ", " + targetFile + ", " + targetFile + ", 0, " + 
@@ -384,7 +384,7 @@ namespace UI
 
             Town start = new Town();
 
-            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO TownTable(id, foodPrice, gasPrice, scrapPrice, medkitPrice, tirePrice, batteryPrice, ammoPrice, " +
                                                "foodStock, gasStock, scrapStock, medkitStock, tireStock, batteryStock, ammoStock, side1Reward, side1Qty, side1Diff, side1Type, " +
@@ -403,7 +403,7 @@ namespace UI
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO CarsTable(id, carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2, isBatteryDead, isTireFlat) VALUES" +
                                                "(" + targetFile + ", 100, 0, 0, 0, 0, 0, 0, 0, 0)";

@@ -14,16 +14,16 @@ namespace CombatPhase.ProceduralGeneration.Data{
         public Vector2 offset;
 
         #if UNITY_EDITOR
-        protected override void OnValidate(){
-            if(lacunarity < 1){
-                lacunarity = 1;
-            }
-            if(octaves < 0){
-                octaves = 0;
-            }
+            protected override void OnValidate(){
+                if(lacunarity < 1){
+                    lacunarity = 1;
+                }
+                if(octaves < 0){
+                    octaves = 0;
+                }
 
-            base.OnValidate();
-        }
+                base.OnValidate();
+            }
         #endif
     }
 }

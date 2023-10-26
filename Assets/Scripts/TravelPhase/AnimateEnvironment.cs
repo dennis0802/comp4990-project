@@ -56,7 +56,7 @@ namespace TravelPhase{
         /// Set the movement speed of items in the travel phase
         /// </summary>
         void SetMovementSpeed(){
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT speed FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();

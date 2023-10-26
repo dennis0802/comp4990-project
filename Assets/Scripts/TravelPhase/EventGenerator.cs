@@ -28,15 +28,13 @@ namespace TravelPhase{
             string msg = "";
 
             // Get difficulty, perks, and traits, some events will play differently depending on it (more loss, more damage, etc.)
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT difficulty FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
             int diff = dataReader.GetInt32(0);
-            dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
@@ -60,12 +58,10 @@ namespace TravelPhase{
                     livingMembers.Add(i);
                 }
             } 
-            dbConnection.Close(); 
 
             // 1-30 are base events, 31-40 depend on if someone in the party has a trait.
             // 4/44 possibility for a random player to take extra damage (Ex. Bob breaks a rib/leg)
             if(eventChance <= 4){
-                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT miscUpgrade2 FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -73,9 +69,6 @@ namespace TravelPhase{
 
                 int cushioned = dataReader.GetInt32(0);
 
-                dbConnection.Close();
-
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -110,7 +103,6 @@ namespace TravelPhase{
             }
             // 3/44 possibility for a random resource type decay more (ex. 10 cans of gas goes missing. Everyone blames Bob.)
             else if(eventChance <= 7){
-                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT toolUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -122,9 +114,6 @@ namespace TravelPhase{
                     return "";
                 }
                 else{
-                    dbConnection.Close();
-                    
-                    dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                     dbCommandReadValue = dbConnection.CreateCommand();
                     dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
                     dataReader = dbCommandReadValue.ExecuteReader();
@@ -181,8 +170,6 @@ namespace TravelPhase{
                     dbCommandUpdateValue.CommandText = commandText;
                     dbCommandUpdateValue.ExecuteNonQuery();
 
-                    dbConnection.Close();
-                    dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                     dbCommandReadValue = dbConnection.CreateCommand();
                     dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                     dataReader = dbCommandReadValue.ExecuteReader();
@@ -215,7 +202,6 @@ namespace TravelPhase{
             }
             // 3/44 possibility for the car to take more damage (ex. The car drives over some rough terrain)
             else if(eventChance <= 10){
-                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT carHp FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -234,7 +220,6 @@ namespace TravelPhase{
             }
             // 3/44 possibility for more resources to be found (ex. Bob finds 10 cans of gas in an abandoned car)
             else if(eventChance <= 13){
-                dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -267,8 +252,6 @@ namespace TravelPhase{
                 dbCommandUpdateValue.CommandText = commandText;
                 dbCommandUpdateValue.ExecuteNonQuery();
 
-                dbConnection.Close();
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -301,7 +284,6 @@ namespace TravelPhase{
             // 5/44 possibility to find a new party member (ex. The party meets Bob. They have the Perk surgeon and Trait paranoid.)
             else if(eventChance <= 18){
                 // Check that a slot is available.
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT friend1Name, friend2Name, friend3Name, customIdLeader, customId1, customId2, customId3 FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -321,15 +303,10 @@ namespace TravelPhase{
                     string name = "", perkRoll = "", traitRoll = "";
                     int index = names.IndexOf(names.Where(n => Equals(n, "_____TEMPNULL")).First());
                     
-                    dbConnection.Close();
-                    dbConnection = GameDatabase.CreatePerishedCustomAndOpenDatabase();
                     dbCommandReadValue = dbConnection.CreateCommand();
                     dbCommandReadValue.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
                     int deadCount = Convert.ToInt32(dbCommandReadValue.ExecuteScalar());
 
-                    dbConnection.Close();
-
-                    dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
                     dbCommandReadValue = dbConnection.CreateCommand();
                     dbCommandReadValue.CommandText = "SELECT COUNT(*) FROM CustomCharactersTable";
                     int customCharacterCount = Convert.ToInt32(dbCommandReadValue.ExecuteScalar());
@@ -370,9 +347,6 @@ namespace TravelPhase{
                         name = dataReader.GetString(1);
                         perkRoll = GamemodeSelect.Perks[perk];
                         traitRoll = GamemodeSelect.Traits[trait];
-
-                        dbConnection.Close();
-                        dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                     }
                     
                     string commandText = "UPDATE ActiveCharactersTable SET friend" + (index+1) + "Name = '" + name + "', friend" + (index+1) + "Perk = " + perk + 
@@ -385,8 +359,6 @@ namespace TravelPhase{
 
                     // Add a medkit if healthcare trait.
                     if(perk == 2){
-                        dbConnection.Close();
-                        dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                         dbCommandUpdateValue = dbConnection.CreateCommand();
                         dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET medkit = medkit + 1 WHERE id = " + GameLoop.FileId;
                         dbCommandUpdateValue.ExecuteNonQuery();
@@ -402,7 +374,6 @@ namespace TravelPhase{
             // 1/44 possibility for an upgrade to be found. (ex. The party searches an abandoned car and finds nothing of interest.)
             else if(eventChance <= 19){
                 // Check that a slot is available.
-                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
                                                     GameLoop.FileId;
@@ -443,7 +414,6 @@ namespace TravelPhase{
             }
             // 2/44 possibility for party-wide damage. (ex. The party cannot find clean water. Everyone is dehydrated.)
             else if(eventChance <= 21){
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -468,7 +438,6 @@ namespace TravelPhase{
             // 3/44 possibility for a tire to go flat
             else if(eventChance <= 24){
                 // If the car has upgraded tires, display the attempt at popping the tire.
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT wheelUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -478,9 +447,6 @@ namespace TravelPhase{
                     msg = "The car goes over some rough terrain but the durable tires remain intact.";
                 }
                 else{
-                    dbConnection.Close();
-
-                    dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                     dbCommandReadValue = dbConnection.CreateCommand();
                     dbCommandReadValue.CommandText = "SELECT tire FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
                     dataReader = dbCommandReadValue.ExecuteReader();
@@ -497,9 +463,6 @@ namespace TravelPhase{
                         msg = "The car goes over some rough terrain and the tire pops.\nYou replace your flat tire.";
                     }
                     else{
-                        dbConnection.Close();
-
-                        dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                         string commandText = "UPDATE CarsTable SET isTireFlat = 1 WHERE id = " + GameLoop.FileId;
                         IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                         dbCommandUpdateValue.CommandText = commandText;
@@ -512,7 +475,6 @@ namespace TravelPhase{
             // 3/44 possibility for a car battery to die.
             else if(eventChance <= 27){
                 // If the car has upgraded battery, display the attempt at breaking.
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT batteryUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -522,9 +484,6 @@ namespace TravelPhase{
                     msg = "The car battery starts making noises but go away after some time.";
                 }
                 else{
-                    dbConnection.Close();
-                    
-                    dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
                     dbCommandReadValue = dbConnection.CreateCommand();
                     dbCommandReadValue.CommandText = "SELECT battery FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
                     dataReader = dbCommandReadValue.ExecuteReader();
@@ -541,9 +500,6 @@ namespace TravelPhase{
                         msg = "There is smoke coming from the hood - the car battery is dead.\nYou replace your dead battery.";
                     }
                     else{
-                        dbConnection.Close();
-
-                        dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                         string commandText = "UPDATE CarsTable SET isBatteryDead = 1 WHERE id = " + GameLoop.FileId;
                         IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                         dbCommandUpdateValue.CommandText = commandText;
@@ -555,7 +511,6 @@ namespace TravelPhase{
             }
             // 3/44 possibility for someone (other than the leader) with low morale to ditch. Cases where morale is high, treat as a typical drive with no evet
             else if(eventChance <= 30){
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -596,7 +551,6 @@ namespace TravelPhase{
                 List<int> partyMorale = new List<int>();
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
 
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -628,7 +582,6 @@ namespace TravelPhase{
                 List<int> partyMorale = new List<int>();
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
 
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -659,7 +612,6 @@ namespace TravelPhase{
                 int nameIndex = availableTraits.IndexOf(4), hurtMember = 0;
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
 
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -694,7 +646,6 @@ namespace TravelPhase{
                     return "";
                 }
 
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -728,7 +679,6 @@ namespace TravelPhase{
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
                 string solType = availableTraits.Where(t => t == 5).Count() > 0 ? "creative" : "systematic and thought-out";
 
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -738,7 +688,6 @@ namespace TravelPhase{
                 dbConnection.Close();
 
                 // Check that a slot is available.
-                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
                                                     GameLoop.FileId;
@@ -773,6 +722,7 @@ namespace TravelPhase{
                     msg = name + " has a " + solType + " solution for a car upgrade and succeeds.";
                 }
                 else{
+                    dbConnection.Close();
                     return "";
                 }
                 dbConnection.Close();
@@ -780,12 +730,10 @@ namespace TravelPhase{
             // 2/44 possibility for a combat event to occur if travelling with higher or more activity
             else if(eventChance <= 42 && GameLoop.Activity >= 3){
                 msg = "You suddenly find yourself surrounded by mutants.";
-                Debug.Log("Trigger combat event here");
             }
             // 2/44 possibility for someone to be pulled out of the car and left for dead if travelling with ravenous activity
             // Morale will determine if member fights them off.
             else if(eventChance <= 44 && GameLoop.Activity == 4){
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();

@@ -305,7 +305,7 @@ namespace CombatPhase{
         private void InitializeCharacter(){
             UpdateModel();
 
-            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT leaderAcc, leaderOutfit, leaderColor, leaderHat, leaderName, leaderHealth FROM ActiveCharactersTable WHERE id = " +
                                              GameLoop.FileId;
@@ -378,7 +378,7 @@ namespace CombatPhase{
             playerHealthBar.value = hp;
             playerHealthText.text = "HP: " + hp.ToString() + "/100";
 
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT ammo FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();

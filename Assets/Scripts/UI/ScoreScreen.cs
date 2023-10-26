@@ -47,7 +47,7 @@ namespace UI{
         /// Clear the scores in the database.
         /// </summary>
         public void ClearScore(){
-            IDbConnection dbConnection = GameDatabase.CreateLocalHighScoreAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandDeleteValues = dbConnection.CreateCommand();
             dbCommandDeleteValues.CommandText = "DELETE FROM LocalHighscoreTable";
             dbCommandDeleteValues.ExecuteNonQuery();
@@ -60,7 +60,7 @@ namespace UI{
         /// Update the score screen
         /// </summary>
         private void UpdateScreen(){
-            IDbConnection dbConnection = GameDatabase.CreateLocalHighScoreAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM LocalHighscoreTable";
             int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar());

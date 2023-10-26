@@ -272,7 +272,7 @@ namespace CombatPhase{
                 }
             }
 
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT difficulty FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
@@ -296,7 +296,7 @@ namespace CombatPhase{
             pickupSpawnPoints = GameObject.FindGameObjectsWithTag("PickupSpawn");
             player = SpawnEntity(2, true, false);
 
-            dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT leaderHealth, friend1Name, friend2Name, friend3Name, friend1Perk, friend2Perk, friend3Perk, friend1Trait, friend2Trait, " + 
                                              "friend3Trait, leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
@@ -326,7 +326,7 @@ namespace CombatPhase{
 
             // Job settings
             if(RestMenu.JobNum != 0){
-                dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT side" + RestMenu.JobNum + "Diff, side" + RestMenu.JobNum + "Type FROM TownTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -381,7 +381,7 @@ namespace CombatPhase{
                 medkitFound = player.GetComponent<Player>().suppliesGathered[4], ammoFound = player.GetComponent<Player>().suppliesGathered[5] * 10;
 
             // Update the database
-            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
 
             // Update player count (check if any teammates perished)
             if(DeadMembers.Count > 0){
@@ -421,7 +421,7 @@ namespace CombatPhase{
             dbConnection.Close();
             
             // Manage rations with the hour that passed during scavenging
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT food, time, rations FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();

@@ -10,6 +10,7 @@ namespace Database{
     {
         // Instance of the database
         private static GameDatabase databaseInstance;
+        private string[] tables = {"SaveFilesTable", "TownTable", "CarsTable", "PerishedCustomTable", "ActiveCharactersTable"};
 
         // Start is called before the first frame update
         void Start()
@@ -21,31 +22,112 @@ namespace Database{
             else{
                 Destroy(gameObject);
             }
+            IDbConnection dbConnection;
 
-            IDbConnection dbConnection = CreateSavesAndOpenDatabase();
+            dbConnection = CreateLocalHighScoreAndOpenDatabase();
             dbConnection.Close();
             dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
-            dbConnection = CreateActiveCharactersAndOpenDatabase();
+
+            Debug.Log("Check that critical tables exist");
+            if(!CheckTablesExist()){
+                foreach(string name in tables){
+                    DropAndCreateTable(name);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Open connection to the database
+        /// </summary>
+        public static IDbConnection OpenDatabase(){
+            string dbUri = "URI=file:GameData.sqlite";
+            IDbConnection dbConnection = new SqliteConnection(dbUri);
+            dbConnection.Open();
+
+            return dbConnection;
+        }
+
+        /// <summary>
+        /// Check that critical tables have been created (local high score and custom characters are not critical)
+        /// </summary>
+        /// <returns>True if all tables exist, false otherwise</returns>
+        private bool CheckTablesExist(){
+            foreach(string name in tables){
+                if(!DoesTableExist(name)){
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Drop and create critical table
+        /// </summary>
+        /// <param name="name">The name of a table</param>
+        private void DropAndCreateTable(string name){
+            IDbConnection dbConnection = OpenDatabase();
+            IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
+            dbCommandCreateTable.CommandText = "PRAGMA foreign_keys = OFF; DROP TABLE IF EXISTS " + name + "; PRAGMA foreign_keys = ON;";
+            dbCommandCreateTable.ExecuteNonQuery();
+
+            switch(name){
+                case "SaveFilesTable":
+                    CreateSavesAndOpenDatabase();
+                    break;
+                case "TownTable":
+                    CreateTownAndOpenDatabase();
+                    break;
+                case "CarsTable":
+                    CreateCarsAndOpenDatabase();
+                    break;
+                case "PerishedCustomTable":
+                    CreatePerishedCustomAndOpenDatabase();
+                    break;
+                case "ActiveCharactersTable":
+                    CreateActiveCharactersAndOpenDatabase();
+                    break;
+                default:
+                    #if UNITY_EDITOR
+                        Debug.LogError("Table does not exist");
+                        UnityEditor.EditorApplication.isPlaying = false;
+                    #else
+                        UnityEngine.Application.Quit();
+                    #endif
+                    break;
+            }
+
             dbConnection.Close();
-            dbConnection = CreateLocalHighScoreAndOpenDatabase();
-            dbConnection.Close();
-            dbConnection = CreateCarsAndOpenDatabase();
-            dbConnection.Close();
-            dbConnection = CreateTownAndOpenDatabase();
-            dbConnection.Close();
-            dbConnection = CreatePerishedCustomAndOpenDatabase();
-            dbConnection.Close();
+        }
+
+        /// <summary>
+        /// Check if a specified table exists
+        /// </summary>
+        /// <param name="name">The name of a table</param>
+        /// <returns>True if select query can be performed, false otherwise</returns>
+        private bool DoesTableExist(string name){
+            IDbConnection dbConnection = OpenDatabase();
+            IDbCommand dbCheckTable = dbConnection.CreateCommand();
+            dbCheckTable.CommandText = "";
+
+            try {
+                dbCheckTable.CommandText = "SELECT * FROM " + name;
+                dbCheckTable.ExecuteReader();
+                dbConnection.Close();
+                return true;
+            } catch (SqliteException e) {
+                dbConnection.Close();
+                return false;
+            }
         }
 
         /// <summary>
         /// Create and open a connection to the database to access custom characters
         /// </summary>
-        public static IDbConnection CreateCustomAndOpenDatabase(){
+        private IDbConnection CreateCustomAndOpenDatabase(){
             // Open connection to database
-            string dbUri = "URI=file:GameData.sqlite";
-            IDbConnection dbConnection = new SqliteConnection(dbUri);
-            dbConnection.Open();
+            IDbConnection dbConnection = OpenDatabase();
 
             // Create a table for the save files in the databases if it doesn't exist yet
             // Fields: id (character id), name, perk, trait, and physical attributes.
@@ -60,11 +142,9 @@ namespace Database{
         /// <summary>
         /// Create and open a connection to the database to access save files
         /// </summary>
-        public static IDbConnection CreateSavesAndOpenDatabase(){
+        private IDbConnection CreateSavesAndOpenDatabase(){
             // Open connection to database
-            string dbUri = "URI=file:GameData.sqlite";
-            IDbConnection dbConnection = new SqliteConnection(dbUri);
-            dbConnection.Open();
+            IDbConnection dbConnection = OpenDatabase();
 
             // Create a table for the save files in the databases if it doesn't exist yet
             // Fields: id (file id), character id (character table for this file), car id (table for this file)distance travelled, difficulty played, current location, 
@@ -82,11 +162,9 @@ namespace Database{
         /// <summary>
         /// Create and open a connection to the database to access active players
         /// </summary>
-        public static IDbConnection CreateActiveCharactersAndOpenDatabase(){
+        private IDbConnection CreateActiveCharactersAndOpenDatabase(){
             // Open connection to database
-            string dbUri = "URI=file:GameData.sqlite";
-            IDbConnection dbConnection = new SqliteConnection(dbUri);
-            dbConnection.Open();
+            IDbConnection dbConnection = OpenDatabase();
 
             // Create a table for the save files in the databases if it doesn't exist yet
             // Fields: id (character table for this file), leader's perk, leader's trait, leader's physical physical attributes, morale, and health.
@@ -106,11 +184,9 @@ namespace Database{
         /// <summary>
         /// Create and open a connection to the database to access active cars
         /// </summary>
-        public static IDbConnection CreateCarsAndOpenDatabase(){
+        private IDbConnection CreateCarsAndOpenDatabase(){
             // Open connection to database
-            string dbUri = "URI=file:GameData.sqlite";
-            IDbConnection dbConnection = new SqliteConnection(dbUri);
-            dbConnection.Open();
+            IDbConnection dbConnection = OpenDatabase();
 
             // Create a table for the cars in the database if it doesn't exist yet
             // Fields: id (car table for this file), wheel upgrade, battery upgrade, engine upgrade, tool upgrade, misc 1, misc 2.
@@ -122,11 +198,9 @@ namespace Database{
             return dbConnection;
         }
 
-        public static IDbConnection CreateTownAndOpenDatabase(){
+        private IDbConnection CreateTownAndOpenDatabase(){
             // Open connection to database
-            string dbUri = "URI=file:GameData.sqlite";
-            IDbConnection dbConnection = new SqliteConnection(dbUri);
-            dbConnection.Open();
+            IDbConnection dbConnection = OpenDatabase();
 
             // Create a table for town data (shop prices [selling to towns will be the ceiling 40% of the buy price])
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();
@@ -143,11 +217,9 @@ namespace Database{
         /// <summary>
         /// Create and open a connection to the database to access local highscores
         /// </summary>
-        public static IDbConnection CreateLocalHighScoreAndOpenDatabase(){
+        private IDbConnection CreateLocalHighScoreAndOpenDatabase(){
             // Open connection to database
-            string dbUri = "URI=file:GameData.sqlite";
-            IDbConnection dbConnection = new SqliteConnection(dbUri);
-            dbConnection.Open();
+            IDbConnection dbConnection = OpenDatabase();
 
             // Create a table for local high scores
             // Fields: id, the leader's name, the difficulty played, the distance travelled, the number of friends they survived with, and overall score.
@@ -161,11 +233,9 @@ namespace Database{
         /// <summary>
         /// Create and open a connection to the database to access custom characters that have perished in save files
         /// </summary>
-        public static IDbConnection CreatePerishedCustomAndOpenDatabase(){
+        private IDbConnection CreatePerishedCustomAndOpenDatabase(){
             // Open connection to database
-            string dbUri = "URI=file:GameData.sqlite";
-            IDbConnection dbConnection = new SqliteConnection(dbUri);
-            dbConnection.Open();
+            IDbConnection dbConnection = OpenDatabase();
 
             // Create a table for the custom characters that have perished in save files in the database if it doesn't exist yet
             IDbCommand dbCommandCreateTable = dbConnection.CreateCommand();

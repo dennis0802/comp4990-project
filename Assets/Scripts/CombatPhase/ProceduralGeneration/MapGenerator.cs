@@ -23,11 +23,13 @@ namespace CombatPhase.ProceduralGeneration {
         Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
         Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
 
-        void OnValuesUpdated(){
-            if(!Application.isPlaying){
-                DrawMapInEditor();
+        #if UNITY_EDITOR
+            void OnValuesUpdated(){
+                if(!Application.isPlaying){
+                    DrawMapInEditor();
+                }
             }
-        }
+        #endif
 
         public int mapChunkSize{
             get{
@@ -40,11 +42,12 @@ namespace CombatPhase.ProceduralGeneration {
             }
         }
 
-        #if UNITY_EDITOR
+
         /// <summary>
         /// Draw the map into the editor, as noise, color, or mesh.
         /// </summary>
         public void DrawMapInEditor(){
+            #if UNITY_EDITOR
             if(SceneManager.GetActiveScene().buildIndex == 3 || Equals(SceneManager.GetActiveScene().name, "Test")){
                 MapData mapData = GenerateMapData(Vector2.zero);
 
@@ -59,8 +62,9 @@ namespace CombatPhase.ProceduralGeneration {
                     display.DrawMesh(MeshGenerator.GenerateTerrainMesh(mapData.heightMap, terrainData.meshHeightMultiplier, terrainData.meshHeightCurve, editorPreviewLOD, terrainData.useFlatShading), TextureGenerator.TextureFromColourMap(mapData.colourMap, mapChunkSize, mapChunkSize));
                 }
             }
+            #endif
         }
-        #endif
+
 
         /// <summary>
         /// Request map data
@@ -155,16 +159,18 @@ namespace CombatPhase.ProceduralGeneration {
             return new MapData(noiseMap, colourMap);
         }
 
-        void OnValidate(){
-            if(terrainData != null){
-                terrainData.OnValuesUpdated -= OnValuesUpdated;
-                terrainData.OnValuesUpdated += OnValuesUpdated;
+        #if UNITY_EDITOR
+            void OnValidate(){
+                if(terrainData != null){
+                    terrainData.OnValuesUpdated -= OnValuesUpdated;
+                    terrainData.OnValuesUpdated += OnValuesUpdated;
+                }
+                if(noiseData != null){
+                    noiseData.OnValuesUpdated -= OnValuesUpdated;
+                    noiseData.OnValuesUpdated += OnValuesUpdated;
+                }
             }
-            if(noiseData != null){
-                noiseData.OnValuesUpdated -= OnValuesUpdated;
-                noiseData.OnValuesUpdated += OnValuesUpdated;
-            }
-        }
+        #endif
 
 
         /// <summary>

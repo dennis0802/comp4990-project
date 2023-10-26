@@ -282,7 +282,7 @@ namespace RestPhase{
             ManageRewards();
 
             // Main menus
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
                                               "WHERE SaveFilesTable.id = " + GameLoop.FileId;
@@ -356,7 +356,7 @@ namespace RestPhase{
             dbConnection.Close();
 
             // Town shop menus
-            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValues.ExecuteReader();
@@ -465,7 +465,7 @@ namespace RestPhase{
             dbConnection.Close();
 
             // Upgrades
-            dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
                                               GameLoop.FileId;
@@ -507,7 +507,7 @@ namespace RestPhase{
                 GameLoop.RationsMode = 1;
             }
             
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET rations = " + GameLoop.RationsMode + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
@@ -525,7 +525,7 @@ namespace RestPhase{
                 GameLoop.Pace = 1;
             }
 
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET speed = " + GameLoop.Pace + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
@@ -575,7 +575,7 @@ namespace RestPhase{
                 leavePopup.SetActive(true);
             }
             else{
-                IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                IDbConnection dbConnection = GameDatabase.OpenDatabase();
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 1 WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
@@ -603,7 +603,7 @@ namespace RestPhase{
         /// Heal a party member using a medkit.
         /// </summary>
         public void UseMedkit(int id){
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
                                               "WHERE SaveFilesTable.id = " + GameLoop.FileId;
@@ -650,7 +650,7 @@ namespace RestPhase{
             if(button == 1){
                 string offered = "", demanded = "";
 
-                IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                IDbConnection dbConnection = GameDatabase.OpenDatabase();
                 IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
                 dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
                 IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -711,7 +711,7 @@ namespace RestPhase{
             
             sellFactor = GameLoop.IsSelling ? -1 : 1;
 
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN TownTable ON SaveFilesTable.id = TownTable.id " + 
                                               "WHERE SaveFilesTable.id = " + GameLoop.FileId;
@@ -788,7 +788,7 @@ namespace RestPhase{
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandUpdateValue.CommandText =  "UPDATE TownTable SET " + updateStockText + inStock + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
@@ -800,7 +800,7 @@ namespace RestPhase{
         /// Check leader status.
         /// </summary>
         public void CheckLeaderStatus(){
-            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -838,7 +838,7 @@ namespace RestPhase{
                 GameLoop.Hour = 1;
             }
 
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT overallTime FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -857,7 +857,7 @@ namespace RestPhase{
         /// Decrement food while performing waiting actions.
         /// </summary>
         private void DecrementFood(){
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health, food, inPhase, " + 
                                               "leaderMorale, friend1Morale, friend2Morale, friend3Morale, customIdLeader, customId1, customId2, customId3 FROM SaveFilesTable " + 
@@ -903,7 +903,7 @@ namespace RestPhase{
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
 
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                                                     ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
@@ -943,7 +943,7 @@ namespace RestPhase{
                 }
                 dbConnection.Close();
 
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbConnection = GameDatabase.OpenDatabase();
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                         ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
@@ -991,7 +991,7 @@ namespace RestPhase{
                 if(flag){
                     dbConnection.Close();
 
-                    dbConnection = GameDatabase.CreatePerishedCustomAndOpenDatabase();
+                    dbConnection = GameDatabase.OpenDatabase();
                     dbCommandReadValues = dbConnection.CreateCommand();
                     dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
                     int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar()); 
@@ -1028,7 +1028,7 @@ namespace RestPhase{
                 }
                 dbConnection.Close();
 
-                dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
@@ -1128,7 +1128,7 @@ namespace RestPhase{
             offerItem = tradeOffer == 1 ? "kg of food" : tradeOffer == 2 ? "cans of gas" : tradeOffer == 3 ? "scrap" : tradeOffer == 4 ? "dollars" :
                         tradeOffer == 5 ? "medkits" : tradeOffer == 6 ? "tires" : tradeOffer == 7 ? "batteries" : "ammo";
 
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -1151,7 +1151,7 @@ namespace RestPhase{
         /// </summary>
         private void ManageRewards(){
             if(CombatManager.SucceededJob){
-                IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+                IDbConnection dbConnection = GameDatabase.OpenDatabase();
                 IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT side" + RestMenu.JobNum + "Qty, side" + RestMenu.JobNum + "Reward FROM TownTable WHERE id = " + GameLoop.FileId;
                 IDataReader dataReader = dbCommandReadValue.ExecuteReader();
@@ -1176,7 +1176,7 @@ namespace RestPhase{
                                reward == 13 ? "medkit" : reward <= 14 ? "tire" : reward == 15 ? " battery" : "ammo";
 
                 // Update the database (change resources and clear the board)
-                dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = reward >= 4 && reward <= 6 ? "UPDATE SaveFilesTable SET " + temp + " = " + temp + " + " + (float)(qty) + " WHERE id = " + GameLoop.FileId
                                                                               : "UPDATE SaveFilesTable SET " + temp + " = " + temp + " + " +  qty + " WHERE id = " + GameLoop.FileId;

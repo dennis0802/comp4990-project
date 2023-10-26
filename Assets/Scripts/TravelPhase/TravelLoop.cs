@@ -149,7 +149,7 @@ namespace TravelPhase{
         /// <param name="id">Id of the button that was clicked.</param>
         public void ConfirmDestination(int id){
             // Update save file
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 1, location = 'The Road' WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
@@ -163,7 +163,7 @@ namespace TravelPhase{
             dbConnection.Close();
             
             // Update town database with new town rolls.
-            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT curTown FROM TownTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
@@ -208,7 +208,7 @@ namespace TravelPhase{
             // Read the database for party info
             string tempPlayerText = "";
 
-            IDbConnection dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT carHp FROM CarsTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
@@ -218,7 +218,7 @@ namespace TravelPhase{
 
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
@@ -244,7 +244,7 @@ namespace TravelPhase{
             playerText.text = tempPlayerText;
 
             // Read the database for travel (key supplies, distance) info
-            dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT curTown, nextDistanceAway, nextTownName FROM TownTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
@@ -255,7 +255,7 @@ namespace TravelPhase{
 
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT time, distance, food, gas, distance FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
@@ -276,7 +276,7 @@ namespace TravelPhase{
         /// Stop the car on the road, switching back to rest menu
         /// </summary>
         public void StopCar(){
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 2 WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
@@ -292,7 +292,7 @@ namespace TravelPhase{
         /// Stop the car on the road because of destination arrival
         /// </summary>
         public void Arrive(){
-            IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT nextTownName FROM TownTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
@@ -302,7 +302,7 @@ namespace TravelPhase{
 
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 0, location = '" + townName + "' WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
@@ -342,7 +342,7 @@ namespace TravelPhase{
         /// </summary>
         /// <returns> True if the car has no battery, a flat tire, or has no hp</returns>
         public static bool IsCarBroken(){
-            IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT carHp, isBatteryDead, isTireFlat FROM CarsTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
@@ -359,7 +359,7 @@ namespace TravelPhase{
         /// </summary>
         /// <returns>True if within 1hr of travel, false otherwise</returns>
         private bool IsCloseToDestination(){
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT distance, speed FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
@@ -369,7 +369,7 @@ namespace TravelPhase{
 
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT nextDistanceAway FROM TownTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
@@ -387,7 +387,7 @@ namespace TravelPhase{
         /// </summary>
         /// <param name="id">Id of the button that was clicked.</param>
         private void UpdateButtons(){
-            IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT curTown FROM TownTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
@@ -422,7 +422,7 @@ namespace TravelPhase{
         /// </summary>
         /// <returns>True if drive had no events from updating, false if drive had events from updating</returns>
         private bool Drive(){
-            IDbConnection dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT nextTownName, nextDistanceAway FROM TownTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -432,7 +432,7 @@ namespace TravelPhase{
             targetTownDistance = dataReader.GetInt32(1);
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT carHp, isBatteryDead, isTireFlat, engineUpgrade, miscUpgrade1 FROM CarsTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValues.ExecuteReader();
@@ -443,7 +443,7 @@ namespace TravelPhase{
 
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT overallTime, speed, distance, rations, tire, battery, gas FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValues.ExecuteReader();
@@ -485,7 +485,7 @@ namespace TravelPhase{
                 repairCommand = battery > 0 && batteryStatus == 1 ? "UPDATE CarsTable SET isBatteryDead = 0 WHERE id = " + GameLoop.FileId : 
                                                                     "UPDATE CarsTable SET isTireFlat = 0 WHERE id = " + GameLoop.FileId;
 
-                dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandUpdateValues = dbConnection.CreateCommand();
                 dbCommandUpdateValues.CommandText = repairCommand;
                 dbCommandUpdateValues.ExecuteNonQuery();
@@ -514,7 +514,7 @@ namespace TravelPhase{
 
             carHP = carHP - decay > 0 ? carHP - decay : 0;
 
-            dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET carHP = " + carHP + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
@@ -522,7 +522,7 @@ namespace TravelPhase{
             dbConnection.Close();
 
             // Characters will always take some damage when travelling, regardless of rations
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
                                               "WHERE SaveFilesTable.id = " + GameLoop.FileId;
@@ -576,7 +576,7 @@ namespace TravelPhase{
             dbConnection.Close();
 
             // Update health changes
-            dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                                                 ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
@@ -596,7 +596,7 @@ namespace TravelPhase{
             if(newDistance == targetTownDistance){
                 PopupActive = true;
                 
-                dbConnection = GameDatabase.CreateTownAndOpenDatabase();
+                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandReadValues = dbConnection.CreateCommand();
                 dbCommandReadValues.CommandText = "SELECT prevTown, curTown FROM TownTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValues.ExecuteReader();
@@ -623,7 +623,7 @@ namespace TravelPhase{
         /// </summary>
         /// <returns>True if someone has perished, false otherwise</returns>
         private bool HasCharacterDied(){
-            IDbConnection dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health, leaderMorale, " +
                                               "friend1Morale, friend2Morale, friend3Morale, customIdLeader, customId1, customId2, customId3 FROM ActiveCharactersTable " + 
@@ -657,7 +657,7 @@ namespace TravelPhase{
             // Check if any character has died.
             string tempDisplayText = "";
 
-            dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                     ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
@@ -714,7 +714,7 @@ namespace TravelPhase{
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
 
-                dbConnection = GameDatabase.CreatePerishedCustomAndOpenDatabase();
+                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandReadValues = dbConnection.CreateCommand();
                 dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
                 int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar()); 

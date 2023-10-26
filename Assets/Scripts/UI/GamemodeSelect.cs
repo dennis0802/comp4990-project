@@ -223,7 +223,7 @@ namespace UI{
                 return;
             }
 
-            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
 
             // Database commands to search for character id
             bool idFound = false;

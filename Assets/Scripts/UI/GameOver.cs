@@ -49,7 +49,7 @@ namespace UI{
         /// </summary>
         private void CalculateScore(){
             // Check for friends alive
-            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT friend1Name, friend2Name, friend3Name, leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
@@ -66,7 +66,7 @@ namespace UI{
             dbConnection.Close();
 
             // Check resources
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT difficulty, distance, food, gas, scrap, money, medkit, tire, battery, ammo, overallTime FROM SaveFilesTable " + 
                                               "WHERE id = " + GameLoop.FileId + ";";
@@ -87,7 +87,7 @@ namespace UI{
             dbConnection.Close();
 
             // Check for the number of high scores - creating a new score means id is one above the highest existing.
-            dbConnection = GameDatabase.CreateLocalHighScoreAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM LocalHighscoreTable";
             int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar());

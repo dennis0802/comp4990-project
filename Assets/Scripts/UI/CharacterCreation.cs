@@ -158,7 +158,7 @@ namespace UI{
             }
             viewedCharacter = accessId;
 
-            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
 
             // Database commands to search for character id
             idFound = false;
@@ -221,7 +221,7 @@ namespace UI{
         /// Save a custom character
         /// </summary>
         private void SaveCharacter(){
-            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
             dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO CustomCharactersTable(id, name, perk, trait, accessory, hat, color, outfit) VALUES (" 
                                                 + viewedCharacter + ", '" + nameField.text + "', " + perkList.value + ", " + traitList.value + ", "
@@ -256,7 +256,7 @@ namespace UI{
         /// Delete a custom character
         /// </summary>
         public void DeleteCharacter(){
-            IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
             dbCommandInsertValue.CommandText = "DELETE FROM CustomCharactersTable WHERE id = " + viewedCharacter + ";";
             dbCommandInsertValue.ExecuteNonQuery();
@@ -310,7 +310,7 @@ namespace UI{
             bool idFound = false;
             for(int i = lowerBound; i <= upperBound; i++){
                 baseId = i - (pageNum - 1) * 9;
-                IDbConnection dbConnection = GameDatabase.CreateCustomAndOpenDatabase();
+                IDbConnection dbConnection = GameDatabase.OpenDatabase();
                 IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
                 dbCommandReadValues.CommandText = "SELECT id, name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable";
                 IDataReader dataReader = dbCommandReadValues.ExecuteReader();

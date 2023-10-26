@@ -139,7 +139,7 @@ namespace AI{
         private void InitializeCharacter(){
             UpdateModel();
 
-            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();

@@ -143,7 +143,7 @@ namespace RestPhase{
 
             // Update as necessary in the database
             // Check if a mechanic was used.
-            IDbConnection dbConnection = GameDatabase.CreateActiveCharactersAndOpenDatabase();
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
@@ -164,7 +164,7 @@ namespace RestPhase{
                 amountRecovered += 5;
             }
 
-            dbConnection = GameDatabase.CreateCarsAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
@@ -177,7 +177,7 @@ namespace RestPhase{
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
-            dbConnection = GameDatabase.CreateSavesAndOpenDatabase();
+            dbConnection = GameDatabase.OpenDatabase();
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET scrap = scrap - " + scrapUsed + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
