@@ -685,7 +685,6 @@ namespace TravelPhase{
                 dataReader.Read();
 
                 string name = dataReader.GetString(nameIndex), healName = dataReader.GetString(1+9*healMember);
-                dbConnection.Close();
 
                 // Check that a slot is available.
                 dbCommandReadValue = dbConnection.CreateCommand();
@@ -776,6 +775,7 @@ namespace TravelPhase{
             }
             // Capture any events from 32-44 that don't have their other conditions met (living members, perks)
             else if(eventChance <= 44){
+                dbConnection.Close();
                 return "";
             }
 

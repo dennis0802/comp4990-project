@@ -249,6 +249,10 @@ namespace RestPhase{
         [SerializeField]
         private GameObject backgroundPanel;
 
+        [Tooltip("Background displaying landscape")]
+        [SerializeField]
+        private GameObject[] backgroundLandscape;
+
         // To track rest hours on the slider
         private float restHours = 1;
         // To track the coroutine running for waiting actions
@@ -345,6 +349,10 @@ namespace RestPhase{
 
             timeActivityText.text = "Current Time: " + time + timing + "; Activity: " + activity;
 
+            // Background
+            backgroundLandscape[0].SetActive(phaseNum == 0);
+            backgroundLandscape[1].SetActive(phaseNum != 0);
+
             // Car
             scrapRepairText.text = "You have " + scrap + " scrap.";
 
@@ -353,10 +361,7 @@ namespace RestPhase{
                 scrapButtons[i].interactable = scrap >= Mathf.Pow(2, i);
             }
 
-            dbConnection.Close();
-
             // Town shop menus
-            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValues.ExecuteReader();
@@ -462,10 +467,7 @@ namespace RestPhase{
                 }
             }
 
-            dbConnection.Close();
-
             // Upgrades
-            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
                                               GameLoop.FileId;
@@ -786,9 +788,7 @@ namespace RestPhase{
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText =  "UPDATE SaveFilesTable SET " + updateCommandText + onHand + ", " + "money = " + money + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
 
-            dbConnection = GameDatabase.OpenDatabase();
             dbCommandUpdateValue.CommandText =  "UPDATE TownTable SET " + updateStockText + inStock + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
@@ -901,9 +901,7 @@ namespace RestPhase{
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = " + overallFood + " WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
-                dbConnection.Close();
 
-                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                                                     ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
@@ -941,9 +939,7 @@ namespace RestPhase{
                         customIds.Add(-1);
                     }
                 }
-                dbConnection.Close();
 
-                dbConnection = GameDatabase.OpenDatabase();
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                         ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
@@ -989,9 +985,6 @@ namespace RestPhase{
 
                 // Display characters that have died.
                 if(flag){
-                    dbConnection.Close();
-
-                    dbConnection = GameDatabase.OpenDatabase();
                     dbCommandReadValues = dbConnection.CreateCommand();
                     dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
                     int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar()); 
@@ -1026,9 +1019,7 @@ namespace RestPhase{
                     confirmPopup.SetActive(true);
                     this.gameObject.SetActive(false);
                 }
-                dbConnection.Close();
 
-                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
@@ -1164,7 +1155,6 @@ namespace RestPhase{
                 dbCommandUpdateValue.CommandText = "UPDATE TownTable SET side" + JobNum + "Type = 0, side" + JobNum + "Diff = 0, side" + JobNum + "Reward = 0, side" + JobNum 
                                                     + "Qty = 0 WHERE id = " + GameLoop.FileId;
                 dbCommandUpdateValue.ExecuteNonQuery();
-                dbConnection.Close();
 
                 string displayText = "You have received the following for completing the job:\n* " + qty;
 
@@ -1176,7 +1166,6 @@ namespace RestPhase{
                                reward == 13 ? "medkit" : reward <= 14 ? "tire" : reward == 15 ? " battery" : "ammo";
 
                 // Update the database (change resources and clear the board)
-                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = reward >= 4 && reward <= 6 ? "UPDATE SaveFilesTable SET " + temp + " = " + temp + " + " + (float)(qty) + " WHERE id = " + GameLoop.FileId
                                                                               : "UPDATE SaveFilesTable SET " + temp + " = " + temp + " + " +  qty + " WHERE id = " + GameLoop.FileId;

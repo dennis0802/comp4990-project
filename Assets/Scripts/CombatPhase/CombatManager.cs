@@ -289,14 +289,11 @@ namespace CombatPhase{
             spawnEnemyTime = diff == 1 || diff == 3 ? 10.0f : 8.0f;
             spawnEnemyTime += GameLoop.Activity == 1 ? 2.0f : GameLoop.Activity == 2 ? 0.0f : GameLoop.Activity == 3 ? -1.0f : -3.0f;
 
-            dbConnection.Close();
-
             playerSpawnPoints = GameObject.FindGameObjectsWithTag("PlayerSpawn");
             enemySpawnPoints = GameObject.FindGameObjectsWithTag("EnemySpawn");
             pickupSpawnPoints = GameObject.FindGameObjectsWithTag("PickupSpawn");
             player = SpawnEntity(2, true, false);
 
-            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT leaderHealth, friend1Name, friend2Name, friend3Name, friend1Perk, friend2Perk, friend3Perk, friend1Trait, friend2Trait, " + 
                                              "friend3Trait, leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
@@ -322,11 +319,9 @@ namespace CombatPhase{
                     teammates.Add(t);
                 }
             }
-            dbConnection.Close();
 
             // Job settings
             if(RestMenu.JobNum != 0){
-                dbConnection = GameDatabase.OpenDatabase();
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT side" + RestMenu.JobNum + "Diff, side" + RestMenu.JobNum + "Type FROM TownTable WHERE id = " + GameLoop.FileId;
                 dataReader = dbCommandReadValue.ExecuteReader();
@@ -335,7 +330,6 @@ namespace CombatPhase{
                 jobDiff = dataReader.GetInt32(0);
                 JobType = dataReader.GetInt32(1);
 
-                dbConnection.Close();
 
                 // Spawn the target if a collection job
                 if(JobType == 2){
@@ -367,6 +361,8 @@ namespace CombatPhase{
                 int enemiesToSpawn = GameLoop.Activity == 1 ? 5 : GameLoop.Activity == 2 ? 7 : GameLoop.Activity == 3 ? 9 : 11;
                 InitializeDefenceMission(enemiesToSpawn);
             }
+
+            dbConnection.Close();
         }
 
         /// <summary>
@@ -418,10 +414,8 @@ namespace CombatPhase{
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = tempHP;
             dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
             
             // Manage rations with the hour that passed during scavenging
-            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT food, time, rations FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();

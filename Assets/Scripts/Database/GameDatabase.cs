@@ -10,7 +10,7 @@ namespace Database{
     {
         // Instance of the database
         private static GameDatabase databaseInstance;
-        private string[] tables = {"SaveFilesTable", "TownTable", "CarsTable", "PerishedCustomTable", "ActiveCharactersTable"};
+        private string[] criticalTables = {"SaveFilesTable", "TownTable", "CarsTable", "PerishedCustomTable", "ActiveCharactersTable"};
 
         // Start is called before the first frame update
         void Start()
@@ -29,9 +29,8 @@ namespace Database{
             dbConnection = CreateCustomAndOpenDatabase();
             dbConnection.Close();
 
-            Debug.Log("Check that critical tables exist");
             if(!CheckTablesExist()){
-                foreach(string name in tables){
+                foreach(string name in criticalTables){
                     DropAndCreateTable(name);
                 }
             }
@@ -53,7 +52,7 @@ namespace Database{
         /// </summary>
         /// <returns>True if all tables exist, false otherwise</returns>
         private bool CheckTablesExist(){
-            foreach(string name in tables){
+            foreach(string name in criticalTables){
                 if(!DoesTableExist(name)){
                     return false;
                 }
@@ -116,7 +115,7 @@ namespace Database{
                 dbCheckTable.ExecuteReader();
                 dbConnection.Close();
                 return true;
-            } catch (SqliteException e) {
+            } catch (SqliteException) {
                 dbConnection.Close();
                 return false;
             }

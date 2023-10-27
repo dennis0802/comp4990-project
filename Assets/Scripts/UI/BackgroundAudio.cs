@@ -12,7 +12,7 @@ namespace UI{
 
         private static List<AudioClip> BGMs;
 
-        private int currentScene = -1, sceneRead;
+        private int currentScene = -1, sceneRead, prevScene;
         private static bool isPlaying;
         public AudioSource currentlyPlaying;
         public static BackgroundAudio instance;
@@ -30,6 +30,7 @@ namespace UI{
         void Update(){
             sceneRead = SceneManager.GetActiveScene().buildIndex;
             if(currentScene != sceneRead){
+                prevScene = currentScene;
                 currentScene = sceneRead;
                 isPlaying = false;
                 
@@ -38,6 +39,10 @@ namespace UI{
                 }
 
                 else if(currentScene <= 2 && !isPlaying){
+                    // Resting and travelling use the same audio, ignore if going from between the 2
+                    if((prevScene == 1 && currentScene == 2) || (prevScene == 2 && currentScene == 1)){
+                        return;
+                    }
                     LoadAudio(1);
                 }   
 

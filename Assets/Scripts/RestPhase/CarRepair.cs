@@ -95,13 +95,9 @@ namespace RestPhase{
                 // Move the prompts
                 prompts[tries-1].transform.Translate(Vector3.right * speed * Time.deltaTime);
 
-                if(leftClickAction.triggered){
+                if(leftClickAction.triggered || prompts[tries-1].transform.position.x >= 17f){
                     tries--;
                     speed = Random.Range(50,90);
-                    buttonClick.Play();
-                }
-                else if(prompts[tries-1].transform.position.x >= 17f){
-                    tries--;
                     buttonClick.Play();
                 }
             }
@@ -158,13 +154,11 @@ namespace RestPhase{
                     perksFound.Add(-1);
                 }
             }
-            dbConnection.Close();
 
             if(perksFound.Where(p => p == 0).Count() > 0){
                 amountRecovered += 5;
             }
 
-            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();
@@ -175,9 +169,7 @@ namespace RestPhase{
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET carHp = " + newHp + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
 
-            dbConnection = GameDatabase.OpenDatabase();
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET scrap = scrap - " + scrapUsed + " WHERE id = " + GameLoop.FileId;
             dbCommandUpdateValue.ExecuteNonQuery();

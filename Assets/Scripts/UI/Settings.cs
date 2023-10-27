@@ -106,7 +106,7 @@ namespace UI{
 
             // 0 is high, 1 is medium, 2 is low
             switch(flag){
-                case 0:
+                case 2:
                     Screen.SetResolution(1920, 1080, PlayerPrefs.GetInt("IsFullScreen") == 1);
                     PlayerPrefs.SetInt("Resolution", flag);
                     break;
@@ -114,7 +114,7 @@ namespace UI{
                     Screen.SetResolution(1080, 960, PlayerPrefs.GetInt("IsFullScreen") == 1);
                     PlayerPrefs.SetInt("Resolution", flag);
                     break;
-                case 2:
+                case 0:
                     Screen.SetResolution(640, 480, PlayerPrefs.GetInt("IsFullScreen") == 1);
                     PlayerPrefs.SetInt("Resolution", flag);
                     break;

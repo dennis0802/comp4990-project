@@ -316,8 +316,6 @@ namespace CombatPhase{
             hp = dataReader.GetInt32(5);
             nameText.text = dataReader.GetString(4);
 
-            dbConnection.Close();
-
             transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[color-1];
             transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[color-1];
 
@@ -378,7 +376,6 @@ namespace CombatPhase{
             playerHealthBar.value = hp;
             playerHealthText.text = "HP: " + hp.ToString() + "/100";
 
-            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT ammo FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValue.ExecuteReader();

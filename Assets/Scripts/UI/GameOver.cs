@@ -63,10 +63,7 @@ namespace UI{
                 leaderName = dataReader.GetString(3);
             }
 
-            dbConnection.Close();
-
             // Check resources
-            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT difficulty, distance, food, gas, scrap, money, medkit, tire, battery, ammo, overallTime FROM SaveFilesTable " + 
                                               "WHERE id = " + GameLoop.FileId + ";";
@@ -84,10 +81,8 @@ namespace UI{
             // A faster time means a higher score
             finalScore += 1000 - timeTaken > 0 ? 1000 - timeTaken : 0;
             finalScore *= difficulty % 2 == 0 ? 2 : 1;
-            dbConnection.Close();
 
             // Check for the number of high scores - creating a new score means id is one above the highest existing.
-            dbConnection = GameDatabase.OpenDatabase();
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM LocalHighscoreTable";
             int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar());
