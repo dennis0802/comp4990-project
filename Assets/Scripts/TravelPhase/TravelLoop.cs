@@ -85,6 +85,8 @@ namespace TravelPhase{
         private int newTown, targetTownDistance = 0, currentDistance;
         // To track if the log of destinations has been initialized
         private bool logInitialized = false;
+        // Audio source for popups
+        private AudioSource popupSound;
         // To track generated towns
         private List<Town> towns = new List<Town>();
         // To manage destinations
@@ -94,6 +96,10 @@ namespace TravelPhase{
         public static float Timer = 0.0f;
         // Flag for going to combat
         public static bool GoingToCombat = false;
+
+        void Start(){
+            popupSound = GetComponent<AudioSource>();
+        }
 
         void OnEnable(){
             if(!logInitialized){
@@ -115,7 +121,8 @@ namespace TravelPhase{
                 if(Timer >= 8.0f){
                     if(Drive()){
                         int eventChance = Random.Range(1,101);
-                        Debug.Log("Event rolled: " + eventChance + "completed " + System.DateTime.Now.ToString());
+                        //Debug.Log("Event rolled: " + eventChance + "completed " + System.DateTime.Now.ToString());
+                        eventChance = 42;
 
                         // 44/100 chance of generating an event
                         if(eventChance <= 44){
@@ -316,11 +323,13 @@ namespace TravelPhase{
         /// </summary>
         public void ResumeTravel(){
             PopupActive = false;
-            HasCharacterDied();
 
             if(GoingToCombat){
                 CombatManager.PrevMenuRef = this.gameObject;
                 StartCoroutine(GameLoop.LoadAsynchronously(3));
+            }
+            else{
+                HasCharacterDied();
             }
         }
 
@@ -501,7 +510,7 @@ namespace TravelPhase{
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
-            int overallFood = dataReader.GetInt32(7), hpDecay = 0, moraleDecay = 0;
+            int overallFood = dataReader.GetInt32(7), hpDecay = 0, moraleDecay = 1;
             List<int> teamHealth = new List<int>(), teamMorale = new List<int>();
             List<string> names = new List<string>();
 
@@ -622,6 +631,7 @@ namespace TravelPhase{
                     customIds.Add(-1);
                 }
             }
+            dataReader.Close();
 
             // Check if any character has died.
             string tempDisplayText = "";
@@ -798,6 +808,7 @@ namespace TravelPhase{
         /// </summary>
         /// <param name="msg">The message to display on the popup</param>
         private void LaunchPopup(string msg){
+            popupSound.Play();
             popupText.text = msg;
             popup.SetActive(true);
             PopupActive = true;

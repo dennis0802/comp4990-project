@@ -95,7 +95,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 599103b70729d9645901b8d10928254d, type: 2}
+  - {fileID: 2100000, guid: c3fa6f39d29283c46a98ab9d8f7833dc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1135,7 +1135,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 41dbc784b9f8db5459660d1af871ef07, type: 2}
+  - {fileID: 2100000, guid: ec9f44592be717642aad6f9066518006, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1686,6 +1686,8 @@ MonoBehaviour:
   damagedRecently: 0
   allyName: 
   defensivePointUsed: {fileID: 0}
+  isSharpshooter: 0
+  isHotHeaded: 0
 --- !u!114 &2721850336441479092
 MonoBehaviour:
   m_ObjectHideFlags: 0

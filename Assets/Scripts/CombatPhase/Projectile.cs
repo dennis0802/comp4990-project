@@ -82,9 +82,9 @@ namespace CombatPhase{
                 tr = tr.parent;
             } while (mutant == null && tr != null);
 
-            Debug.Log(mutant);
+            //Debug.Log(mutant);
             if(mutant != null){
-                Debug.Log("Mutant hit");
+                //Debug.Log("Mutant hit");
                 mutant.RangedDamage(Damage);
             }
 

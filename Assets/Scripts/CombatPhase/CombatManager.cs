@@ -101,7 +101,7 @@ namespace CombatPhase{
         // To track spawn points for the party, enemies, and pickups
         private GameObject[] playerSpawnPoints, enemySpawnPoints, pickupSpawnPoints;
         // To track the player
-        private GameObject player, ally, restMenu;
+        private GameObject player, ally, restMenu, mainPanel;
         // Difficult and agent index
         private int diff, _currentAgentIndex, jobDiff;
         // Flags for generating the combat world
@@ -145,6 +145,7 @@ namespace CombatPhase{
             NormalReticle.SetActive(false);
             mapGenerator = FindObjectOfType<MapGenerator>();
             mapGenerator.noiseData.seed = Random.Range(0,10000);
+            panel = GameObject.FindWithTag("MainPanel");
         }
 
         // Update is called once per frame
@@ -442,7 +443,10 @@ namespace CombatPhase{
 
             string temp = "";
             // Display final results
-            if(RestMenu.JobNum == 0){
+            if(TravelLoop.GoingToCombat){
+                temp += "You successfully defended your party.\n";
+            }
+            else if(RestMenu.JobNum == 0){
                 temp += "You collected:\n";
                 temp += foodFound > 0 ? "* " + foodFound + " kg of food\n" : "";
                 temp += gasFound > 0 ? gasFound == 1 ? "* " + gasFound + " can of gas\n" : "* " + gasFound + " cans of gas\n" : "";
@@ -455,9 +459,6 @@ namespace CombatPhase{
             }
             else if(RestMenu.JobNum != 0){
                 temp += "You successfully completed the task.\n";
-            }
-            else if(TravelLoop.GoingToCombat){
-                temp += "You successfully defended your party.\n";
             }
             else if(TravelLoop.InFinalCombat){
                 temp += "You successfully arrive in Vancouver.\n";
@@ -491,11 +492,12 @@ namespace CombatPhase{
                 SceneManager.LoadScene(1);
             }
             else if(TravelLoop.InFinalCombat){
-                UnloadCombat();
                 GameLoop.GameOverScreen.SetActive(true);
-                RestMenu.Panel.SetActive(true);
+                mainPanel.SetActive(true);
             }
-            else{
+            else if(TravelLoop.GoingToCombat){
+                TravelLoop.GoingToCombat = false;
+                mainPanel.SetActive(false);
                 SceneManager.LoadScene(2);
             }
             PrevMenuRef.SetActive(true);
@@ -507,8 +509,7 @@ namespace CombatPhase{
         private void UnloadCombat(){
             InCombat = false;
             CombatEnvironment.SetActive(false);
-            RestMenu.Panel.SetActive(true);
-            TravelLoop.GoingToCombat = false;
+            mainPanel.SetActive(true);
             combatCamera[0].SetActive(false);
             combatCamera[1].SetActive(false);
             combatText.gameObject.SetActive(false);

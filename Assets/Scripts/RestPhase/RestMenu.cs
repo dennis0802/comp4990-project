@@ -253,6 +253,10 @@ namespace RestPhase{
         [SerializeField]
         private GameObject[] backgroundLandscape;
 
+        [Tooltip("Advice text object")]
+        [SerializeField]
+        private TextMeshProUGUI adviceText;
+
         // To track rest hours on the slider
         private float restHours = 1;
         // To track the coroutine running for waiting actions
@@ -380,11 +384,12 @@ namespace RestPhase{
             for(int i = 0; i < 7; i++){
                 buyingPrices[i] = dataReader.GetInt32(i+1);
                 // Add a 10% discount if a charming character is present
-                buyingPrices[i] = foundTraits.Contains(0) ? buyingPrices[i] - (int)(buyingPrices[i] * 0.1f) : buyingPrices[i];
+                buyingPrices[i] = foundTraits.Contains(0) ? (int)(buyingPrices[i] - buyingPrices[i] * 0.1f) : buyingPrices[i];
                 // Items will get more expensive with more distance
                 buyingPrices[i] += (int)(buyingPrices[i] * (0.4f-GameLoop.SellRate));
 
                 sellingPrices[i] = (int)((float)(buyingPrices[i]) * GameLoop.SellRate);
+                sellingPrices[i] = sellingPrices[i] == 0 ? 1 : sellingPrices[i];
                 shopStocks[i] = dataReader.GetInt32(i+8);
                 if(i == 0 || i == 6){
                     shopButtonTexts[i].text += " 10";
@@ -727,7 +732,7 @@ namespace RestPhase{
                 case 1:
                     qty = 10;
                     onHand = dataReader.GetInt32(7) + qty * sellFactor;
-                    cost = dataReader.GetInt32(20);
+                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
                     inStock = dataReader.GetInt32(27) - qty * sellFactor;
                     updateCommandText = "food = ";
                     updateStockText = "foodStock = ";
@@ -735,7 +740,7 @@ namespace RestPhase{
                 // Gas
                 case 2:
                     gasTemp = dataReader.GetFloat(8) + qty * sellFactor;
-                    cost = dataReader.GetInt32(21);
+                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
                     inStock = dataReader.GetInt32(28) - qty * sellFactor;
                     updateCommandText = "gas = ";
                     updateStockText = "gasStock = ";
@@ -743,7 +748,7 @@ namespace RestPhase{
                 // Scrap
                 case 3:
                     onHand = dataReader.GetInt32(9) + qty * sellFactor;
-                    cost = dataReader.GetInt32(22);
+                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
                     updateCommandText = "scrap = ";
                     updateStockText = "scrapStock = ";
                     inStock = dataReader.GetInt32(29) - qty * sellFactor;
@@ -751,7 +756,7 @@ namespace RestPhase{
                 // Medkit
                 case 4:
                     onHand = dataReader.GetInt32(11) + qty * sellFactor;
-                    cost = dataReader.GetInt32(23);
+                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
                     inStock = dataReader.GetInt32(30) - qty * sellFactor;
                     updateCommandText = "medkit = ";
                     updateStockText = "medkitStock = ";
@@ -759,7 +764,7 @@ namespace RestPhase{
                 // Tire
                 case 5:
                     onHand = dataReader.GetInt32(12) + qty * sellFactor;
-                    cost = dataReader.GetInt32(24);
+                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
                     inStock = dataReader.GetInt32(31) - qty * sellFactor;
                     updateCommandText = "tire = ";
                     updateStockText = "tireStock = ";
@@ -767,7 +772,7 @@ namespace RestPhase{
                 // Battery
                 case 6:
                     onHand = dataReader.GetInt32(13) + qty * sellFactor;
-                    cost = dataReader.GetInt32(25);
+                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
                     inStock = dataReader.GetInt32(32) - qty * sellFactor;
                     updateCommandText = "battery = ";
                     updateStockText = "batteryStock = ";
@@ -776,7 +781,7 @@ namespace RestPhase{
                 case 7:
                     qty = 10;
                     onHand = dataReader.GetInt32(14) + qty * sellFactor;
-                    cost = dataReader.GetInt32(26);
+                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
                     updateCommandText = "ammo = ";
                     updateStockText = "ammoStock = ";
                     inStock = dataReader.GetInt32(33) - qty * sellFactor;
@@ -815,6 +820,29 @@ namespace RestPhase{
             }
 
             dbConnection.Close();
+        }
+
+        /// <summary>
+        /// Generate advice in town
+        /// </summary>
+        public void GenerateAdvice(){
+            // This advice is sometimes helpful, sometimes satirical
+            string generatedMessage = "";
+            List<string> messages =  new List<string>()
+                                    {"\"Be careful of who you pick up on the road. Though we're all trying to help each other to Vancouver, there can be some nasty people.\"",
+                                     "\"I'm not even sure how we're breaking our arms in the car. Somehow, all it took was a little cushioning to solve everything.\"",
+                                     "\"I'd buy and sell goods now if you can. Things get more expensive the further west you go.\"",
+                                     "\"I've heard rumours there's a big mutant waiting for souls trying to reach Vancouver.\"",
+                                     "\"I've always wanted to go on a road trip, but this isn't what I had in mind...\"",
+                                     "\"It all went down so fast when the mutants arrived... we barely stand a chance alone.\"",
+                                     "\"Pay attention to the personalities on your team - that can make or break groups.\"",
+                                     "\"If the pioneers survived the Oregon Trail, surely we can survive a drive to the Pacific.\""
+                                    };
+            int rolled = Random.Range(1,101), adviceChosen = Random.Range(0,messages.Count);
+
+            // 1-50 generate no advice,
+            generatedMessage = rolled <= 50 ? "No one had any advice to give." : messages[adviceChosen];
+            adviceText.text = generatedMessage;
         }
 
         /// <summary>
@@ -886,6 +914,8 @@ namespace RestPhase{
                         // If the character is hurt, recover a little health based on ration mode
                         if(curHp > 0 && curHp < 100){
                             curHp = curHp + hpRestore > 100 ? 100 : curHp + hpRestore;
+                        }
+                        if(curMorale > 0 && curMorale < 100){
                             curMorale = curMorale + 3 > 100 ? 100 : curMorale + 3;
                         }
                         teamHealth.Add(curHp);
@@ -897,6 +927,7 @@ namespace RestPhase{
                         teamMorale.Add(0);
                     }
                 }
+                dataReader.Close();
 
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = " + overallFood + " WHERE id = " + GameLoop.FileId;
@@ -919,9 +950,8 @@ namespace RestPhase{
                 for(int i = 0; i < 4; i++){
                     if(!dataReader.IsDBNull(i)){
                         int curHp = dataReader.GetInt32(4+i);
-                        Debug.Log(curHp);
                         int curMorale = dataReader.GetInt32(10+i);
-                        Debug.Log(curMorale);
+
                         if(curHp > 0){
                             curHp = curHp - 5 < 0 ? 0: curHp - 5;
                             curMorale = curMorale - 5 < 0 ? 0 : curMorale - 5;

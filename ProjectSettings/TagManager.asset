@@ -22,6 +22,7 @@ TagManager:
   - ShootLocation
   - ShotgunShootLocation
   - Mutant
+  - MainPanel
   layers:
   - Default
   - TransparentFX

@@ -31,9 +31,9 @@ namespace UI{
             "Mechanic", "Sharpshooter", "Health Care", "Surgeon", "Programmer", "Musician"
         };
 
-        // List of traits (charming, paranoid, civilized, bandit, hot headed, creative)
+        // List of traits (charming, paranoid, optimist, bandit, hot headed, creative)
         public static List<string> Traits = new List<string>(){
-            "Charming", "Paranoid", "Civilized", "Bandit", "Hot Headed", "Creative"  
+            "Charming", "Paranoid", "Optimist", "Bandit", "Hot Headed", "Creative"  
         };
 
         [Tooltip("Sprites for map screen")]
@@ -78,7 +78,7 @@ namespace UI{
             AsyncOperation op = SceneManager.LoadSceneAsync(index);
 
             while(!op.isDone){
-                Debug.Log(op.progress);
+                //Debug.Log(op.progress);
                 yield return null;
             }
         }

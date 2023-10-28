@@ -32,9 +32,12 @@ immersive the game environment is to end-users.
 * Camera control done with Cinemachine Package
 * Gun sounds from https://mixkit.co/free-sound-effects/gun/
 * Alert sound from https://mixkit.co/free-sound-effects/buzzer/
+* Event popup sound from https://mixkit.co/free-sound-effects/notification/?page=2
 * Physical attack sound from https://mixkit.co/free-sound-effects/sword/
 * Crosshairs from https://www.kenney.nl/assets/crosshair-pack
 * Map from https://www.freeusandworldmaps.com/html/USAandCanada/USPrintableOutline.html
 * Main Menu BGM (Once and For All) by Onoychenkomusic from https://pixabay.com/music/search/genre/main%20title/
 * Rest/Travel BGM (Reflected Light) by SergePavkinMusic from https://pixabay.com/music/search/genre/main%20title/
 * Combat BGM (Are You Afraid of the Dark) by Ivan Luzan from https://pixabay.com/music/search/genre/main%20title/
+* Wall Texture by PamNawi from https://opengameart.org/content/handpainted-stone-wall-textures
+* Tartan Textures by Luke.RUSTLTD from https://opengameart.org/content/25-tartan-patterns

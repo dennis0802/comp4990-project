@@ -61,7 +61,7 @@ namespace UI{
             currentlyPlaying.Stop();
             currentlyPlaying.clip = BGMs[index];
             currentlyPlaying.loop = true;
-            currentlyPlaying.volume = index == 3 ? 0.25f : 0.5f;
+            currentlyPlaying.volume = index == 2 ? 0.25f : 0.5f;
             currentlyPlaying.Play();
             isPlaying = true;
         }
