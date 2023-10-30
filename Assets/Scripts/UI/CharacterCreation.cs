@@ -224,8 +224,10 @@ namespace UI{
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
             dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO CustomCharactersTable(id, name, perk, trait, accessory, hat, color, outfit) VALUES (" 
-                                                + viewedCharacter + ", '" + nameField.text + "', " + perkList.value + ", " + traitList.value + ", "
+                                                + viewedCharacter + ", @name, " + perkList.value + ", " + traitList.value + ", "
                                                 + accNum + ", " + hatNum + ", " + colorNum + ", " + outfitNum + ")";
+            QueryParameter<string> stringParameter = new QueryParameter<string>("@name", nameField.text);
+            stringParameter.SetParameter(dbCommandInsertValue);
             dbCommandInsertValue.ExecuteNonQuery();
 
             int baseId = viewedCharacter - (pageNum - 1) * 9;

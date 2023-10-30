@@ -186,7 +186,9 @@ namespace UI
                 if(idFound){
                     TransitionMenu(id);
                     dbCommandReadValues = dbConnection.CreateCommand();
-                    dbCommandReadValues.CommandText = "SELECT inPhase FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                    dbCommandReadValues.CommandText = "SELECT inPhase FROM SaveFilesTable WHERE id = @Param1";
+                    QueryParameter<int> fileParameter = new QueryParameter<int>("@Param1", GameLoop.FileId);
+                    fileParameter.SetParameter(dbCommandReadValues);
                     IDataReader dataReader = dbCommandReadValues.ExecuteReader();
                     dataReader.Read();
 
@@ -270,7 +272,10 @@ namespace UI
         public void ReplaceFile(){
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "REPLACE INTO SaveFilesTable(id, charactersId) VALUES (" + targetFile + ", " + targetFile + ")";
+            dbCommandInsertValue.CommandText = "REPLACE INTO SaveFilesTable(id, charactersId) VALUES (@Param1, @Param1)";
+            QueryParameter<int> fileParameter = new QueryParameter<int>("@Param1", targetFile);
+            fileParameter.SetParameter(dbCommandInsertValue);
+
             dbCommandInsertValue.ExecuteNonQuery();
             fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n\n  No save file";
             deletionButtons[targetFile].interactable = true;
@@ -299,23 +304,29 @@ namespace UI
 
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandDeleteValue = dbConnection.CreateCommand();
-            dbCommandDeleteValue.CommandText = "DELETE FROM SaveFilesTable WHERE id = " + targetFile + ";";
+            dbCommandDeleteValue.CommandText = "DELETE FROM SaveFilesTable WHERE id = @Param1";
+            QueryParameter<int> fileParameter = new QueryParameter<int>("@Param1", targetFile);
+            fileParameter.SetParameter(dbCommandDeleteValue);
             dbCommandDeleteValue.ExecuteNonQuery();
 
             dbCommandDeleteValue = dbConnection.CreateCommand();
-            dbCommandDeleteValue.CommandText = "DELETE FROM ActiveCharactersTable WHERE id = " + targetFile + ";";
+            dbCommandDeleteValue.CommandText = "DELETE FROM ActiveCharactersTable WHERE id = @Param1";
+            fileParameter.SetParameter(dbCommandDeleteValue);
             dbCommandDeleteValue.ExecuteNonQuery();
 
             dbCommandDeleteValue = dbConnection.CreateCommand();
-            dbCommandDeleteValue.CommandText = "DELETE FROM CarsTable WHERE id = " + targetFile + ";";
+            dbCommandDeleteValue.CommandText = "DELETE FROM CarsTable WHERE id = @Param1";
+            fileParameter.SetParameter(dbCommandDeleteValue);
             dbCommandDeleteValue.ExecuteNonQuery();
 
             dbCommandDeleteValue = dbConnection.CreateCommand();
-            dbCommandDeleteValue.CommandText = "DELETE FROM TownTable WHERE id = " + targetFile + ";";
+            dbCommandDeleteValue.CommandText = "DELETE FROM TownTable WHERE id = @Param1";
+            fileParameter.SetParameter(dbCommandDeleteValue);
             dbCommandDeleteValue.ExecuteNonQuery();
 
             dbCommandDeleteValue = dbConnection.CreateCommand();
-            dbCommandDeleteValue.CommandText = "DELETE FROM PerishedCustomTable WHERE saveFileId = " + targetFile + ";";
+            dbCommandDeleteValue.CommandText = "DELETE FROM PerishedCustomTable WHERE saveFileId = @Param1";
+            fileParameter.SetParameter(dbCommandDeleteValue);
             dbCommandDeleteValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -390,7 +401,11 @@ namespace UI
 
             dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO CarsTable(id, carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2, isBatteryDead, isTireFlat) VALUES" +
-                                               "(" + targetFile + ", 100, 0, 0, 0, 0, 0, 0, 0, 0)";
+                                               "(@targetFile, 100, 0, 0, 0, 0, 0, 0, 0, 0)";
+
+            QueryParameter<int> parameterInt = new QueryParameter<int>("@targetFile", targetFile);
+            parameterInt.SetParameter(dbCommandUpdateValue);
+
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 

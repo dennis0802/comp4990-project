@@ -44,8 +44,13 @@ namespace UI{
         [SerializeField]
         private GameObject gameOverScreen;
 
+        [Tooltip("Panel used during rest and combat start/end")]
+        [SerializeField]
+        private GameObject mainPanel;
+
         public static GameObject GameOverScreen;
         public static Sprite[] Maps;
+        public static GameObject MainPanel;
 
         void Awake(){
             Maps = maps;
@@ -53,6 +58,7 @@ namespace UI{
 
         private void Start(){
             GameOverScreen = gameOverScreen;
+            MainPanel = mainPanel;
         }
 
         private void Update(){

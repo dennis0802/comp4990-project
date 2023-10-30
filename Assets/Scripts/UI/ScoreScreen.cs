@@ -64,13 +64,14 @@ namespace UI{
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM LocalHighscoreTable";
             int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar());
-
             string commandText = "SELECT leaderName, difficulty, distance, score FROM LocalHighscoreTable";
-            commandText += displayMode != 0 ? " WHERE difficulty = " + displayMode : "";
-            commandText += " ORDER BY score DESC LIMIT 8";
+            commandText += displayMode != 0 ? " WHERE difficulty = @Param1 ORDER BY score DESC LIMIT 8" : " ORDER BY score DESC LIMIT 8";
 
             // Display the top 8 scores of the current display.
             dbCommandReadValues.CommandText = commandText;
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@Param1", displayMode);
+            queryParameter.SetParameter(dbCommandReadValues);
+
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             string scoreDisplay1 = "", scoreDisplay2 = "";
             int rowNum = 1;

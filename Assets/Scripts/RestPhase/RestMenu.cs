@@ -273,13 +273,9 @@ namespace RestPhase{
         // To track friends alive for game over
         public static int FriendsAlive = 0, JobNum;
         public static bool IsScavenging;
-        public static GameObject Panel;
-
-        void Start(){
-            Panel = backgroundPanel;
-        }
 
         void OnEnable(){
+            backgroundPanel.SetActive(true);
             RefreshScreen();
         }
 
@@ -346,7 +342,8 @@ namespace RestPhase{
                 paranoidPresent = 0;
             }
             
-            rationsText.text = GameLoop.RationsMode == 1 ? "Current Rations: Low" : GameLoop.RationsMode == 2 ?  "Current Rations: Medium" : "Current Rations: High";
+            rationsText.text = GameLoop.RationsMode == 1 ? "Current Rations: Low (1kg/person)" : 
+                                GameLoop.RationsMode == 2 ?  "Current Rations: Medium (2kg/person)" : "Current Rations: High (3kg/person)";
             paceText.text = GameLoop.Pace== 1 ? "Slow\n65km/h" : GameLoop.Pace == 2 ?  "Average\n80km/h" : "Fast\n95km/h";
             int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour;
             string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
@@ -566,7 +563,7 @@ namespace RestPhase{
                 JobNum = id;
             }
 
-            Panel.SetActive(false);
+            backgroundPanel.SetActive(false);
             StartCoroutine(GameLoop.LoadAsynchronously(3));
             CombatManager.PrevMenuRef = this.gameObject;
         }

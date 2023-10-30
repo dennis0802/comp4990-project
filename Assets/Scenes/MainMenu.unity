@@ -49821,6 +49821,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 2c904331f918e4847a389968459a4126, type: 3}
   - {fileID: 21300000, guid: 0c5b0b4709a859d47a4f1d15615d7f5f, type: 3}
   gameOverScreen: {fileID: 2121071435}
+  mainPanel: {fileID: 835228556}
 --- !u!1 &806388928
 GameObject:
   m_ObjectHideFlags: 0
@@ -52537,7 +52538,7 @@ GameObject:
   - component: {fileID: 835228558}
   m_Layer: 5
   m_Name: Panel
-  m_TagString: Untagged
+  m_TagString: MainPanel
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -101286,7 +101287,6 @@ MonoBehaviour:
   destinationImageDisplay: {fileID: 2030658081}
   destinationPopupText: {fileID: 737136748}
   travelViewObject: {fileID: 1573380716}
-  backgroundPanel: {fileID: 835228556}
   eventGenerator: {fileID: 1646427348}
   restScreens:
   - {fileID: 870146076}

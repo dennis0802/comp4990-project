@@ -263,4 +263,36 @@ namespace Database{
         }
     }
 
+    /// <summary>
+    /// Helper class for creating prepared statements
+    /// </summary>
+    public class QueryParameter<T>{
+        private string paramName;
+        private T element;
+
+        public QueryParameter(string paramName, T element){
+            this.paramName = paramName;
+            this.element = element;
+        }
+
+        public string GetParamName(){
+            return paramName;
+        }
+
+        public T GetElement(){
+            return element;
+        }
+
+        public void SetParameter(IDbCommand command){
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = this.GetParamName();
+            parameter.Value = this.GetElement();
+            command.Parameters.Add(parameter);
+        }
+
+        public void ChangeParameterProperties(string paramName, T element){
+            this.paramName = paramName;
+            this.element = element;
+        }
+    }
 }

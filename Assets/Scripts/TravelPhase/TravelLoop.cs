@@ -67,10 +67,6 @@ namespace TravelPhase{
         [SerializeField]
         private GameObject travelViewObject;
 
-        [Tooltip("Background panel object")]
-        [SerializeField]
-        private GameObject backgroundPanel;
-
         [Tooltip("Event generator for the road")]
         [SerializeField]
         private EventGenerator eventGenerator;
@@ -96,6 +92,7 @@ namespace TravelPhase{
         public static float Timer = 0.0f;
         // Flag for going to combat
         public static bool GoingToCombat = false;
+        public static List<string> queriesToPerform = new List<string>();
 
         void Start(){
             popupSound = GetComponent<AudioSource>();
@@ -106,7 +103,7 @@ namespace TravelPhase{
                 InitializeLogs();
             }
             GenerateTowns();
-            RefreshScreen();
+            InitializeScreen();
         }
 
         void Update(){
@@ -122,7 +119,7 @@ namespace TravelPhase{
                     if(Drive()){
                         int eventChance = Random.Range(1,101);
                         //Debug.Log("Event rolled: " + eventChance + "completed " + System.DateTime.Now.ToString());
-                        eventChance = 42;
+                        //eventChance = 42;
 
                         // 44/100 chance of generating an event
                         if(eventChance <= 44){
@@ -133,12 +130,81 @@ namespace TravelPhase{
                                     GoingToCombat = true;
                                 }
                             }
-                            RefreshScreen();
                         }
                     }
+                    ChangeGameData();
                     Timer = 0.0f;
                 }
             }
+        }
+
+        private void InitializeScreen(){
+            playerText.text = "";
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
+            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health FROM " +
+                                              "ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+            List<int> teamHealth = new List<int>();
+            List<string> names = new List<string>();
+
+            for(int i = 0; i < 4; i++){
+                if(!dataReader.IsDBNull(i)){
+                    names.Add(dataReader.GetString(i));
+                    teamHealth.Add(dataReader.GetInt32(i+4));
+                }
+                else{
+                    names.Add("");
+                    teamHealth.Add(0);
+                }
+            }
+
+            for(int i = 0; i < playerHealthBars.Count(); i++){
+                if(Equals("_____TEMPNULL", names[0])){
+                    playerText.text += "\nCar\n";
+                }
+                else{
+                    playerHealthBars[i].value = teamHealth[i];
+                    playerText.text += i == 0 ? names[i] + "\nCar\n" : names[i] + "\n";
+                }
+            }
+
+            dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT nextDistanceAway FROM TownTable WHERE id = " + GameLoop.FileId;
+            dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            targetTownDistance = dataReader.IsDBNull(0) ? 0 : dataReader.GetInt32(0);
+
+            dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT time, distance, food, gas FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+
+            GameLoop.Hour = dataReader.GetInt32(0);
+            GameLoop.Activity = GameLoop.Hour >= 21 || GameLoop.Hour <= 5 ? 4 : GameLoop.Hour >= 18 || GameLoop.Hour <= 8 ? 3 : GameLoop.Hour >= 16 || GameLoop.Hour <= 10 ? 2 : 1;
+
+            int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour, distanceLeft = targetTownDistance - dataReader.GetInt32(1);
+            string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
+
+            supplyText.text = "Food: " + dataReader.GetInt32(2) + "kg\nGas: " +  dataReader.GetFloat(3) + " cans\nDistance to Destination: " +  distanceLeft
+                            + "km\nDistance Travelled: " + dataReader.GetInt32(1) + "km\nTime: " + time + timing + "\nActivity: " + activity;
+            dbConnection.Close();
+        }
+
+        /// <summary>
+        /// Change game data based on supplied queries, to be done as the user resumes travel, preventing exploit of making progress and leaving on a bad event
+        /// </summary>
+        private void ChangeGameData(){
+            IDbConnection dbConnection = GameDatabase.OpenDatabase();
+            for(int i = 0; i < queriesToPerform.Count; i++){
+                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                dbCommandUpdateValue.CommandText = queriesToPerform[i];
+                dbCommandUpdateValue.ExecuteNonQuery();
+            }
+            queriesToPerform.Clear();
+            RefreshScreen();
         }
 
         /// <summary>
@@ -203,11 +269,11 @@ namespace TravelPhase{
             towns.Clear();
             int distanceLeft = targetTownDistance - curDistance;
             LaunchPopup(distanceLeft.ToString() + " km to " + destinationTown);
-            RefreshScreen();
+            InitializeScreen();
         }
 
         /// <summary>
-        /// Refresh the screen upon loading the travel UI.
+        /// Refresh the screen (for post-event generation)
         /// </summary>
         public void RefreshScreen(){
             // Read the database for party info
@@ -289,6 +355,8 @@ namespace TravelPhase{
         /// Stop the car on the road because of destination arrival
         /// </summary>
         public void Arrive(){
+            ChangeGameData();
+
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT nextTownName FROM TownTable WHERE id = " + GameLoop.FileId;
@@ -323,6 +391,7 @@ namespace TravelPhase{
         /// </summary>
         public void ResumeTravel(){
             PopupActive = false;
+            ChangeGameData();
 
             if(GoingToCombat){
                 CombatManager.PrevMenuRef = this.gameObject;
@@ -411,7 +480,7 @@ namespace TravelPhase{
         }
 
         /// <summary>
-        /// Drive some distance, increasing distance, changing time, and damaging the car and players.
+        /// Drive some distance, increasing distance, changing time and resources, mini-refresh, and damaging the car and players.
         /// </summary>
         /// <returns>True if drive had no events from updating, false if drive had events from updating</returns>
         private bool Drive(){
@@ -433,7 +502,7 @@ namespace TravelPhase{
                 gardenUpgrade = dataReader.GetInt32(4);
 
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT overallTime, speed, distance, rations, tire, battery, gas FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT overallTime, speed, distance, rations, tire, battery, gas, time FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -444,6 +513,7 @@ namespace TravelPhase{
 
             newDistance = engineUpgrade == 1 ? newDistance + 10 : newDistance;
             newDistance = newDistance >= targetTownDistance ? targetTownDistance : newDistance;
+            GameLoop.Hour = dataReader.GetInt32(7);
 
             // If the car is out of gas, broke, has a dead battery, or a flat tire, do no driving. 
             // Alternatively, if a battery or tire is available, replace but still don't drive.
@@ -462,19 +532,15 @@ namespace TravelPhase{
                     GameLoop.Hour = 1;
                 }
 
-                IDbCommand dbCommandUpdateValues = dbConnection.CreateCommand();
                 string repairCommand = battery > 0 && batteryStatus == 1 ? "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", battery = " + (battery - 1) + 
                                                 " WHERE id = " + GameLoop.FileId : "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", tire = " + (tire - 1) + 
                                                 " WHERE id = " + GameLoop.FileId;
-                dbCommandUpdateValues.CommandText = repairCommand;
-                dbCommandUpdateValues.ExecuteNonQuery();
-
+                
+                queriesToPerform.Add(repairCommand);
                 repairCommand = battery > 0 && batteryStatus == 1 ? "UPDATE CarsTable SET isBatteryDead = 0 WHERE id = " + GameLoop.FileId : 
                                                                     "UPDATE CarsTable SET isTireFlat = 0 WHERE id = " + GameLoop.FileId;
+                queriesToPerform.Add(repairCommand);
 
-                dbCommandUpdateValues = dbConnection.CreateCommand();
-                dbCommandUpdateValues.CommandText = repairCommand;
-                dbCommandUpdateValues.ExecuteNonQuery();
                 dbConnection.Close();
 
                 return false;
@@ -493,15 +559,16 @@ namespace TravelPhase{
             }
 
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", distance = " + newDistance + 
-                                               " WHERE id = " + GameLoop.FileId;
-            dbCommandUpdateValue.ExecuteNonQuery();
+            string temp = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", distance = " + newDistance + 
+                          " WHERE id = " + GameLoop.FileId;
+            queriesToPerform.Add(temp);
 
             carHP = carHP - decay > 0 ? carHP - decay : 0;
+            carHealthBar.value = carHP;
 
             dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET carHP = " + carHP + " WHERE id = " + GameLoop.FileId;
-            dbCommandUpdateValue.ExecuteNonQuery();
+            temp = "UPDATE CarsTable SET carHP = " + carHP + " WHERE id = " + GameLoop.FileId;
+            queriesToPerform.Add(temp);
 
             // Characters will always take some damage when travelling, regardless of rations
             dbCommandReadValues = dbConnection.CreateCommand();
@@ -546,27 +613,50 @@ namespace TravelPhase{
                 }
             }
 
+            string playerStr = "";
+            for(int i = 0; i < playerHealthBars.Count(); i++){
+                if(Equals("_____TEMPNULL", names[i]) && i == 0){
+                    playerStr += "\nCar\n";
+                }
+                else if(Equals("_____TEMPNULL", names[i])){
+                    playerStr += "\n";
+                }
+                else{
+                    playerHealthBars[i].value = teamHealth[i];
+                    playerStr += i == 0 ? names[i] + "\nCar\n" : names[i] + "\n";
+                }
+            }
+
+            playerText.text = playerStr;
+
             // If garden upgrade was found, add 1 kg of food back.
             overallFood += gardenUpgrade == 1 ? 1 : 0;
             // Each timestep consumes quarter of a gas resource
             gas -= 0.25f;
 
             dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = " + overallFood + ", gas = " + gas + " WHERE id = " + GameLoop.FileId;
-            dbCommandUpdateValue.ExecuteNonQuery();
+            temp = "UPDATE SaveFilesTable SET food = " + overallFood + ", gas = " + gas + " WHERE id = " + GameLoop.FileId;
+            queriesToPerform.Add(temp);
+
+            GameLoop.Activity = GameLoop.Hour >= 21 || GameLoop.Hour <= 5 ? 4 : GameLoop.Hour >= 18 || GameLoop.Hour <= 8 ? 3 : GameLoop.Hour >= 16 || GameLoop.Hour <= 10 ? 2 : 1;
+
+            int time = GameLoop.Hour > 12 && GameLoop.Hour <= 24 ? GameLoop.Hour - 12 : GameLoop.Hour, distanceLeft = targetTownDistance - newDistance;
+            string timing = GameLoop.Hour >= 12 && GameLoop.Hour < 24 ? " pm" : " am", activity = GameLoop.Activity == 1 ? "Low" : GameLoop.Activity == 2 ? "Medium" : GameLoop.Activity == 3 ? "High" : "Ravenous";
+
+            supplyText.text = "Food: " + overallFood + "kg\nGas: " +  gas + " cans\nDistance to Destination: " +  distanceLeft
+                            + "km\nDistance Travelled: " + newDistance + "km\nTime: " + time + timing + "\nActivity: " + activity;
 
             // Update health changes
             dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
+            temp = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
                                                 ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
                                                 ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3] +
-                                                " WHERE id = " + GameLoop.FileId; 
-            dbCommandUpdateValue.ExecuteNonQuery();
-
+                                                " WHERE id = " + GameLoop.FileId;
+            queriesToPerform.Add(temp);
             dbConnection.Close();
 
             bool charactersDied = HasCharacterDied();
-            RefreshScreen();
+
             // Check if any character has died.
             if(charactersDied){
                 return false;
@@ -590,7 +680,7 @@ namespace TravelPhase{
                 destinationPopup.SetActive(true);
                 destinationPopupText.text = nextTown;
                 travelViewObject.SetActive(false);
-                backgroundPanel.SetActive(true);
+                GameLoop.MainPanel.SetActive(true);
                 AnimateEnvironment.NearingTown = false;
                 return false;
             }

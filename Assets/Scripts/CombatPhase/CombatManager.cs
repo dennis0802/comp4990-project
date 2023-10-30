@@ -38,7 +38,7 @@ namespace CombatPhase{
         [SerializeField]
         private GameObject targetPickup;
 
-        [Tooltip("Panel object")]
+        [Tooltip("Combat UI panel object")]
         [SerializeField]
         private GameObject panel;
 
@@ -101,7 +101,7 @@ namespace CombatPhase{
         // To track spawn points for the party, enemies, and pickups
         private GameObject[] playerSpawnPoints, enemySpawnPoints, pickupSpawnPoints;
         // To track the player
-        private GameObject player, ally, restMenu, mainPanel;
+        private GameObject player, ally, restMenu;
         // Difficult and agent index
         private int diff, _currentAgentIndex, jobDiff;
         // Flags for generating the combat world
@@ -145,7 +145,6 @@ namespace CombatPhase{
             NormalReticle.SetActive(false);
             mapGenerator = FindObjectOfType<MapGenerator>();
             mapGenerator.noiseData.seed = Random.Range(0,10000);
-            panel = GameObject.FindWithTag("MainPanel");
         }
 
         // Update is called once per frame
@@ -493,11 +492,11 @@ namespace CombatPhase{
             }
             else if(TravelLoop.InFinalCombat){
                 GameLoop.GameOverScreen.SetActive(true);
-                mainPanel.SetActive(true);
+                GameLoop.MainPanel.SetActive(true);
             }
             else if(TravelLoop.GoingToCombat){
                 TravelLoop.GoingToCombat = false;
-                mainPanel.SetActive(false);
+                GameLoop.MainPanel.SetActive(false);
                 SceneManager.LoadScene(2);
             }
             PrevMenuRef.SetActive(true);
@@ -509,7 +508,7 @@ namespace CombatPhase{
         private void UnloadCombat(){
             InCombat = false;
             CombatEnvironment.SetActive(false);
-            mainPanel.SetActive(true);
+            GameLoop.MainPanel.SetActive(true);
             combatCamera[0].SetActive(false);
             combatCamera[1].SetActive(false);
             combatText.gameObject.SetActive(false);

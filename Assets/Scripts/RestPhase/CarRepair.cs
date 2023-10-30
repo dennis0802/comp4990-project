@@ -120,15 +120,15 @@ namespace RestPhase{
                 // Rate based on falling in between specified x-coordinates
                 if(prompts[i].transform.localPosition.x >= Mathf.Abs(13f) && prompts[i].transform.localPosition.x <= Mathf.Abs(17f)){
                     statuses[i].text = "Near Miss";
-                    amountRecovered += 3;
+                    amountRecovered += 6;
                 }
                 else if(prompts[i].transform.localPosition.x >= Mathf.Abs(9f) && prompts[i].transform.localPosition.x <= Mathf.Abs(12f)){
                     statuses[i].text = "Good";
-                    amountRecovered += 4;
+                    amountRecovered += 7;
                 }
                 else if(prompts[i].transform.localPosition.x >= -8f && prompts[i].transform.localPosition.x <= 8f){
                     statuses[i].text = "Great";
-                    amountRecovered += 5;
+                    amountRecovered += 8;
                 }
                 else{
                     statuses[i].text = "Miss";

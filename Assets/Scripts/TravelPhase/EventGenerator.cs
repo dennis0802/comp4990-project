@@ -96,7 +96,7 @@ namespace TravelPhase{
 
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = commandText;
-                dbCommandUpdateValue.ExecuteNonQuery();
+                TravelLoop.queriesToPerform.Add(commandText);
 
                 msg = name + temp[rand];
                 dbConnection.Close();
@@ -168,7 +168,7 @@ namespace TravelPhase{
 
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                     dbCommandUpdateValue.CommandText = commandText;
-                    dbCommandUpdateValue.ExecuteNonQuery();
+                    TravelLoop.queriesToPerform.Add(commandText);
 
                     dbCommandReadValue = dbConnection.CreateCommand();
                     dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
@@ -213,7 +213,8 @@ namespace TravelPhase{
                 
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = commandText;
-                dbCommandUpdateValue.ExecuteNonQuery();
+                
+                TravelLoop.queriesToPerform.Add(commandText);
 
                 msg = "The car struggles to drive over some terrain.";
                 dbConnection.Close();
@@ -250,7 +251,8 @@ namespace TravelPhase{
 
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = commandText;
-                dbCommandUpdateValue.ExecuteNonQuery();
+                
+                TravelLoop.queriesToPerform.Add(commandText);
 
                 dbCommandReadValue = dbConnection.CreateCommand();
                 dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
@@ -355,13 +357,15 @@ namespace TravelPhase{
                                             ", friend" + (index+1) + "Morale = 75, customId" + (index + 1) + " = " + idRead + " WHERE id = " + GameLoop.FileId;
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                     dbCommandUpdateValue.CommandText = commandText;
-                    dbCommandUpdateValue.ExecuteNonQuery();
+                    
+                    TravelLoop.queriesToPerform.Add(commandText);
 
                     // Add a medkit if healthcare trait.
                     if(perk == 2){
                         dbCommandUpdateValue = dbConnection.CreateCommand();
                         dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET medkit = medkit + 1 WHERE id = " + GameLoop.FileId;
-                        dbCommandUpdateValue.ExecuteNonQuery();
+                        
+                        TravelLoop.queriesToPerform.Add(commandText);
                     }
 
                     msg = "The party meets " + name + " and allows them to join.\nThey have the " + perkRoll + " perk and the " + traitRoll + " trait.";
@@ -398,8 +402,10 @@ namespace TravelPhase{
                                     selected == 4 ? "miscUpgrade1 = 1" : "miscUpgrade2 = 1";
 
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                    dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET " + commandTemp + " WHERE id = " + GameLoop.FileId;
-                    dbCommandUpdateValue.ExecuteNonQuery();
+                    string commandText = "UPDATE CarsTable SET " + commandTemp + " WHERE id = " + GameLoop.FileId;
+                    dbCommandUpdateValue.CommandText = commandText;
+                    
+                    TravelLoop.queriesToPerform.Add(commandText);
 
                     msg = "The party searches an abandoned car and finds " + found + ".";
 
@@ -429,7 +435,8 @@ namespace TravelPhase{
                                         ", friend3Health = " + teamHp[3] + " WHERE id = " + GameLoop.FileId;
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = commandText;
-                dbCommandUpdateValue.ExecuteNonQuery();
+                
+                TravelLoop.queriesToPerform.Add(commandText);
 
                 msg = "The party cannot find clean water. Everyone is dehydrated.";
 
@@ -458,15 +465,18 @@ namespace TravelPhase{
                     if(tires > 0){
                         tires--;
                         IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                        dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET tire = " + tires + " WHERE id = " + GameLoop.FileId;
-                        dbCommandUpdateValue.ExecuteNonQuery();
+                        string commandText = "UPDATE SaveFilesTable SET tire = " + tires + " WHERE id = " + GameLoop.FileId;
+                        dbCommandUpdateValue.CommandText = commandText;
+                        
+                        TravelLoop.queriesToPerform.Add(commandText);
                         msg = "The car goes over some rough terrain and the tire pops.\nYou replace your flat tire.";
                     }
                     else{
                         string commandText = "UPDATE CarsTable SET isTireFlat = 1 WHERE id = " + GameLoop.FileId;
                         IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                         dbCommandUpdateValue.CommandText = commandText;
-                        dbCommandUpdateValue.ExecuteNonQuery();
+                        
+                        TravelLoop.queriesToPerform.Add(commandText);
                         msg = "The car goes over some rough terrain and the tire pops.\nYou don't have a tire to replace.\nTrade for another one.";
                     }
                 }
@@ -495,15 +505,18 @@ namespace TravelPhase{
                     if(batteries > 0){
                         batteries--;
                         IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                        dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET battery = " + batteries + " WHERE id = " + GameLoop.FileId;
-                        dbCommandUpdateValue.ExecuteNonQuery();
+                        string commandText = "UPDATE SaveFilesTable SET battery = " + batteries + " WHERE id = " + GameLoop.FileId;
+                        dbCommandUpdateValue.CommandText = commandText;
+                        
+                        TravelLoop.queriesToPerform.Add(commandText);
                         msg = "There is smoke coming from the hood - the car battery is dead.\nYou replace your dead battery.";
                     }
                     else{
                         string commandText = "UPDATE CarsTable SET isBatteryDead = 1 WHERE id = " + GameLoop.FileId;
                         IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                         dbCommandUpdateValue.CommandText = commandText;
-                        dbCommandUpdateValue.ExecuteNonQuery();
+                        
+                        TravelLoop.queriesToPerform.Add(commandText);
                         msg = "There is smoke coming from the hood - the car battery is dead.\nYou don't have a battery to replace.\nTrade for another one.";
                     }
                 }
@@ -533,7 +546,8 @@ namespace TravelPhase{
 
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                     dbCommandUpdateValue.CommandText = commandText;
-                    dbCommandUpdateValue.ExecuteNonQuery();
+                    
+                    TravelLoop.queriesToPerform.Add(commandText);
                     dbConnection.Close();
 
                     msg = "In despair, " + name + " ditches the party, saying their chances are better without the party.";
@@ -570,7 +584,8 @@ namespace TravelPhase{
                 commandText += " WHERE id = " + GameLoop.FileId;
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = commandText;
-                dbCommandUpdateValue.ExecuteNonQuery();
+                TravelLoop.queriesToPerform.Add(commandText);
+                
                 dbConnection.Close();
 
                 msg = name + " serenades the party with a guitar, reminding them of better times.\nThe party is in high spirits.";
@@ -601,7 +616,8 @@ namespace TravelPhase{
                 commandText += " WHERE id = " + GameLoop.FileId;
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = commandText;
-                dbCommandUpdateValue.ExecuteNonQuery();
+                
+                TravelLoop.queriesToPerform.Add(commandText);
                 dbConnection.Close();
 
                 msg = name + " attempts to rob a helpless group but is caught and drags the party with them.\nThe party is forced to flee and feels guilty.";
@@ -631,7 +647,8 @@ namespace TravelPhase{
                 commandText += " WHERE id = " + GameLoop.FileId;
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = commandText;
-                dbCommandUpdateValue.ExecuteNonQuery();
+                TravelLoop.queriesToPerform.Add(commandText);
+                
                 dbConnection.Close();
 
                 msg = name + ", annoyed with " + hurtName + " for a minor issue, lashes out mid-argument.";
@@ -666,7 +683,8 @@ namespace TravelPhase{
                 commandText += " WHERE id = " + GameLoop.FileId;
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = commandText;
-                dbCommandUpdateValue.ExecuteNonQuery();
+                
+                TravelLoop.queriesToPerform.Add(commandText);
                 dbConnection.Close();
 
                 msg = name + "'s medical skills come in handy using medicinal herbs to treat " + healName + ".";
@@ -715,8 +733,10 @@ namespace TravelPhase{
                                 selected == 4 ? "miscUpgrade1 = 1" : "miscUpgrade2 = 1";
 
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                    string commandText = "UPDATE CarsTable SET " + commandTemp + " WHERE id = " + GameLoop.FileId;
                     dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET " + commandTemp + " WHERE id = " + GameLoop.FileId;
-                    dbCommandUpdateValue.ExecuteNonQuery();
+                    
+                    TravelLoop.queriesToPerform.Add(commandText);
                     
                     msg = name + " has a " + solType + " solution for a car upgrade and succeeds.";
                 }
@@ -762,8 +782,10 @@ namespace TravelPhase{
                     commandText += "WHERE id = " + GameLoop.FileId;
 
                     IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
+                    dbCommandUpdateValue.Parameters.Add(1);
                     dbCommandUpdateValue.CommandText = commandText;
-                    dbCommandUpdateValue.ExecuteNonQuery();
+                    TravelLoop.queriesToPerform.Add(commandText);
+                    
                     dbConnection.Close();
 
                     msg = name + " is pulled out of the car and is unable to fight back against the mutants.";
