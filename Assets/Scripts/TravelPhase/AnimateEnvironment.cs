@@ -58,7 +58,9 @@ namespace TravelPhase{
         void SetMovementSpeed(){
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT speed FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT speed FROM SaveFilesTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 

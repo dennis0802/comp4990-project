@@ -289,7 +289,9 @@ namespace RestPhase{
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
-                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+                                              "WHERE SaveFilesTable.id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -364,7 +366,9 @@ namespace RestPhase{
 
             // Town shop menus
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT * FROM TownTable WHERE id = @id";
+            queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -471,8 +475,9 @@ namespace RestPhase{
 
             // Upgrades
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
-                                              GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = @id";
+            queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -511,9 +516,17 @@ namespace RestPhase{
                 GameLoop.RationsMode = 1;
             }
             
+            List<int> intParameters = new List<int>(){GameLoop.RationsMode, GameLoop.FileId};
+            List<string> intParameterNames = new List<string>(){"@ration", "@id"};
+
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET rations = " + GameLoop.RationsMode + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET rations = @ration WHERE id = @id";
+
+            for(int i = 0; i < intParameters.Count; i++){
+                QueryParameter<int> queryParameter = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                queryParameter.SetParameter(dbCommandUpdateValue);
+            }
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -524,6 +537,9 @@ namespace RestPhase{
         /// Toggle current travel pace
         /// </summary>
         public void TogglePace(){
+            List<int> intParameters = new List<int>(){GameLoop.Pace, GameLoop.FileId};
+            List<string> intParameterNames = new List<string>(){"@speed", "@id"};
+
             GameLoop.Pace++;
             if(GameLoop.Pace > 3){
                 GameLoop.Pace = 1;
@@ -531,7 +547,12 @@ namespace RestPhase{
 
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET speed = " + GameLoop.Pace + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET speed = @speed WHERE id = @id";
+
+            for(int i = 0; i < intParameters.Count; i++){
+                QueryParameter<int> queryParameter = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                queryParameter.SetParameter(dbCommandUpdateValue);
+            }
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -581,7 +602,9 @@ namespace RestPhase{
             else{
                 IDbConnection dbConnection = GameDatabase.OpenDatabase();
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 1 WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 1 WHERE id = @id";
+                QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+                queryParameter.SetParameter(dbCommandUpdateValue);
                 dbCommandUpdateValue.ExecuteNonQuery();
 
                 dbConnection.Close();
@@ -610,12 +633,15 @@ namespace RestPhase{
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
-                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+                                              "WHERE SaveFilesTable.id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText =  "UPDATE SaveFilesTable SET medkit = medkit - 1 WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText =  "UPDATE SaveFilesTable SET medkit = medkit - 1 WHERE id = @id";
+            queryParameter.SetParameter(dbCommandUpdateValue);
             dbCommandUpdateValue.ExecuteNonQuery();
             
             int curHealth = dataReader.GetInt32(28 + 9 * id);
@@ -639,6 +665,7 @@ namespace RestPhase{
             updateCommand += " WHERE id = " + GameLoop.FileId;
 
             dbCommandUpdateValue.CommandText = updateCommand;
+            queryParameter.SetParameter(dbCommandUpdateValue);
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -656,7 +683,9 @@ namespace RestPhase{
 
                 IDbConnection dbConnection = GameDatabase.OpenDatabase();
                 IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = @id";
+                QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+                queryParameter.SetParameter(dbCommandReadValues);
                 IDataReader dataReader = dbCommandReadValues.ExecuteReader();
                 dataReader.Read();
 
@@ -668,7 +697,15 @@ namespace RestPhase{
                 demanded = FilterItem(tradeDemand);
 
                 IDbCommand dbCommandUpdateValues = dbConnection.CreateCommand();
-                dbCommandUpdateValues.CommandText = "UPDATE SaveFilesTable SET " + offered + receivedStock + ", " + demanded + curPartyStock + " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValues.CommandText = "UPDATE SaveFilesTable SET " + offered + " @received, " + demanded + " @curStock WHERE id = @id";
+                List<string> intParameterNames = new List<string>{"@curStock", "@received", "@id"};
+                List<int> intParameters = new List<int>{curPartyStock, receivedStock, GameLoop.FileId};
+
+                for(int i = 0; i < intParameters.Count; i++){
+                    QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                    intParam.SetParameter(dbCommandUpdateValues);
+                }
+                
                 dbCommandUpdateValues.ExecuteNonQuery();
                 dbConnection.Close();
 
@@ -718,7 +755,9 @@ namespace RestPhase{
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN TownTable ON SaveFilesTable.id = TownTable.id " + 
-                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+                                              "WHERE SaveFilesTable.id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -787,11 +826,26 @@ namespace RestPhase{
 
             money += GameLoop.IsSelling ? sellingPrices[id-1] : cost * -sellFactor;
             
+            List<string> intParameterNames = new List<string>{"@onHand", "@money", "@id"};
+            List<int> intParameters = new List<int>{onHand, money, GameLoop.FileId};
+
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText =  "UPDATE SaveFilesTable SET " + updateCommandText + onHand + ", " + "money = " + money + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText =  "UPDATE SaveFilesTable SET " + updateCommandText + "@onHand, money = @money WHERE id = @id";
+            for(int i = 0; i < intParameters.Count; i++){
+                QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                intParam.SetParameter(dbCommandUpdateValue);
+            }
+
             dbCommandUpdateValue.ExecuteNonQuery();
 
-            dbCommandUpdateValue.CommandText =  "UPDATE TownTable SET " + updateStockText + inStock + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText =  "UPDATE TownTable SET " + updateStockText + " @stock WHERE id = @id";
+            intParameters = new List<int>{inStock, GameLoop.FileId};
+            intParameterNames = new List<string>{"@stock", "@id"};
+            
+            for(int i = 0; i < intParameters.Count; i++){
+                QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                intParam.SetParameter(dbCommandUpdateValue);
+            }
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -804,7 +858,9 @@ namespace RestPhase{
         public void CheckLeaderStatus(){
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT leaderName FROM ActiveCharactersTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -865,13 +921,22 @@ namespace RestPhase{
 
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT overallTime FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT overallTime FROM SaveFilesTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
             int overallTime = dataReader.GetInt32(0);
 
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET time = @time, overallTime = @overallTime WHERE id = @id";
+            List<string> intParameterNames = new List<string>{"@time", "@overallTime", "@id"};
+            List<int> intParameters = new List<int>{GameLoop.Hour, (overallTime+1), GameLoop.FileId};
+            for(int i = 0; i < intParameters.Count; i++){
+                QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                intParam.SetParameter(dbCommandUpdateValue);
+            }
+
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -886,13 +951,17 @@ namespace RestPhase{
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health, food, inPhase, " + 
                                               "leaderMorale, friend1Morale, friend2Morale, friend3Morale, customIdLeader, customId1, customId2, customId3 FROM SaveFilesTable " + 
-                                              "LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id WHERE SaveFilesTable.id = " + GameLoop.FileId;
+                                              "LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id WHERE SaveFilesTable.id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);            
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
             int overallFood = dataReader.GetInt32(8), phase = dataReader.GetInt32(9);
-            List<int> teamHealth = new List<int>();
-            List<int> teamMorale = new List<int>();
+            List<int> teamHealth = new List<int>(), teamMorale = new List<int>(), intParameters;
+            List<string>intParameterNames = new List<string>{"@lHealth", "@t1Health", "@t2Health", "@t3Health", "@lMorale", "@t1Morale", "@t2Morale", "@t3Morale", 
+                                                                    "@id"};
+                
 
             // Decrement food if available, otherwise health and morale decrease.
             if(overallFood > 0){
@@ -927,15 +996,23 @@ namespace RestPhase{
                 dataReader.Close();
 
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = " + overallFood + " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = @food WHERE id = @id";
+                queryParameter.SetParameter(dbCommandUpdateValue);
+                queryParameter.ChangeParameterProperties("@food", overallFood);
+                queryParameter.SetParameter(dbCommandUpdateValue);     
                 dbCommandUpdateValue.ExecuteNonQuery();
 
                 dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
-                                                    ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
-                                                    ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3] +
-                                                    " WHERE id = " + GameLoop.FileId; 
-                
+                dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = @lHealth, friend1Health = @t1Health, friend2Health = @t2Health, " + 
+                                                   "friend3Health = @t3Health, leaderMorale = @lMorale, friend1Morale = @t1Morale, friend2Morale = @t2Morale, " + 
+                                                   "friend3Morale = @t3Morale WHERE id = @id" ; 
+                intParameterNames = new List<string>{"@lHealth", "@t1Health", "@t2Health", "@t3Health", "@lMorale", "@t1Morale", "@t2Morale", "@t3Morale", "@id"};
+                intParameters = new List<int>{teamHealth[0], teamHealth[1], teamHealth[2], teamHealth[3], teamMorale[0], teamMorale[1], teamMorale[2], teamMorale[3],
+                                                        GameLoop.FileId};
+                for(int i = 0; i < intParameters.Count; i++){
+                    QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                    intParam.SetParameter(dbCommandUpdateValue);
+                }
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
             }
@@ -968,9 +1045,9 @@ namespace RestPhase{
                 }
 
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
-                        ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
-                        ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3];
+                string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = @lHealth, friend1Health = @t1Health, friend2Health = @t2Health, " + 
+                                     "friend3Health = @t3Health, leaderMorale = @lMorale, friend1Morale = @t1Morale, friend2Morale = @t2Morale, " + 
+                                     "friend3Morale = @t3Morale " ;
 
                 // Check if any character has died.
                 string tempDisplayText = "";
@@ -1002,6 +1079,16 @@ namespace RestPhase{
                             FriendsAlive = names.Where(s => !Equals(s, "_____TEMPNULL") && !Equals(s, names[0])).Count();
 
                             dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
+
+                            intParameterNames = new List<string>{"@lHealth", "@t1Health", "@t2Health", "@t3Health", "@lMorale", "@t1Morale", "@t2Morale", "@t3Morale", 
+                                                                              "@id"};
+                            intParameters = new List<int>{teamHealth[0], teamHealth[1], teamHealth[2], teamHealth[3], teamMorale[0], teamMorale[1], teamMorale[2], 
+                                                                    teamMorale[3], GameLoop.FileId};
+                            for(int j = 0; j < intParameters.Count; i++){
+                                QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[j], intParameters[j]);
+                                intParam.SetParameter(dbCommandUpdateValue);
+                            }
+
                             dbCommandUpdateValue.ExecuteNonQuery();
                             dbConnection.Close();
                             return; 
@@ -1013,7 +1100,9 @@ namespace RestPhase{
                 // Display characters that have died.
                 if(flag){
                     dbCommandReadValues = dbConnection.CreateCommand();
-                    dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
+                    dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = @id";
+                    queryParameter.ChangeParameterProperties("@id", GameLoop.FileId);
+                    queryParameter.SetParameter(dbCommandUpdateValue);     
                     int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar()); 
 
                     foreach(int id in deadIds){
@@ -1022,7 +1111,13 @@ namespace RestPhase{
                         }
                         IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
                         dbCommandInsertValue.CommandText = "INSERT INTO PerishedCustomTable (id, saveFileId, customCharacterId)" +
-                                                            "VALUES (" + (count+1) + ", " + GameLoop.FileId + ", " + id + ")";
+                                                            "VALUES (@id, @fileid, @charId)";
+                        intParameterNames = new List<string>{"@id", "@fileId", "@charId"};
+                        intParameters = new List<int>{(count+1), GameLoop.FileId, id};
+                        for(int i = 0; i < intParameters.Count; i++){
+                            QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                            intParam.SetParameter(dbCommandUpdateValue);
+                        }                       
                         dbCommandInsertValue.ExecuteNonQuery();
                         count++;
                     }
@@ -1048,7 +1143,15 @@ namespace RestPhase{
                 }
 
                 dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = @id";
+                intParameterNames = new List<string>{"@lHealth", "@t1Health", "@t2Health", "@t3Health", "@lMorale", "@t1Morale", "@t2Morale", "@t3Morale", 
+                                                                    "@id"};
+                intParameters = new List<int>{teamHealth[0], teamHealth[1], teamHealth[2], teamHealth[3], teamMorale[0], teamMorale[1], teamMorale[2], 
+                                                        teamMorale[3], GameLoop.FileId};
+                for(int i = 0; i < intParameters.Count; i++){
+                    QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                    intParam.SetParameter(dbCommandUpdateValue);
+                }
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
             }
@@ -1148,8 +1251,32 @@ namespace RestPhase{
 
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT carHp, isBatteryDead, isTireFlat FROM CarsTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);        
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            dataReader.Read();
+            int carHp = dataReader.GetInt32(0);
+            bool batteryDead = dataReader.GetInt32(1) == 1, tireFlat = dataReader.GetInt32(2) == 1;
+
+            // Bias the offer to be tires, scrap, or batteries if the car cannot move
+            offerItem = carHp == 0 ? "scrap" : batteryDead ? "batteries" : tireFlat ? "tires" : offerItem;
+            tradeOffer = carHp == 0 ? 3 : batteryDead ? 7 : tireFlat ? 6 : tradeOffer;
+            tradeOfferQty = carHp == 0 ? Random.Range(1,20) : batteryDead || tireFlat ? tradeOfferQty = Random.Range(2,4) : tradeOfferQty;
+
+            // Reroll demand if offer is the same as demand
+            if(tradeOffer == tradeDemand){
+                while(tradeOffer == tradeDemand){
+                    tradeDemand = Random.Range(1,9);
+                }
+                tradeDemandQty = tradeDemand >= 5 && tradeDemand <= 7 ? Random.Range(2,4) : Random.Range(1,20);
+            }
+
+            dbCommandReadValues = dbConnection.CreateCommand();
+            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = @id";
+            queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);        
+            dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
             demandItem = tradeDemand == 1 ? "kg of food" : tradeDemand == 2 ? "cans of gas" : tradeDemand == 3 ? "scrap" : tradeDemand == 4 ? "dollars" :
@@ -1171,7 +1298,9 @@ namespace RestPhase{
             if(CombatManager.SucceededJob){
                 IDbConnection dbConnection = GameDatabase.OpenDatabase();
                 IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT side" + RestMenu.JobNum + "Qty, side" + RestMenu.JobNum + "Reward FROM TownTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT side" + RestMenu.JobNum + "Qty, side" + RestMenu.JobNum + "Reward FROM TownTable WHERE id = @id";
+                QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+                queryParameter.SetParameter(dbCommandReadValue);        
                 IDataReader dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -1180,7 +1309,8 @@ namespace RestPhase{
 
                 IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
                 dbCommandUpdateValue.CommandText = "UPDATE TownTable SET side" + JobNum + "Type = 0, side" + JobNum + "Diff = 0, side" + JobNum + "Reward = 0, side" + JobNum 
-                                                    + "Qty = 0 WHERE id = " + GameLoop.FileId;
+                                                    + "Qty = 0 WHERE id = @id";
+                queryParameter.SetParameter(dbCommandUpdateValue);    
                 dbCommandUpdateValue.ExecuteNonQuery();
 
                 string displayText = "You have received the following for completing the job:\n* " + qty;
@@ -1189,13 +1319,19 @@ namespace RestPhase{
                 displayText += reward <= 3 ?  " kg of food" : reward <= 6 ? " cans of gas" : reward <= 9 ? " scrap" : reward <= 12 ? " dollars" :
                                reward == 13 ? " medkits" : reward <= 14 ? " tires" : reward == 15 ? " batteries" : " ammo";
 
-                string temp = reward <= 3 ?  "food" : reward <= 6 ? "gas" : reward <= 9 ? "scrap" : reward <= 12 ? "money" :
-                               reward == 13 ? "medkit" : reward <= 14 ? "tire" : reward == 15 ? " battery" : "ammo";
+                string temp = reward <= 3 ?  "food = food + " : reward <= 6 ? "gas = gas + " : reward <= 9 ? "scrap = scrap + " : reward <= 12 ? "money = money +" :
+                               reward == 13 ? "medkit = medkit + " : reward <= 14 ? "tire = tire + " : reward == 15 ? " battery = battery + " : "ammo = ammo + ";
 
                 // Update the database (change resources and clear the board)
                 dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = reward >= 4 && reward <= 6 ? "UPDATE SaveFilesTable SET " + temp + " = " + temp + " + " + (float)(qty) + " WHERE id = " + GameLoop.FileId
-                                                                              : "UPDATE SaveFilesTable SET " + temp + " = " + temp + " + " +  qty + " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET " + temp + "@qty WHERE id = @id";
+                                                                              
+                QueryParameter<string> stringParameter = new QueryParameter<string>("@temp", temp);
+                stringParameter.SetParameter(dbCommandUpdateValue);
+                QueryParameter<int> intParameter = new QueryParameter<int>("@qty", qty);
+                intParameter.SetParameter(dbCommandUpdateValue);
+                intParameter.ChangeParameterProperties("@id", GameLoop.FileId);
+                intParameter.SetParameter(dbCommandUpdateValue);
                 dbCommandUpdateValue.ExecuteNonQuery();
                 dbConnection.Close();
 

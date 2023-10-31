@@ -275,6 +275,8 @@ namespace CombatPhase{
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT difficulty FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
             diff = dataReader.GetInt32(0);
@@ -296,7 +298,8 @@ namespace CombatPhase{
 
             dbCommandReadValue = dbConnection.CreateCommand();
             dbCommandReadValue.CommandText = "SELECT leaderHealth, friend1Name, friend2Name, friend3Name, friend1Perk, friend2Perk, friend3Perk, friend1Trait, friend2Trait, " + 
-                                             "friend3Trait, leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                                             "friend3Trait, leaderName FROM ActiveCharactersTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -323,7 +326,8 @@ namespace CombatPhase{
             // Job settings
             if(RestMenu.JobNum != 0){
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT side" + RestMenu.JobNum + "Diff, side" + RestMenu.JobNum + "Type FROM TownTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT side" + RestMenu.JobNum + "Diff, side" + RestMenu.JobNum + "Type FROM TownTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -378,7 +382,7 @@ namespace CombatPhase{
 
             // Update the database
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
-
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
             // Update player count (check if any teammates perished)
             if(DeadMembers.Count > 0){
                 IDbCommand dbCommandUpdateDeadValue = dbConnection.CreateCommand();
@@ -387,19 +391,21 @@ namespace CombatPhase{
                 for(int i = 0; i < DeadMembers.Count; i++){
                     tempDead += DeadMembers[i] == 1 ? "friend1Name = null " : i == 2 ? "friend2Name = null " : "friend3Name = null ";
                 }
-                tempDead += "WHERE id = " + GameLoop.FileId;
+                tempDead += "WHERE id = @id";
                 dbCommandUpdateDeadValue.CommandText = tempDead;
+                queryParameter.SetParameter(dbCommandUpdateDeadValue);
                 dbCommandUpdateDeadValue.ExecuteNonQuery();
             }
 
             // Ammo will be counted as total avaialble plus loaded since collected ammo can be used during combat
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name FROM ActiveCharactersTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
             // Update HP while getting living members
-            string tempHP = "UPDATE ActiveCharactersTable SET leaderHealth = " + player.GetComponent<Player>().hp;
+            string tempHP = "UPDATE ActiveCharactersTable SET leaderHealth = @lhealth";
 
             int livingMembers = 0;
             for(int i = 0; i < 4; i++){
@@ -409,15 +415,20 @@ namespace CombatPhase{
                     tempHP += ", friend" + i + "Health = " + teammates[i-1].hp;
                 }
             }
-            tempHP += " WHERE id = " + GameLoop.FileId;
+            tempHP += " WHERE id = @id";
             
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
             dbCommandUpdateValue.CommandText = tempHP;
+            queryParameter.ChangeParameterProperties("@lHealth", player.GetComponent<Player>().hp);
+            queryParameter.SetParameter(dbCommandUpdateValue);
+            queryParameter.ChangeParameterProperties("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandUpdateValue);
             dbCommandUpdateValue.ExecuteNonQuery();
             
             // Manage rations with the hour that passed during scavenging
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT food, time, rations FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT food, time, rations FROM SaveFilesTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -433,10 +444,17 @@ namespace CombatPhase{
             }
 
             dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = food + " + totalFood + ", gas = gas + " + (float)(gasFound) + 
-                                                ", scrap = scrap + " + scrapFound + ", money = money + " + moneyFound + ", medkit = medkit + " + medkitFound +
-                                                ", ammo = " + (Player.AmmoLoaded + Player.TotalAvailableAmmo + ammoRemaining) + ", time = " + 
-                                                time + ", overallTime = overallTime + 1 WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = food + @food, gas = gas + @gas, scrap = scrap + @scrap, money = money + @money, " + 
+                                               "medkit = medkit + @medkit, ammo = @ammo, time = @time, overallTime = overallTime + 1 WHERE id = @id";
+            List<int> parameters = new List<int>(){totalFood, gasFound, scrapFound, moneyFound, medkitFound, (Player.AmmoLoaded + Player.TotalAvailableAmmo + ammoRemaining), time,
+                                                   GameLoop.FileId
+                                                  };
+            List<string> names = new List<string>(){"@food", "@gas", "@scrap", "@money", "@medkit", "@ammo", "@time", "@id"};
+            for(int i = 0; i < parameters.Count; i++){
+                QueryParameter<int> parameter = new QueryParameter<int>(names[i], parameters[i]);
+                parameter.SetParameter(dbCommandUpdateValue);
+            }
+
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 

@@ -141,7 +141,9 @@ namespace AI{
 
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 

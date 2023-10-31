@@ -266,23 +266,41 @@ namespace Database{
     /// <summary>
     /// Helper class for creating prepared statements
     /// </summary>
+    /// <typeparam name="T">The type of parameter for the query</typeparam>
     public class QueryParameter<T>{
         private string paramName;
         private T element;
 
+        /// <sumamry>
+        /// Constructor
+        /// </summary>
+        /// <typeparam name="T">The type of parameter for the query</typeparam>
         public QueryParameter(string paramName, T element){
             this.paramName = paramName;
             this.element = element;
         }
 
+        /// <summary>
+        /// Return the name of the query parameter
+        /// </summary>
+        /// <returns>The parameter name</returns>
         public string GetParamName(){
             return paramName;
         }
 
+        /// <summary>
+        /// Return the element of the query parameter
+        /// </summary>
+        /// <typeparam name="T">The type of parameter for the query</typeparam>
+        /// <returns>The element of the query</returns>
         public T GetElement(){
             return element;
         }
 
+        /// <summary>
+        /// Set the parameter into the command
+        /// </summary>
+        /// <param name="command">A command connected to the database</param>
         public void SetParameter(IDbCommand command){
             var parameter = command.CreateParameter();
             parameter.ParameterName = this.GetParamName();

@@ -196,8 +196,12 @@ namespace UI
                     
                     if(phase == 0 || phase == 2){
                         restMenuUI.SetActive(true);
+                        travelMenuUI[0].SetActive(false);
+                        travelMenuUI[1].SetActive(false);
+                        travelMenuUI[2].SetActive(true);
                     }
                     else if(phase == 1){
+                        restMenuUI.SetActive(false);
                         travelMenuUI[0].SetActive(true);
                         travelMenuUI[1].SetActive(true);
                         travelMenuUI[2].SetActive(false);
@@ -270,20 +274,10 @@ namespace UI
         /// Replace the file
         /// </summary>
         public void ReplaceFile(){
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "REPLACE INTO SaveFilesTable(id, charactersId) VALUES (@Param1, @Param1)";
-            QueryParameter<int> fileParameter = new QueryParameter<int>("@Param1", targetFile);
-            fileParameter.SetParameter(dbCommandInsertValue);
-
-            dbCommandInsertValue.ExecuteNonQuery();
-            fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n\n  No save file";
-            deletionButtons[targetFile].interactable = true;
+            DeleteFile();
 
             gameObject.GetComponent<GamemodeSelect>().RandomizeCharacter(true);
             gameObject.GetComponent<GamemodeSelect>().RandomizeCharacter(false);
-
-            dbConnection.Close();
         }
 
         /// <summary>
@@ -344,7 +338,10 @@ namespace UI
         public void StartNewGame(){
             int startingFood = 100, startingGas = 20, startingScrap = 25, startingMoney = 30, startingMedkit = 1, startingBattery = 1, startingTire = 1, startingAmmo = 150,
                 startingLeaderMorale = 75, startingPartnerMorale = 75;
+            List<int> startParameters;
+            List<string> startParametersStr, startParamNames, startParamStrNames;
 
+            // Change starting data depending on difficulty
             if(GamemodeSelect.Difficulty == 2 || GamemodeSelect.Difficulty == 4){
                 startingFood = 50; 
                 startingGas = 10;
@@ -355,67 +352,93 @@ namespace UI
                 startingTire = 0;
                 startingAmmo = 75;
             }
+
             // Add medkits if healthcare perk is used
             startingMedkit += GamemodeSelect.LeaderPerk == 2 || GamemodeSelect.PartnerPerk == 2 ? 2 : 0;
             // Increase morale if optimist
             startingLeaderMorale += GamemodeSelect.LeaderTrait == 2 ? 15 : 0;
             startingPartnerMorale += GamemodeSelect.PartnerTrait == 2 ? 15 : 0; 
 
-            // Create table of active characters as a separate table
+            // Initializing active character data
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
             dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO ActiveCharactersTable(id, leaderName, leaderPerk, leaderTrait, leaderColor, leaderAcc, leaderHat, leaderOutfit, leaderMorale, leaderHealth, " +
                                                "friend1Name, friend1Perk, friend1Trait, friend1Color, friend1Acc, friend1Hat, friend1Outfit, friend1Morale, friend1Health, customIdLeader, customId1) VALUES (" + 
-                                                targetFile + ", '" + GamemodeSelect.LeaderName + "', " + GamemodeSelect.LeaderPerk + ", " + GamemodeSelect.LeaderTrait + ", " + GamemodeSelect.LeaderColor +
-                                                ", " + GamemodeSelect.LeaderAcc + ", " + GamemodeSelect.LeaderHat + ", " + GamemodeSelect.LeaderOutfit + ", " + startingLeaderMorale + ", " + 100 + ", '" +
-                                                GamemodeSelect.PartnerName + "', " + GamemodeSelect.PartnerPerk + ", " + GamemodeSelect.PartnerTrait + ", " + GamemodeSelect.PartnerColor + ", " +
-                                                GamemodeSelect.PartnerAcc + ", " + GamemodeSelect.PartnerHat + ", " + GamemodeSelect.PartnerOutfit + ", " + startingPartnerMorale + ", " + 100 + ", " + 
-                                                GamemodeSelect.CustomIDs[0] + ", " + GamemodeSelect.CustomIDs[1] + ")";
+                                               "@target, @lname, @lperk, @ltrait, @lcolor, @lacc, @lhat, @loutfit, @lmorale, 100, @pname, @pperk, @ptrait, @pcolor, @pacc, @phat, @poutfit, @pmorale, 100, @cid1, @cid2);";
+            startParametersStr = new List<string>(){GamemodeSelect.LeaderName, GamemodeSelect.PartnerName};
+            startParamStrNames = new List<string>(){"@lname", "@pname"};
+            startParameters = new List<int>(){targetFile, GamemodeSelect.LeaderPerk, GamemodeSelect.LeaderTrait, GamemodeSelect.LeaderColor, GamemodeSelect.LeaderAcc, GamemodeSelect.LeaderHat, 
+                                              GamemodeSelect.LeaderOutfit, startingLeaderMorale, GamemodeSelect.PartnerPerk, GamemodeSelect.PartnerTrait, GamemodeSelect.PartnerColor,
+                                              GamemodeSelect.PartnerAcc, GamemodeSelect.PartnerHat, GamemodeSelect.PartnerOutfit, startingPartnerMorale, GamemodeSelect.CustomIDs[0], GamemodeSelect.CustomIDs[1]
+                                            };
+            startParamNames = new List<string>(){"@target", "@lperk", "@ltrait", "@lcolor", "@lacc", "@lhat", "@loutfit", "@lmorale", "@pperk", 
+                                                 "@ptrait", "@pcolor", "@pacc", "@phat", "@poutfit", "@pmorale", "@cid1", "@cid2"};
+            for(int i = 0; i < startParameters.Count; i++){
+                QueryParameter<int> saveParameter = new QueryParameter<int>(startParamNames[i], startParameters[i]);
+                saveParameter.SetParameter(dbCommandInsertValue);
+            }
+            for(int i = 0; i < startParametersStr.Count; i++){
+                QueryParameter<string> saveParameter = new QueryParameter<string>(startParamStrNames[i], startParametersStr[i]);
+                saveParameter.SetParameter(dbCommandInsertValue);
+            }
             dbCommandInsertValue.ExecuteNonQuery();
 
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, carId, distance, difficulty, location, inPhase, food, gas, scrap, " +
-                                                "money, medkit, tire, battery, ammo, time, overallTime, rations, speed) VALUES (" + targetFile + ", " + targetFile + ", " + targetFile + ", 0, " + 
-                                                GamemodeSelect.Difficulty + ", 'Montreal', 0, " + startingFood + ", " + startingGas + ", " + startingScrap + ", " + startingMoney + 
-                                                ", " + startingMedkit + ", " + startingTire + ", " + startingBattery + ", " + startingAmmo + ", 12, 0, 2, 2);";
-            dbCommandUpdateValue.ExecuteNonQuery();
+            // Initializing save file data
+            dbCommandInsertValue = dbConnection.CreateCommand();
+            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, carId, distance, difficulty, location, inPhase, food, gas, scrap, " +
+                                                "money, medkit, tire, battery, ammo, time, overallTime, rations, speed) VALUES (@target, @target, @target, 0, @diff, 'Montreal', 0, " +
+                                                "@food, @gas, @scrap, @money, @medkit, @tire, @battery, @ammo, 12, 0, 2, 2);";
+            startParameters = new List<int>(){targetFile, GamemodeSelect.Difficulty, startingFood, startingGas, startingScrap, startingMoney, startingMedkit, startingBattery, 
+                                                       startingTire, startingAmmo, startingLeaderMorale, startingPartnerMorale};
+            startParamNames = new List<string>(){"@target", "@diff", "@food", "@gas", "@scrap", "@money", "@medkit", "@battery", "@tire", "@ammo", "@lmorale", "@pmorale"};
+            for(int i = 0; i < startParameters.Count; i++){
+                QueryParameter<int> saveParameter = new QueryParameter<int>(startParamNames[i], startParameters[i]);
+                saveParameter.SetParameter(dbCommandInsertValue);
+            }
+            dbCommandInsertValue.ExecuteNonQuery();
 
+            // Initializing town data
             Town start = new Town();
-
-            dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO TownTable(id, foodPrice, gasPrice, scrapPrice, medkitPrice, tirePrice, batteryPrice, ammoPrice, " +
+            dbCommandInsertValue = dbConnection.CreateCommand();
+            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO TownTable(id, foodPrice, gasPrice, scrapPrice, medkitPrice, tirePrice, batteryPrice, ammoPrice, " +
                                                "foodStock, gasStock, scrapStock, medkitStock, tireStock, batteryStock, ammoStock, side1Reward, side1Qty, side1Diff, side1Type, " +
                                                "side2Reward, side2Qty, side2Diff, side2Type, side3Reward, side3Qty, side3Diff, side3Type, curTown, prevTown) VALUES" +
-                                               "(" + targetFile + ", " + start.GetFoodPrice() + ", " +  + start.GetGasPrice() + ", " + start.GetScrapPrice() + ", " + 
-                                                start.GetMedkitPrice() + ", " + start.GetTirePrice() + ", " + start.GetBatteryPrice() + ", " + start.GetAmmoPrice() + ", " +
-                                                start.GetFoodStock() +  ", " + start.GetGasStock() +  ", "  + start.GetScrapStock() +  ", " + 
-                                                start.GetMedkitStock() + ", " + start.GetTireStock() + ", " + start.GetBatteryStock() + ", " + start.GetAmmoStock() + ", " + 
-                                                start.GetMissions()[0].GetMissionReward() + ", " + start.GetMissions()[0].GetMissionQty() + ", " + 
-                                                start.GetMissions()[0].GetMissionDifficulty()  + ", " + start.GetMissions()[0].GetMissionType() + ", " + 
-                                                start.GetMissions()[1].GetMissionReward() + ", " + start.GetMissions()[1].GetMissionQty() + ", " + 
-                                                start.GetMissions()[1].GetMissionDifficulty()  + ", " + start.GetMissions()[1].GetMissionType() + ", " + 
-                                                start.GetMissions()[2].GetMissionReward() + ", " + start.GetMissions()[2].GetMissionQty() + ", " + 
-                                                start.GetMissions()[2].GetMissionDifficulty()  + ", " + start.GetMissions()[2].GetMissionType() + ", 0, -1)";
+                                               "(@target, @foodPrice, @gasPrice, @scrapPrice, @medkitPrice, @tirePrice, @batteryPrice, @ammoPrice, @foodStock, @gasStock, @scrapStock, " + 
+                                               "@medkitStock, @tireStock, @batteryStock, @ammoStock, @m0Reward, @m0qty, @m0diff, @m0type, @m1Reward, @m1qty, @m1diff, @m1type, " + 
+                                               "@m2Reward, @m2qty, @m2diff, @m2type, 0, -1)";
+            startParameters = new List<int>(){targetFile, start.GetFoodPrice(), start.GetGasPrice(), start.GetScrapPrice(), start.GetMedkitPrice(), start.GetTirePrice(), 
+                                                 start.GetBatteryPrice(), start.GetAmmoPrice(), start.GetFoodStock(), start.GetGasStock(), start.GetScrapStock(),
+                                                 start.GetMedkitStock(), start.GetTireStock(), start.GetBatteryStock(), start.GetAmmoStock(), start.GetMissions()[0].GetMissionReward(),
+                                                 start.GetMissions()[0].GetMissionQty(), start.GetMissions()[0].GetMissionDifficulty(), start.GetMissions()[0].GetMissionType(),
+                                                 start.GetMissions()[1].GetMissionReward(), start.GetMissions()[1].GetMissionQty(), start.GetMissions()[1].GetMissionDifficulty(), 
+                                                 start.GetMissions()[1].GetMissionType(), start.GetMissions()[2].GetMissionReward(), start.GetMissions()[2].GetMissionQty(),
+                                                 start.GetMissions()[2].GetMissionDifficulty(), start.GetMissions()[2].GetMissionType()};
+            startParamNames = new List<string>(){"@target", "@foodPrice", "@gasPrice", "scrapPrice", "@medkitPrice", "@tirePrice", "@batteryPrice", "@ammoPrice", "@foodStock", "@gasStock", "@scrapStock",
+                                                 "@medkitStock", "@tireStock", "@batteryStock", "@ammoStock", "@m0Reward", "@m0qty", "@m0diff", "@m0type", "@m1Reward", "@m1qty", "@m1diff", "@m1type",
+                                                 "@m2Reward", "@m2qty", "@m2diff", "@m2type" 
+                                                };
+            for(int i = 0; i < startParameters.Count; i++){
+                QueryParameter<int> saveParameter = new QueryParameter<int>(startParamNames[i], startParameters[i]);
+                saveParameter.SetParameter(dbCommandInsertValue);
+            }
+            dbCommandInsertValue.ExecuteNonQuery();
 
-            dbCommandUpdateValue.ExecuteNonQuery();
-
-            dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "INSERT OR REPLACE INTO CarsTable(id, carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2, isBatteryDead, isTireFlat) VALUES" +
+            // Initializing car data
+            dbCommandInsertValue = dbConnection.CreateCommand();
+            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO CarsTable(id, carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2, isBatteryDead, isTireFlat) VALUES" +
                                                "(@targetFile, 100, 0, 0, 0, 0, 0, 0, 0, 0)";
-
             QueryParameter<int> parameterInt = new QueryParameter<int>("@targetFile", targetFile);
-            parameterInt.SetParameter(dbCommandUpdateValue);
-
-            dbCommandUpdateValue.ExecuteNonQuery();
+            parameterInt.SetParameter(dbCommandInsertValue);
+            dbCommandInsertValue.ExecuteNonQuery();
             dbConnection.Close();
 
+            // Prepare next screen
             travelMenuUI[0].SetActive(false);
             travelMenuUI[1].SetActive(false);
             
             TransitionMenu(targetFile);
             introWindow.SetActive(true);
             activeUI.SetActive(true);
-
         }
 
         /// <summary>

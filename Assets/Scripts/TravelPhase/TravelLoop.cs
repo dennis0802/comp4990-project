@@ -93,12 +93,14 @@ namespace TravelPhase{
         // Flag for going to combat
         public static bool GoingToCombat = false;
         public static List<string> queriesToPerform = new List<string>();
+        public static List<IDbCommand> commandsToPerform = new List<IDbCommand>();
 
         void Start(){
             popupSound = GetComponent<AudioSource>();
         }
 
         void OnEnable(){
+            RefreshScreen();
             if(!logInitialized){
                 InitializeLogs();
             }
@@ -133,17 +135,23 @@ namespace TravelPhase{
                         }
                     }
                     ChangeGameData();
+                    
                     Timer = 0.0f;
                 }
             }
         }
 
+        /// <summary>
+        /// Initialize the screen with database info
+        /// </summary>
         private void InitializeScreen(){
             playerText.text = "";
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health FROM " +
-                                              "ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                                              "ActiveCharactersTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
             List<int> teamHealth = new List<int>();
@@ -171,14 +179,16 @@ namespace TravelPhase{
             }
 
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT nextDistanceAway FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT nextDistanceAway FROM TownTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValues);
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
             targetTownDistance = dataReader.IsDBNull(0) ? 0 : dataReader.GetInt32(0);
 
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT time, distance, food, gas FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT time, distance, food, gas FROM SaveFilesTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValues);
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -224,11 +234,14 @@ namespace TravelPhase{
             // Update save file
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 1, location = 'The Road' WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 1, location = 'The Road' WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandUpdateValue);
             dbCommandUpdateValue.ExecuteNonQuery();
 
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT distance FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT distance FROM SaveFilesTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -236,7 +249,8 @@ namespace TravelPhase{
             
             // Update town database with new town rolls.
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT curTown FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT curTown FROM TownTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -250,19 +264,32 @@ namespace TravelPhase{
             newTown = newTown == 4 ? 16 : newTown;
 
             dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE TownTable SET curTown = " + newTown + ", foodPrice = " + towns[id-1].GetFoodPrice() + ", gasPrice = " +  towns[id-1].GetGasPrice() +
-                                                ", scrapPrice = " + towns[id-1].GetScrapPrice()  + ", medkitPrice = " +  towns[id-1].GetMedkitPrice()  + ", tirePrice = " +  towns[id-1].GetTirePrice()  +
-                                                ", batteryPrice = " +  towns[id-1].GetBatteryPrice()  + ", ammoPrice = " +  towns[id-1].GetAmmoPrice()  + ", foodStock = " +  towns[id-1].GetFoodStock()  +
-                                                ", gasStock = " +  towns[id-1].GetGasStock() + ", scrapStock = " +  towns[id-1].GetScrapStock() + ", medkitStock = " + towns[id-1].GetMedkitStock() +
-                                                ", tireStock = " +  towns[id-1].GetTireStock() + ", batteryStock = " +  towns[id-1].GetBatteryStock() + ", ammoStock = " +  towns[id-1].GetAmmoStock() +
-                                                ", side1Reward = " + towns[id-1].GetMissions()[0].GetMissionReward() + ", side1Qty = " + towns[id-1].GetMissions()[0].GetMissionQty() + 
-                                                ", side1Diff = " + towns[id-1].GetMissions()[0].GetMissionDifficulty() + ", side1Type = " + towns[id-1].GetMissions()[0].GetMissionType() + 
-                                                ", side2Reward = " + towns[id-1].GetMissions()[1].GetMissionReward() + ", side2Qty = " + towns[id-1].GetMissions()[1].GetMissionQty() + 
-                                                ", side2Diff = " + towns[id-1].GetMissions()[1].GetMissionDifficulty() + ", side2Type = " + towns[id-1].GetMissions()[1].GetMissionType() + 
-                                                ", side3Reward = " + towns[id-1].GetMissions()[2].GetMissionReward() + ", side3Qty = " + towns[id-1].GetMissions()[2].GetMissionQty() + 
-                                                ", side3Diff = " + towns[id-1].GetMissions()[2].GetMissionDifficulty() + ", side3Type = " + towns[id-1].GetMissions()[2].GetMissionType() + 
-                                                ", nextDistanceAway = " + targetTownDistance + ", nextTownName = '" + destinationTown + "', prevTown = " + oldTownNum + 
-                                                " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = "UPDATE TownTable SET curTown = @curTown, foodPrice = @foodPrice, gasPrice = @gasPrice, scrapPrice = @scrapPrice, medkitPrice = @medkitPrice, " +
+                                               "tirePrice = @tirePrice, batteryPrice = @batteryPrice, ammoPrice = @ammoPrice, foodStock = @foodStock, gasStock = @gasStock, scrapStock = @scrapStock, " +
+                                               "medkitStock = @medkitStock, tireStock = @tireStock, batteryStock = @batteryStock, ammoStock = @ammoStock, side1Reward = @m0Reward, side1Qty = @m0Qty, " +
+                                               "side1Diff = @m0Diff, side1Type = @m0Type, side2Reward = @m1Reward, side2Qty = @m1Qty, side2Diff = @m1Diff, side2Type = @m1Type, side3Reward = @m2Reward, " +
+                                               "side3Qty = @m2Qty, side3Diff = @m2Diff, side3Type = @m2Type, nextDistanceAway = @target, nextTownName = @name, prevTown = @old WHERE id = @id";
+            List<int> townIntParameters = new List<int>(){newTown, towns[id-1].GetFoodPrice(), towns[id-1].GetGasPrice(), towns[id-1].GetScrapPrice(), towns[id-1].GetMedkitPrice(), 
+                                                          towns[id-1].GetTirePrice(), towns[id-1].GetBatteryPrice(), towns[id-1].GetAmmoPrice(), towns[id-1].GetFoodStock(), 
+                                                          towns[id-1].GetGasStock(), towns[id-1].GetScrapStock(), towns[id-1].GetMedkitStock(), towns[id-1].GetTireStock(), 
+                                                          towns[id-1].GetBatteryStock(), towns[id-1].GetAmmoStock(), towns[id-1].GetMissions()[0].GetMissionReward(), 
+                                                          towns[id-1].GetMissions()[0].GetMissionQty(), towns[id-1].GetMissions()[0].GetMissionDifficulty(), towns[id-1].GetMissions()[0].GetMissionType(), 
+                                                          towns[id-1].GetMissions()[1].GetMissionReward(), towns[id-1].GetMissions()[1].GetMissionQty(), towns[id-1].GetMissions()[1].GetMissionDifficulty(),
+                                                          towns[id-1].GetMissions()[1].GetMissionType(), towns[id-1].GetMissions()[2].GetMissionReward(), towns[id-1].GetMissions()[2].GetMissionQty(),
+                                                          towns[id-1].GetMissions()[2].GetMissionDifficulty(), towns[id-1].GetMissions()[2].GetMissionType(), targetTownDistance, oldTownNum, GameLoop.FileId
+                                                         };
+            List<string> townIntParameterNames = new List<string>(){"@curTown", "@foodPrice", "@gasPrice", "@scrapPrice", "@medkitPrice", "@tirePrice", "@batteryPrice", "@ammoPrice", "@foodStock",
+                                                                    "@gasStock", "@scrapStock", "@medkitStock", "@tireStock", "@batteryStock", "@ammoStock", "@m0Reward", "@m0Qty", "@m0Diff", "@m0Type",
+                                                                    "@m1Reward", "@m1Qty", "@m1Diff", "@m1Type", "@m2Reward", "@m2Qty", "@m2Diff", "@m2Type", "@target", "@old", "@id"
+                                                                   };
+            QueryParameter<string> stringParameter = new QueryParameter<string>("@name", destinationTown);
+            stringParameter.SetParameter(dbCommandUpdateValue);
+
+            for(int i = 0; i < townIntParameters.Count; i++){
+                QueryParameter<int> intParameter = new QueryParameter<int>(townIntParameterNames[i], townIntParameters[i]);
+                intParameter.SetParameter(dbCommandUpdateValue);
+            }
+
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -281,14 +308,17 @@ namespace TravelPhase{
 
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT carHp FROM CarsTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT carHp FROM CarsTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
             carHealthBar.value = dataReader.GetInt32(0);
 
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -312,7 +342,8 @@ namespace TravelPhase{
 
             // Read the database for travel (key supplies, distance) info
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT curTown, nextDistanceAway, nextTownName FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT curTown, nextDistanceAway, nextTownName FROM TownTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -320,7 +351,8 @@ namespace TravelPhase{
             string destination = dataReader.IsDBNull(2) ? "" : dataReader.GetString(2);
 
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT time, distance, food, gas, distance FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT time, distance, food, gas, distance FROM SaveFilesTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -341,7 +373,9 @@ namespace TravelPhase{
         public void StopCar(){
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 2 WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 2 WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandUpdateValue);
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -359,14 +393,18 @@ namespace TravelPhase{
 
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT nextTownName FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT nextTownName FROM TownTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
             string townName = dataReader.GetString(0);
-
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 0, location = '" + townName + "' WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 0, location = @name WHERE id = @id";
+            queryParameter.SetParameter(dbCommandUpdateValue);
+            QueryParameter<string> stringParameter = new QueryParameter<string>("@name", townName);
+            stringParameter.SetParameter(dbCommandUpdateValue);
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 
@@ -409,7 +447,9 @@ namespace TravelPhase{
         public static bool IsCarBroken(){
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT carHp, isBatteryDead, isTireFlat FROM CarsTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT carHp, isBatteryDead, isTireFlat FROM CarsTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -426,14 +466,17 @@ namespace TravelPhase{
         private bool IsCloseToDestination(){
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT distance, speed FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT distance, speed FROM SaveFilesTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
             int curDistance = dataReader.GetInt32(0), speed = dataReader.GetInt32(1), speedActual = speed == 1 ? 65 : speed == 2 ? 80 : 95;
 
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT nextDistanceAway FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT nextDistanceAway FROM TownTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -451,7 +494,9 @@ namespace TravelPhase{
         private void UpdateButtons(){
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT curTown FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT curTown FROM TownTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -486,7 +531,9 @@ namespace TravelPhase{
         private bool Drive(){
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT nextTownName, nextDistanceAway FROM TownTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT nextTownName, nextDistanceAway FROM TownTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -494,7 +541,8 @@ namespace TravelPhase{
             targetTownDistance = dataReader.GetInt32(1);
 
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT carHp, isBatteryDead, isTireFlat, engineUpgrade, miscUpgrade1 FROM CarsTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT carHp, isBatteryDead, isTireFlat, engineUpgrade, miscUpgrade1 FROM CarsTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValues);
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -502,7 +550,8 @@ namespace TravelPhase{
                 gardenUpgrade = dataReader.GetInt32(4);
 
             dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT overallTime, speed, distance, rations, tire, battery, gas, time FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT overallTime, speed, distance, rations, tire, battery, gas, time FROM SaveFilesTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValues);
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -532,15 +581,14 @@ namespace TravelPhase{
                     GameLoop.Hour = 1;
                 }
 
-                string repairCommand = battery > 0 && batteryStatus == 1 ? "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", battery = " + (battery - 1) + 
-                                                " WHERE id = " + GameLoop.FileId : "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", tire = " + (tire - 1) + 
+                string repairCommand = battery > 0 && batteryStatus == 1 ? "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = overallTime + 1, battery = battery - 1 "+ 
+                                                " WHERE id = " + GameLoop.FileId : "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = overallTime + 1, tire = tire - 1 " + 
                                                 " WHERE id = " + GameLoop.FileId;
-                
                 queriesToPerform.Add(repairCommand);
+
                 repairCommand = battery > 0 && batteryStatus == 1 ? "UPDATE CarsTable SET isBatteryDead = 0 WHERE id = " + GameLoop.FileId : 
                                                                     "UPDATE CarsTable SET isTireFlat = 0 WHERE id = " + GameLoop.FileId;
                 queriesToPerform.Add(repairCommand);
-
                 dbConnection.Close();
 
                 return false;
@@ -559,7 +607,7 @@ namespace TravelPhase{
             }
 
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            string temp = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = " + (overallTime + 1) + ", distance = " + newDistance + 
+            string temp = "UPDATE SaveFilesTable SET time = " + GameLoop.Hour + ", overallTime = overallTime + 1, distance = " + newDistance + 
                           " WHERE id = " + GameLoop.FileId;
             queriesToPerform.Add(temp);
 
@@ -573,7 +621,8 @@ namespace TravelPhase{
             // Characters will always take some damage when travelling, regardless of rations
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
-                                              "WHERE SaveFilesTable.id = " + GameLoop.FileId;
+                                              "WHERE SaveFilesTable.id = @id";
+            queryParameter.SetParameter(dbCommandReadValues);
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -668,7 +717,8 @@ namespace TravelPhase{
 
                 dbConnection = GameDatabase.OpenDatabase();
                 dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT prevTown, curTown FROM TownTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValues.CommandText = "SELECT prevTown, curTown FROM TownTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValues);
                 dataReader = dbCommandReadValues.ExecuteReader();
                 dataReader.Read();
 
@@ -696,7 +746,9 @@ namespace TravelPhase{
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health, leaderMorale, " +
                                               "friend1Morale, friend2Morale, friend3Morale, customIdLeader, customId1, customId2, customId3 FROM ActiveCharactersTable " + 
-                                              "WHERE id = " + GameLoop.FileId;
+                                              "WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -727,14 +779,14 @@ namespace TravelPhase{
             string tempDisplayText = "";
 
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = " + teamHealth[0] + ", friend1Health = " + teamHealth[1] +
-                    ", friend2Health = " + teamHealth[2] + ", friend3Health = " + teamHealth[3] + ", leaderMorale = " + teamMorale[0] + 
-                    ", friend1Morale = " + teamMorale[1] + ", friend2Morale = " + teamMorale[2] + ", friend3Morale = " + teamMorale[3]; 
-            
-            bool flag = false;
-            List<string> deadCharacters = new List<string>();
-            List<int> deadIds = new List<int>();
 
+            string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = @lHealth, friend1Health = @f1Health, friend2Health = @f2Health, friend3Health = @f3Health, " +
+                                 "leaderMorale = @lMorale, friend1Morale = @f1Morale, friend2Morale = @f2Morale, friend3Morale = @f3Morale";
+            bool flag = false;
+            List<string> deadCharacters = new List<string>(), paramNames = new List<string>(){"@lHealth", "@f1Health", "@f2Health", "@f3Health", "@lMorale", "@f1Morale", "@f2Morale", "@f3Morale"};
+            List<int> deadIds = new List<int>(), parameters = new List<int>(){teamHealth[0], teamHealth[1], teamHealth[2], teamHealth[3], teamMorale[0], teamMorale[1],
+                                                                              teamMorale[2], teamMorale[3]
+                                                                              };
             for(int i = 0; i < teamHealth.Count; i++){
                 // A recently dead player will have their no hp but their name wasn't recorded as _____TEMPNULL
                 if(teamHealth[i] == 0 && !Equals(names[i], "_____TEMPNULL")){
@@ -751,7 +803,12 @@ namespace TravelPhase{
                         RestMenu.LeaderName = names[0];
                         RestMenu.FriendsAlive = names.Where(s => !Equals(s, "_____TEMPNULL") && !Equals(s, names[0])).Count();
 
-                        dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
+                        dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = @id";
+                        queryParameter.SetParameter(dbCommandUpdateValue);
+                        for(int j = 0; j < parameters.Count; j++){
+                            QueryParameter<int> parameter = new QueryParameter<int>(paramNames[i], parameters[i]);
+                            parameter.SetParameter(dbCommandUpdateValue);
+                        }
                         dbCommandUpdateValue.ExecuteNonQuery();
                         dbConnection.Close();
                         return true; 
@@ -778,11 +835,17 @@ namespace TravelPhase{
 
                 LaunchPopup(tempDisplayText);
 
-                dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
+                dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = @id";
+                queryParameter.SetParameter(dbCommandUpdateValue);
+                for(int j = 0; j < parameters.Count; j++){
+                    QueryParameter<int> parameter = new QueryParameter<int>(paramNames[j], parameters[j]);
+                    parameter.SetParameter(dbCommandUpdateValue);
+                }
                 dbCommandUpdateValue.ExecuteNonQuery();
 
                 dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
+                dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = @id";
+                queryParameter.SetParameter(dbCommandReadValues);
                 int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar()); 
 
                 foreach(int id in deadIds){
@@ -792,7 +855,13 @@ namespace TravelPhase{
 
                     IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
                     dbCommandInsertValue.CommandText = "INSERT INTO PerishedCustomTable (id, saveFileId, customCharacterId)" +
-                                                        "VALUES (" + (count+1) + ", " + GameLoop.FileId + ", " + id + ")";
+                                                        "VALUES (@id, @fileId, @charId)";
+                    queryParameter.ChangeParameterProperties("@id", (count+1));
+                    queryParameter.SetParameter(dbCommandReadValues);
+                    queryParameter.ChangeParameterProperties("@fileId", GameLoop.FileId);
+                    queryParameter.SetParameter(dbCommandReadValues);
+                    queryParameter.ChangeParameterProperties("@charId", id);
+                    queryParameter.SetParameter(dbCommandReadValues);
                     dbCommandInsertValue.ExecuteNonQuery();
                     count++;
                 }
@@ -800,7 +869,12 @@ namespace TravelPhase{
                 return true;
             }
 
-            dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = @id";
+            queryParameter.SetParameter(dbCommandUpdateValue);
+            for(int j = 0; j < parameters.Count; j++){
+                QueryParameter<int> parameter = new QueryParameter<int>(paramNames[j], parameters[j]);
+                parameter.SetParameter(dbCommandUpdateValue);
+            }
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
@@ -177,7 +178,9 @@ namespace UI{
             // If id found, access character info
             if(idFound){
                 dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable WHERE id = " + accessId + ";";
+                dbCommandReadValues.CommandText = "SELECT name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable WHERE id = @id;";
+                QueryParameter<int> queryParameter = new QueryParameter<int>("@id", accessId);
+                queryParameter.SetParameter(dbCommandReadValues);
                 dataReader = dbCommandReadValues.ExecuteReader();
                 dataReader.Read();
                 nameField.text = dataReader.GetString(0);
@@ -223,11 +226,17 @@ namespace UI{
         private void SaveCharacter(){
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO CustomCharactersTable(id, name, perk, trait, accessory, hat, color, outfit) VALUES (" 
-                                                + viewedCharacter + ", @name, " + perkList.value + ", " + traitList.value + ", "
-                                                + accNum + ", " + hatNum + ", " + colorNum + ", " + outfitNum + ")";
+            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO CustomCharactersTable(id, name, perk, trait, accessory, hat, color, outfit) VALUES (" + 
+                                                "@id, @name, @perk, @trait, @acc, @hat, @color, @outfit);";
             QueryParameter<string> stringParameter = new QueryParameter<string>("@name", nameField.text);
             stringParameter.SetParameter(dbCommandInsertValue);
+
+            List<int> intParameters = new List<int>(){viewedCharacter, perkList.value, traitList.value, accNum, hatNum, colorNum, outfitNum};
+            List<string> intParameterNames = new List<string>(){"@id", "@perk", "@trait", "@acc", "@hat", "@color", "@outfit"};
+            for(int i = 0; i < intParameters.Count; i++){
+                QueryParameter<int> intParameter = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                intParameter.SetParameter(dbCommandInsertValue);
+            }
             dbCommandInsertValue.ExecuteNonQuery();
 
             int baseId = viewedCharacter - (pageNum - 1) * 9;
@@ -245,6 +254,16 @@ namespace UI{
             // If empty or whitespace, show an error (name must exist)
             if(string.IsNullOrWhiteSpace(nameField.text)){
                 errorText.SetActive(true);
+                errorText.GetComponent<TextMeshProUGUI>().text = "Name cannot be empty.";
+                return;
+            }
+
+            // 'Sanitize' the input by restricting entry values (any characters from A-Za-z, 0-9, and spaces 1-10 times)
+            string pattern = @"^[0-9A-Za-z ]{1,10}$";
+            Match m = Regex.Match(nameField.text, pattern, RegexOptions.IgnoreCase);
+            if(!m.Success){
+                errorText.SetActive(true);
+                errorText.GetComponent<TextMeshProUGUI>().text = "Name can only contain letters, numbers, and spaces.";
                 return;
             }
 
@@ -260,7 +279,10 @@ namespace UI{
         public void DeleteCharacter(){
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "DELETE FROM CustomCharactersTable WHERE id = " + viewedCharacter + ";";
+            dbCommandInsertValue.CommandText = "DELETE FROM CustomCharactersTable WHERE id = @id;";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", viewedCharacter);
+            queryParameter.SetParameter(dbCommandInsertValue);
+
             dbCommandInsertValue.ExecuteNonQuery();
             
             int baseId = viewedCharacter - (pageNum - 1) * 9;

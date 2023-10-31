@@ -51,7 +51,9 @@ namespace UI{
             // Check for friends alive
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT friend1Name, friend2Name, friend3Name, leaderName FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValues.CommandText = "SELECT friend1Name, friend2Name, friend3Name, leaderName FROM ActiveCharactersTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -66,7 +68,9 @@ namespace UI{
             // Check resources
             dbCommandReadValues = dbConnection.CreateCommand();
             dbCommandReadValues.CommandText = "SELECT difficulty, distance, food, gas, scrap, money, medkit, tire, battery, ammo, overallTime FROM SaveFilesTable " + 
-                                              "WHERE id = " + GameLoop.FileId + ";";
+                                              "WHERE id = @id;";
+            queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValues);
             dataReader = dbCommandReadValues.ExecuteReader();
             dataReader.Read();
 
@@ -89,8 +93,15 @@ namespace UI{
 
             IDbCommand dbCommandInsertValues = dbConnection.CreateCommand();
             dbCommandInsertValues.CommandText = "INSERT INTO LocalHighscoreTable (id, leaderName, difficulty, distance, friends, score) VALUES(" +
-                                               (count + 1) + ", '" + leaderName + "', " + difficulty + ", " + distance + ", " + friendsAlive + ", " + 
-                                               finalScore + ")";
+                                                "@id, @leaderName, @diff, @dist, @alive, @score);";
+            QueryParameter<string> queryParameterStr = new QueryParameter<string>("@name", leaderName);
+            queryParameterStr.SetParameter(dbCommandInsertValues);
+            List<int> intParameters = new List<int>(){(count + 1), difficulty, distance, friendsAlive, finalScore};
+            List<string> intParameterNames = new List<string>(){"@id", "@diff", "@dist", "@alive", "@score"};
+            for(int i = 0; i < intParameters.Count; i++){
+                QueryParameter<int> saveParameter = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
+                saveParameter.SetParameter(dbCommandInsertValues);
+            }
             dbCommandInsertValues.ExecuteNonQuery();
             dbConnection.Close();
 

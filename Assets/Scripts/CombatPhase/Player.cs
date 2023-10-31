@@ -307,8 +307,9 @@ namespace CombatPhase{
 
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT leaderAcc, leaderOutfit, leaderColor, leaderHat, leaderName, leaderHealth FROM ActiveCharactersTable WHERE id = " +
-                                             GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT leaderAcc, leaderOutfit, leaderColor, leaderHat, leaderName, leaderHealth FROM ActiveCharactersTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -377,7 +378,8 @@ namespace CombatPhase{
             playerHealthText.text = "HP: " + hp.ToString() + "/100";
 
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT ammo FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT ammo FROM SaveFilesTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 

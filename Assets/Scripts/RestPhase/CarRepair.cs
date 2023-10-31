@@ -141,7 +141,9 @@ namespace RestPhase{
             // Check if a mechanic was used.
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -160,18 +162,25 @@ namespace RestPhase{
             }
 
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
             int newHp = dataReader.GetInt32(1) + amountRecovered > 100 ? 100 : dataReader.GetInt32(1) + amountRecovered;
 
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET carHp = " + newHp + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET carHp = @hp WHERE id = @id";
+            queryParameter.SetParameter(dbCommandUpdateValue);
+            queryParameter.ChangeParameterProperties("@hp", newHp);
             dbCommandUpdateValue.ExecuteNonQuery();
 
             dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET scrap = scrap - " + scrapUsed + " WHERE id = " + GameLoop.FileId;
+            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET scrap = scrap - @scrapUsed WHERE id = @id";
+            queryParameter.ChangeParameterProperties("@scrapUsed", scrapUsed);
+            queryParameter.SetParameter(dbCommandUpdateValue);
+            queryParameter.ChangeParameterProperties("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandUpdateValue);
             dbCommandUpdateValue.ExecuteNonQuery();
             dbConnection.Close();
 

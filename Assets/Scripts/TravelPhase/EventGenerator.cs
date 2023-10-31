@@ -30,13 +30,16 @@ namespace TravelPhase{
             // Get difficulty, perks, and traits, some events will play differently depending on it (more loss, more damage, etc.)
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT difficulty FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT difficulty FROM SaveFilesTable WHERE id = @id";
+            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
+            queryParameter.SetParameter(dbCommandReadValue);
             IDataReader dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
             int diff = dataReader.GetInt32(0);
 
             dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+            queryParameter.SetParameter(dbCommandReadValue);
             dataReader = dbCommandReadValue.ExecuteReader();
             dataReader.Read();
 
@@ -63,14 +66,16 @@ namespace TravelPhase{
             // 4/44 possibility for a random player to take extra damage (Ex. Bob breaks a rib/leg)
             if(eventChance <= 4){
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT miscUpgrade2 FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT miscUpgrade2 FROM CarsTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
                 int cushioned = dataReader.GetInt32(0);
 
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -93,9 +98,6 @@ namespace TravelPhase{
                 string commandText = "UPDATE ActiveCharactersTable SET ";
                 commandText += index == 1 ? "leaderHealth = " + curHealth : "friend" + rand + "Health = " + curHealth;
                 commandText += " WHERE id = " + GameLoop.FileId;
-
-                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = commandText;
                 TravelLoop.queriesToPerform.Add(commandText);
 
                 msg = name + temp[rand];
@@ -104,7 +106,8 @@ namespace TravelPhase{
             // 3/44 possibility for a random resource type decay more (ex. 10 cans of gas goes missing. Everyone blames Bob.)
             else if(eventChance <= 7){
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT toolUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT toolUpgrade FROM CarsTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -115,7 +118,8 @@ namespace TravelPhase{
                 }
                 else{
                     dbCommandReadValue = dbConnection.CreateCommand();
-                    dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                    dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = @id";
+                    queryParameter.SetParameter(dbCommandReadValue);
                     dataReader = dbCommandReadValue.ExecuteReader();
                     dataReader.Read();
 
@@ -171,7 +175,8 @@ namespace TravelPhase{
                     TravelLoop.queriesToPerform.Add(commandText);
 
                     dbCommandReadValue = dbConnection.CreateCommand();
-                    dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                    dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                    queryParameter.SetParameter(dbCommandReadValue);
                     dataReader = dbCommandReadValue.ExecuteReader();
                     dataReader.Read();
 
@@ -203,17 +208,14 @@ namespace TravelPhase{
             // 3/44 possibility for the car to take more damage (ex. The car drives over some rough terrain)
             else if(eventChance <= 10){
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT carHp FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT carHp FROM CarsTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
                 int hpLoss = diff % 2 == 0 ? Random.Range(20,30) : Random.Range(10,20), curHealth = dataReader.GetInt32(0);
                 curHealth = curHealth - hpLoss > 0 ? curHealth - hpLoss : 0;
-                string commandText = "UPDATE CarsTable SET carHP = " + curHealth + " WHERE id = " + GameLoop.FileId;
-                
-                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = commandText;
-                
+                string commandText = "UPDATE CarsTable SET carHP = " + curHealth + " WHERE id = " + GameLoop.FileId;    
                 TravelLoop.queriesToPerform.Add(commandText);
 
                 msg = "The car struggles to drive over some terrain.";
@@ -222,7 +224,8 @@ namespace TravelPhase{
             // 3/44 possibility for more resources to be found (ex. Bob finds 10 cans of gas in an abandoned car)
             else if(eventChance <= 13){
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM SaveFilesTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -255,7 +258,8 @@ namespace TravelPhase{
                 TravelLoop.queriesToPerform.Add(commandText);
 
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -287,7 +291,8 @@ namespace TravelPhase{
             else if(eventChance <= 18){
                 // Check that a slot is available.
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT friend1Name, friend2Name, friend3Name, customIdLeader, customId1, customId2, customId3 FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT friend1Name, friend2Name, friend3Name, customIdLeader, customId1, customId2, customId3 FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -306,7 +311,8 @@ namespace TravelPhase{
                     int index = names.IndexOf(names.Where(n => Equals(n, "_____TEMPNULL")).First());
                     
                     dbCommandReadValue = dbConnection.CreateCommand();
-                    dbCommandReadValue.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = " + GameLoop.FileId;
+                    dbCommandReadValue.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = @id";
+                    queryParameter.SetParameter(dbCommandReadValue);
                     int deadCount = Convert.ToInt32(dbCommandReadValue.ExecuteScalar());
 
                     dbCommandReadValue = dbConnection.CreateCommand();
@@ -335,7 +341,8 @@ namespace TravelPhase{
                         } while (customIds.Contains(rand));
 
                         dbCommandReadValue = dbConnection.CreateCommand();
-                        dbCommandReadValue.CommandText = "SELECT id, name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable WHERE id = " + rand;
+                        dbCommandReadValue.CommandText = "SELECT id, name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable WHERE id = @selected";
+                        queryParameter.ChangeParameterProperties("@selected", rand);
                         dataReader = dbCommandReadValue.ExecuteReader();
                         dataReader.Read();
 
@@ -379,8 +386,8 @@ namespace TravelPhase{
             else if(eventChance <= 19){
                 // Check that a slot is available.
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
-                                                    GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -421,7 +428,8 @@ namespace TravelPhase{
             // 2/44 possibility for party-wide damage. (ex. The party cannot find clean water. Everyone is dehydrated.)
             else if(eventChance <= 21){
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -446,7 +454,8 @@ namespace TravelPhase{
             else if(eventChance <= 24){
                 // If the car has upgraded tires, display the attempt at popping the tire.
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT wheelUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT wheelUpgrade FROM CarsTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -455,7 +464,8 @@ namespace TravelPhase{
                 }
                 else{
                     dbCommandReadValue = dbConnection.CreateCommand();
-                    dbCommandReadValue.CommandText = "SELECT tire FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                    dbCommandReadValue.CommandText = "SELECT tire FROM SaveFilesTable WHERE id = @id";
+                    queryParameter.SetParameter(dbCommandReadValue);
                     dataReader = dbCommandReadValue.ExecuteReader();
                     dataReader.Read();
 
@@ -486,7 +496,8 @@ namespace TravelPhase{
             else if(eventChance <= 27){
                 // If the car has upgraded battery, display the attempt at breaking.
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT batteryUpgrade FROM CarsTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT batteryUpgrade FROM CarsTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -495,7 +506,8 @@ namespace TravelPhase{
                 }
                 else{
                     dbCommandReadValue = dbConnection.CreateCommand();
-                    dbCommandReadValue.CommandText = "SELECT battery FROM SaveFilesTable WHERE id = " + GameLoop.FileId;
+                    dbCommandReadValue.CommandText = "SELECT battery FROM SaveFilesTable WHERE id = @id";
+                    queryParameter.SetParameter(dbCommandReadValue);
                     dataReader = dbCommandReadValue.ExecuteReader();
                     dataReader.Read();
 
@@ -525,7 +537,8 @@ namespace TravelPhase{
             // 3/44 possibility for someone (other than the leader) with low morale to ditch. Cases where morale is high, treat as a typical drive with no evet
             else if(eventChance <= 30){
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -566,7 +579,8 @@ namespace TravelPhase{
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
 
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -598,7 +612,8 @@ namespace TravelPhase{
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
 
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -629,7 +644,8 @@ namespace TravelPhase{
                 nameIndex = nameIndex == 0 ? 1 : nameIndex == 1 ? 10 : nameIndex == 2 ? 19 : 28;
 
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -664,7 +680,8 @@ namespace TravelPhase{
                 }
 
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -698,7 +715,8 @@ namespace TravelPhase{
                 string solType = availableTraits.Where(t => t == 5).Count() > 0 ? "creative" : "systematic and thought-out";
 
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -706,8 +724,8 @@ namespace TravelPhase{
 
                 // Check that a slot is available.
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = " + 
-                                                    GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 
@@ -754,7 +772,8 @@ namespace TravelPhase{
             // Morale will determine if member fights them off.
             else if(eventChance <= 44 && GameLoop.Activity == 4){
                 dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = " + GameLoop.FileId;
+                dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
+                queryParameter.SetParameter(dbCommandReadValue);
                 dataReader = dbCommandReadValue.ExecuteReader();
                 dataReader.Read();
 

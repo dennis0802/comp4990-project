@@ -243,9 +243,12 @@ namespace UI{
             if(idFound){
                 AssigningChar = !AssigningChar;
                 dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT name, perk, trait, accessory, hat, color, outfit, id FROM CustomCharactersTable WHERE id = " + accessId + ";";
+                dbCommandReadValues.CommandText = "SELECT name, perk, trait, accessory, hat, color, outfit, id FROM CustomCharactersTable WHERE id = @access;";
+                QueryParameter<int> queryParameter = new QueryParameter<int>("@access", accessId);
+                queryParameter.SetParameter(dbCommandReadValues);
                 dataReader = dbCommandReadValues.ExecuteReader();
                 dataReader.Read();
+                
                 name = dataReader.GetString(0);
                 perk = dataReader.GetInt32(1);
                 trait = dataReader.GetInt32(2);
