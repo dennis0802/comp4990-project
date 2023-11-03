@@ -413,7 +413,7 @@ namespace RestPhase{
                 if(GameLoop.IsSelling && teamStocks[i] <= 0){
                     shopButtons[i].interactable = false;
                 }
-                else if(!GameLoop.IsSelling && money < dataReader.GetInt32(i+1) || shopStocks[i] <= 0){
+                else if(!GameLoop.IsSelling && (money < dataReader.GetInt32(i+1) || shopStocks[i] <= 0)){
                     shopButtons[i].interactable = false;
                 }
                 else{
@@ -537,13 +537,13 @@ namespace RestPhase{
         /// Toggle current travel pace
         /// </summary>
         public void TogglePace(){
-            List<int> intParameters = new List<int>(){GameLoop.Pace, GameLoop.FileId};
-            List<string> intParameterNames = new List<string>(){"@speed", "@id"};
-
             GameLoop.Pace++;
             if(GameLoop.Pace > 3){
                 GameLoop.Pace = 1;
             }
+
+            List<int> intParameters = new List<int>(){GameLoop.Pace, GameLoop.FileId};
+            List<string> intParameterNames = new List<string>(){"@speed", "@id"};
 
             IDbConnection dbConnection = GameDatabase.OpenDatabase();
             IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
@@ -775,7 +775,7 @@ namespace RestPhase{
                     break;
                 // Gas
                 case 2:
-                    gasTemp = dataReader.GetFloat(8) + qty * sellFactor;
+                    onHand = (int)(dataReader.GetFloat(8) + qty * sellFactor);
                     cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
                     inStock = dataReader.GetInt32(28) - qty * sellFactor;
                     updateCommandText = "gas = ";

@@ -118,15 +118,15 @@ namespace RestPhase{
                 }
 
                 // Rate based on falling in between specified x-coordinates
-                if(prompts[i].transform.localPosition.x >= Mathf.Abs(13f) && prompts[i].transform.localPosition.x <= Mathf.Abs(17f)){
+                if(Mathf.Abs(prompts[i].transform.localPosition.x) > 12f && Mathf.Abs(prompts[i].transform.localPosition.x) <= 17f){
                     statuses[i].text = "Near Miss";
                     amountRecovered += 6;
                 }
-                else if(prompts[i].transform.localPosition.x >= Mathf.Abs(9f) && prompts[i].transform.localPosition.x <= Mathf.Abs(12f)){
+                else if(Mathf.Abs(prompts[i].transform.localPosition.x) >= 9f && Mathf.Abs(prompts[i].transform.localPosition.x) <= 12f){
                     statuses[i].text = "Good";
                     amountRecovered += 7;
                 }
-                else if(prompts[i].transform.localPosition.x >= -8f && prompts[i].transform.localPosition.x <= 8f){
+                else if(prompts[i].transform.localPosition.x > -9f && prompts[i].transform.localPosition.x < 9f){
                     statuses[i].text = "Great";
                     amountRecovered += 8;
                 }
@@ -173,6 +173,7 @@ namespace RestPhase{
             dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET carHp = @hp WHERE id = @id";
             queryParameter.SetParameter(dbCommandUpdateValue);
             queryParameter.ChangeParameterProperties("@hp", newHp);
+            queryParameter.SetParameter(dbCommandUpdateValue);
             dbCommandUpdateValue.ExecuteNonQuery();
 
             dbCommandUpdateValue = dbConnection.CreateCommand();
