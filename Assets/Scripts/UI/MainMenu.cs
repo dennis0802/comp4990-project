@@ -13,9 +13,6 @@ using TravelPhase;
 
 namespace UI
 {
-    // Save files based on:
-    // https://www.mongodb.com/developer/code-examples/csharp/saving-data-in-unity3d-using-sqlite/
-
     [DisallowMultipleComponent]
     public class MainMenu : MonoBehaviour {
         [Header("Screens")]
@@ -103,10 +100,6 @@ namespace UI
             SetFileDesc();
         }
 
-        void Update(){
-            
-        }
-
         /// <summary>
         /// Access save files
         /// </summary>
@@ -116,17 +109,12 @@ namespace UI
             fileAccessTitle.text = mode ? "Start New File" : "Load File";
             // Temp list to track which ids are used
             List<int> ids = new List<int>(){0,1,2,3};
-
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            IEnumerable saves = DataUser.dataManager.GetSaves();
 
             // Disable access to files with no saved data if loading
             if(!isCreatingNewFile){
-                // Remove ids with save data
-                while(dataReader.Read()){
-                    ids.Remove(dataReader.GetInt32(0));
+                foreach(Save save in saves){
+                    ids.Remove(save.Id);
                 }
 
                 // Disable access to file access and deletion of files that aren't used
@@ -137,9 +125,9 @@ namespace UI
             }
             // Enable access to files with no saved data if creating a new file
             else{
-                while(dataReader.Read()){
-                    ids.Remove(dataReader.GetInt32(0));
-                    deletionButtons[dataReader.GetInt32(0)].interactable = true;
+                foreach(Save save in saves){
+                    ids.Remove(save.Id);
+                    deletionButtons[save.Id].interactable = true;
                 }
 
                 // Disable access to deletion but allow file access for unused files
@@ -148,7 +136,6 @@ namespace UI
                     deletionButtons[id].interactable = false;
                 }
             }
-            dbConnection.Close();
         }
 
         /// <summary>
@@ -156,18 +143,21 @@ namespace UI
         /// </summary>
         /// <param name="id">The id of the save file specified in the editor</param>
         public void AccessGame(int id){
+            // Attempt to find the file with the id
             idFound = false;
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT id FROM SaveFilesTable";
-            idFound = GameDatabase.MatchId(dbCommandReadValues, id);
+            IEnumerable saves = DataUser.dataManager.GetSaves();
+            foreach(Save save in saves){
+                if(save.Id == id){
+                    idFound = true;
+                    break;
+                }
+            }
 
             // Creating a new file
             if(isCreatingNewFile){
                 // Confirm to overwrite or cancel
                 if(idFound){
                     ConfirmFileReplace(id);
-                    dbConnection.Close();
                     return;
                 }
                 deletionButtons[id].interactable = true;
@@ -185,14 +175,7 @@ namespace UI
                 // Open the game
                 if(idFound){
                     TransitionMenu(id);
-                    dbCommandReadValues = dbConnection.CreateCommand();
-                    dbCommandReadValues.CommandText = "SELECT inPhase FROM SaveFilesTable WHERE id = @Param1";
-                    QueryParameter<int> fileParameter = new QueryParameter<int>("@Param1", GameLoop.FileId);
-                    fileParameter.SetParameter(dbCommandReadValues);
-                    IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-                    dataReader.Read();
-
-                    int phase = dataReader.GetInt32(0);
+                    int phase = DataUser.dataManager.GetSaveById(GameLoop.FileId).PhaseNum;
                     
                     if(phase == 0 || phase == 2){
                         restMenuUI.SetActive(true);
@@ -209,7 +192,6 @@ namespace UI
                     activeUI.SetActive(true);
                 }
             }
-            dbConnection.Close();
         }
 
         /// <summary> 
@@ -228,36 +210,20 @@ namespace UI
         /// Set the file descriptor of each save file
         /// </summary>
         public void SetFileDesc(){
-            string diff = "";
-            List<int> nullFiles = new List<int>();
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT id FROM ActiveCharactersTable WHERE leaderName is NULL";
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+            IEnumerable<Save> saves = DataUser.dataManager.GetSaves();
+            IEnumerable<ActiveCharacter> nullLeaders = DataUser.dataManager.GetNullSaves();
 
-            while(dataReader.Read()){
-                nullFiles.Add(dataReader.GetInt32(0));
-            }
-
-            foreach(int nullFile in nullFiles){
-                targetFile = nullFile;
+            // Delete saves who have no leader
+            foreach(ActiveCharacter nullLeader in nullLeaders){
+                targetFile = nullLeader.FileId;
                 DeleteFile();
             }
-            targetFile = -1;
 
-            dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT SaveFilesTable.id, leaderName, distance, location, difficulty FROM SaveFilesTable LEFT JOIN ActiveCharactersTable" + 
-                                              " ON SaveFilesTable.charactersId = ActiveCharactersTable.id";
-            dataReader = dbCommandReadValues.ExecuteReader();
-
-            while(dataReader.Read()){
-                int diffRead = dataReader.GetInt32(4);
-                diff = diffRead == 1 ? "Standard" : diffRead == 2 ? "Deadlier" : diffRead == 3 ? "Standard Custom" : "Deadlier Custom";
-                fileDescriptors[dataReader.GetInt32(0)].text = "  File " + (dataReader.GetInt32(0)+1) + "\n  " + dataReader.GetString(1) + 
-                                                               "\n  " + dataReader.GetInt32(2) + "km\t " + dataReader.GetString(3) + "\n  " + diff;
+            foreach(Save save in saves){
+                ActiveCharacter leader = DataUser.dataManager.GetLeader(save.Id);
+                string diff = save.Difficulty == 1 ? "Standard" : save.Difficulty == 2 ? "Deadlier" : save.Difficulty == 3 ? "Standard Custom" : "Deadlier Custom";
+                fileDescriptors[save.Id].text = " File " + save.Id + "\n  " + leader.CharacterName + "\n  " + save.Distance + "km\t" + save.CurrentLocation + "\n  " + diff;
             }
-
-            dbConnection.Close();
         }
 
         /// <summary>
@@ -295,34 +261,7 @@ namespace UI
         /// </summary>
         public void DeleteFile(){
             targetFile = GameLoop.FileId == -1 ? targetFile : GameLoop.FileId;
-
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandDeleteValue = dbConnection.CreateCommand();
-            dbCommandDeleteValue.CommandText = "DELETE FROM SaveFilesTable WHERE id = @Param1";
-            QueryParameter<int> fileParameter = new QueryParameter<int>("@Param1", targetFile);
-            fileParameter.SetParameter(dbCommandDeleteValue);
-            dbCommandDeleteValue.ExecuteNonQuery();
-
-            dbCommandDeleteValue = dbConnection.CreateCommand();
-            dbCommandDeleteValue.CommandText = "DELETE FROM ActiveCharactersTable WHERE id = @Param1";
-            fileParameter.SetParameter(dbCommandDeleteValue);
-            dbCommandDeleteValue.ExecuteNonQuery();
-
-            dbCommandDeleteValue = dbConnection.CreateCommand();
-            dbCommandDeleteValue.CommandText = "DELETE FROM CarsTable WHERE id = @Param1";
-            fileParameter.SetParameter(dbCommandDeleteValue);
-            dbCommandDeleteValue.ExecuteNonQuery();
-
-            dbCommandDeleteValue = dbConnection.CreateCommand();
-            dbCommandDeleteValue.CommandText = "DELETE FROM TownTable WHERE id = @Param1";
-            fileParameter.SetParameter(dbCommandDeleteValue);
-            dbCommandDeleteValue.ExecuteNonQuery();
-
-            dbCommandDeleteValue = dbConnection.CreateCommand();
-            dbCommandDeleteValue.CommandText = "DELETE FROM PerishedCustomTable WHERE saveFileId = @Param1";
-            fileParameter.SetParameter(dbCommandDeleteValue);
-            dbCommandDeleteValue.ExecuteNonQuery();
-            dbConnection.Close();
+            DataUser.dataManager.DeleteSave(targetFile);
 
             fileDescriptors[targetFile].text = "  File " + (targetFile+1) + "\n\n  No save file";
             deletionButtons[targetFile].interactable = false;
@@ -338,8 +277,6 @@ namespace UI
         public void StartNewGame(){
             int startingFood = 100, startingGas = 20, startingScrap = 25, startingMoney = 30, startingMedkit = 1, startingBattery = 1, startingTire = 1, startingAmmo = 150,
                 startingLeaderMorale = 75, startingPartnerMorale = 75;
-            List<int> startParameters;
-            List<string> startParametersStr, startParamNames, startParamStrNames;
 
             // Change starting data depending on difficulty
             if(GamemodeSelect.Difficulty == 2 || GamemodeSelect.Difficulty == 4){
@@ -360,77 +297,44 @@ namespace UI
             startingPartnerMorale += GamemodeSelect.PartnerTrait == 2 ? 15 : 0; 
 
             // Initializing active character data
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO ActiveCharactersTable(id, leaderName, leaderPerk, leaderTrait, leaderColor, leaderAcc, leaderHat, leaderOutfit, leaderMorale, leaderHealth, " +
-                                               "friend1Name, friend1Perk, friend1Trait, friend1Color, friend1Acc, friend1Hat, friend1Outfit, friend1Morale, friend1Health, customIdLeader, customId1) VALUES (" + 
-                                               "@target, @lname, @lperk, @ltrait, @lcolor, @lacc, @lhat, @loutfit, @lmorale, 100, @pname, @pperk, @ptrait, @pcolor, @pacc, @phat, @poutfit, @pmorale, 100, @cid1, @cid2);";
-            startParametersStr = new List<string>(){GamemodeSelect.LeaderName, GamemodeSelect.PartnerName};
-            startParamStrNames = new List<string>(){"@lname", "@pname"};
-            startParameters = new List<int>(){targetFile, GamemodeSelect.LeaderPerk, GamemodeSelect.LeaderTrait, GamemodeSelect.LeaderColor, GamemodeSelect.LeaderAcc, GamemodeSelect.LeaderHat, 
-                                              GamemodeSelect.LeaderOutfit, startingLeaderMorale, GamemodeSelect.PartnerPerk, GamemodeSelect.PartnerTrait, GamemodeSelect.PartnerColor,
-                                              GamemodeSelect.PartnerAcc, GamemodeSelect.PartnerHat, GamemodeSelect.PartnerOutfit, startingPartnerMorale, GamemodeSelect.CustomIDs[0], GamemodeSelect.CustomIDs[1]
-                                            };
-            startParamNames = new List<string>(){"@target", "@lperk", "@ltrait", "@lcolor", "@lacc", "@lhat", "@loutfit", "@lmorale", "@pperk", 
-                                                 "@ptrait", "@pcolor", "@pacc", "@phat", "@poutfit", "@pmorale", "@cid1", "@cid2"};
-            for(int i = 0; i < startParameters.Count; i++){
-                QueryParameter<int> saveParameter = new QueryParameter<int>(startParamNames[i], startParameters[i]);
-                saveParameter.SetParameter(dbCommandInsertValue);
-            }
-            for(int i = 0; i < startParametersStr.Count; i++){
-                QueryParameter<string> saveParameter = new QueryParameter<string>(startParamStrNames[i], startParametersStr[i]);
-                saveParameter.SetParameter(dbCommandInsertValue);
-            }
-            dbCommandInsertValue.ExecuteNonQuery();
+            ActiveCharacter leader = new ActiveCharacter(){CharacterName = GamemodeSelect.LeaderName, Perk = GamemodeSelect.LeaderPerk, Trait = GamemodeSelect.LeaderTrait,
+                                                           Color = GamemodeSelect.LeaderColor, Acessory = GamemodeSelect.LeaderAcc, Hat = GamemodeSelect.LeaderHat,
+                                                           Outfit = GamemodeSelect.LeaderOutfit, Morale = startingLeaderMorale, Health = 100, IsLeader = 1, FileId = targetFile,
+                                                           CustomCharacterId = GamemodeSelect.CustomIDs[0]
+                                                        };
+            ActiveCharacter partner = new ActiveCharacter(){CharacterName = GamemodeSelect.PartnerName, Perk = GamemodeSelect.PartnerPerk, Trait = GamemodeSelect.PartnerTrait,
+                                                           Color = GamemodeSelect.PartnerColor, Acessory = GamemodeSelect.PartnerAcc, Hat = GamemodeSelect.PartnerHat,
+                                                           Outfit = GamemodeSelect.PartnerOutfit, Morale = startingPartnerMorale, Health = 100, IsLeader = 0, FileId = targetFile,
+                                                           CustomCharacterId = GamemodeSelect.CustomIDs[1]
+                                                        };
+            DataUser.dataManager.InsertCharacter(leader);
+            DataUser.dataManager.InsertCharacter(partner);
 
             // Initializing save file data
-            dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO SaveFilesTable(id, charactersId, carId, distance, difficulty, location, inPhase, food, gas, scrap, " +
-                                                "money, medkit, tire, battery, ammo, time, overallTime, rations, speed) VALUES (@target, @target, @target, 0, @diff, 'Montreal', 0, " +
-                                                "@food, @gas, @scrap, @money, @medkit, @tire, @battery, @ammo, 12, 0, 2, 2);";
-            startParameters = new List<int>(){targetFile, GamemodeSelect.Difficulty, startingFood, startingGas, startingScrap, startingMoney, startingMedkit, startingBattery, 
-                                                       startingTire, startingAmmo, startingLeaderMorale, startingPartnerMorale};
-            startParamNames = new List<string>(){"@target", "@diff", "@food", "@gas", "@scrap", "@money", "@medkit", "@battery", "@tire", "@ammo", "@lmorale", "@pmorale"};
-            for(int i = 0; i < startParameters.Count; i++){
-                QueryParameter<int> saveParameter = new QueryParameter<int>(startParamNames[i], startParameters[i]);
-                saveParameter.SetParameter(dbCommandInsertValue);
-            }
-            dbCommandInsertValue.ExecuteNonQuery();
+            Save newSave = new Save(){Distance = 0, Difficulty = GamemodeSelect.Difficulty, CurrentLocation = "Montreal", PhaseNum = 0, Food = startingFood, Gas = startingGas, 
+                                      Scrap = startingScrap, Money = startingMoney, Medkit = startingMedkit, Battery = startingBattery, Tire = startingTire, Ammo = startingAmmo,
+                                      CurrentTime = 12, OverallTime = 0, RationMode = 2, PaceMode = 2, Id = targetFile
+                                    };
+            DataUser.dataManager.InsertSave(newSave);
 
             // Initializing town data
             Town start = new Town();
-            dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO TownTable(id, foodPrice, gasPrice, scrapPrice, medkitPrice, tirePrice, batteryPrice, ammoPrice, " +
-                                               "foodStock, gasStock, scrapStock, medkitStock, tireStock, batteryStock, ammoStock, side1Reward, side1Qty, side1Diff, side1Type, " +
-                                               "side2Reward, side2Qty, side2Diff, side2Type, side3Reward, side3Qty, side3Diff, side3Type, curTown, prevTown) VALUES" +
-                                               "(@target, @foodPrice, @gasPrice, @scrapPrice, @medkitPrice, @tirePrice, @batteryPrice, @ammoPrice, @foodStock, @gasStock, @scrapStock, " + 
-                                               "@medkitStock, @tireStock, @batteryStock, @ammoStock, @m0Reward, @m0qty, @m0diff, @m0type, @m1Reward, @m1qty, @m1diff, @m1type, " + 
-                                               "@m2Reward, @m2qty, @m2diff, @m2type, 0, -1)";
-            startParameters = new List<int>(){targetFile, start.GetFoodPrice(), start.GetGasPrice(), start.GetScrapPrice(), start.GetMedkitPrice(), start.GetTirePrice(), 
-                                                 start.GetBatteryPrice(), start.GetAmmoPrice(), start.GetFoodStock(), start.GetGasStock(), start.GetScrapStock(),
-                                                 start.GetMedkitStock(), start.GetTireStock(), start.GetBatteryStock(), start.GetAmmoStock(), start.GetMissions()[0].GetMissionReward(),
-                                                 start.GetMissions()[0].GetMissionQty(), start.GetMissions()[0].GetMissionDifficulty(), start.GetMissions()[0].GetMissionType(),
-                                                 start.GetMissions()[1].GetMissionReward(), start.GetMissions()[1].GetMissionQty(), start.GetMissions()[1].GetMissionDifficulty(), 
-                                                 start.GetMissions()[1].GetMissionType(), start.GetMissions()[2].GetMissionReward(), start.GetMissions()[2].GetMissionQty(),
-                                                 start.GetMissions()[2].GetMissionDifficulty(), start.GetMissions()[2].GetMissionType()};
-            startParamNames = new List<string>(){"@target", "@foodPrice", "@gasPrice", "scrapPrice", "@medkitPrice", "@tirePrice", "@batteryPrice", "@ammoPrice", "@foodStock", "@gasStock", "@scrapStock",
-                                                 "@medkitStock", "@tireStock", "@batteryStock", "@ammoStock", "@m0Reward", "@m0qty", "@m0diff", "@m0type", "@m1Reward", "@m1qty", "@m1diff", "@m1type",
-                                                 "@m2Reward", "@m2qty", "@m2diff", "@m2type" 
-                                                };
-            for(int i = 0; i < startParameters.Count; i++){
-                QueryParameter<int> saveParameter = new QueryParameter<int>(startParamNames[i], startParameters[i]);
-                saveParameter.SetParameter(dbCommandInsertValue);
-            }
-            dbCommandInsertValue.ExecuteNonQuery();
+            TownEntity town = new TownEntity(){FoodPrice = start.GetFoodPrice(), GasPrice = start.GetGasPrice(), ScrapPrice = start.GetScrapPrice(), 
+                                               MedkitPrice = start.GetMedkitPrice(), TirePrice = start.GetTirePrice(), BatteryPrice = start.GetBatteryPrice(),
+                                               AmmoPrice = start.GetAmmoPrice(), FoodStock = start.GetFoodStock(), GasStock = start.GetGasStock(), ScrapStock = start.GetScrapStock(),
+                                               MedkitStock = start.GetMedkitStock(), TireStock = start.GetTireStock(), BatteryStock = start.GetBatteryStock(), 
+                                               AmmoStock = start.GetAmmoStock(), Side1Reward = start.GetMissions()[0].GetMissionReward(), Side1Qty = start.GetMissions()[0].GetMissionQty(),
+                                               Side1Type = start.GetMissions()[0].GetMissionType(), Side1Diff = start.GetMissions()[0].GetMissionDifficulty(), Side2Reward = start.GetMissions()[1].GetMissionReward(), 
+                                               Side2Qty = start.GetMissions()[1].GetMissionQty(), Side2Type = start.GetMissions()[1].GetMissionType(), Side2Diff = start.GetMissions()[1].GetMissionDifficulty(),
+                                               Side3Reward = start.GetMissions()[2].GetMissionReward(), Side3Qty = start.GetMissions()[2].GetMissionQty(), 
+                                               Side3Type = start.GetMissions()[2].GetMissionType(), Side3Diff = start.GetMissions()[2].GetMissionDifficulty(), CurTown = 0, PrevTown = -1,
+                                               NextDistanceAway = 0, NextTownName = ""
+                                            };
+            DataUser.dataManager.InsertTown(town);
 
             // Initializing car data
-            dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO CarsTable(id, carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2, isBatteryDead, isTireFlat) VALUES" +
-                                               "(@targetFile, 100, 0, 0, 0, 0, 0, 0, 0, 0)";
-            QueryParameter<int> parameterInt = new QueryParameter<int>("@targetFile", targetFile);
-            parameterInt.SetParameter(dbCommandInsertValue);
-            dbCommandInsertValue.ExecuteNonQuery();
-            dbConnection.Close();
+            Car car = new Car(){Id = targetFile, CarHP = 100, WheelUpgrade = 0, BatteryUpgrade = 0, EngineUpgrade = 0, ToolUpgrade = 0, MiscUpgrade1 = 0, MiscUpgrade2 = 0, IsTireFlat = 0, IsBatteryDead = 0};
+            DataUser.dataManager.InsertCar(car);
 
             // Prepare next screen
             travelMenuUI[0].SetActive(false);

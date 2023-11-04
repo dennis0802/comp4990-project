@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using Mono.Data.Sqlite;
 using TMPro;
 using Database;
+using System.Linq;
 
 namespace UI{
     [DisallowMultipleComponent]
@@ -159,17 +160,11 @@ namespace UI{
             }
             viewedCharacter = accessId;
 
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-
             // Database commands to search for character id
             idFound = false;
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT id FROM CustomCharactersTable";
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-
-            // Search for the id (ids go 0-44)
-            while(dataReader.Read()){
-                if(dataReader.GetInt32(0) == viewedCharacter){
+            IEnumerable<CustomCharacter> characters = DataUser.dataManager.GetCustomCharacters();
+            foreach(CustomCharacter character in characters){
+                if(character.Id == viewedCharacter){
                     idFound = true;
                     break;
                 }
@@ -177,19 +172,14 @@ namespace UI{
 
             // If id found, access character info
             if(idFound){
-                dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable WHERE id = @id;";
-                QueryParameter<int> queryParameter = new QueryParameter<int>("@id", accessId);
-                queryParameter.SetParameter(dbCommandReadValues);
-                dataReader = dbCommandReadValues.ExecuteReader();
-                dataReader.Read();
-                nameField.text = dataReader.GetString(0);
-                perkList.value = dataReader.GetInt32(1);
-                traitList.value = dataReader.GetInt32(2);
-                accNum = dataReader.GetInt32(3);
-                hatNum = dataReader.GetInt32(4);
-                colorNum = dataReader.GetInt32(5);
-                outfitNum = dataReader.GetInt32(6);
+                CustomCharacter characterOfInterest = characters.Where(c=>c.Id == accessId).First();
+                nameField.text = characterOfInterest.CharacterName;
+                perkList.value = characterOfInterest.Perk;
+                traitList.value = characterOfInterest.Trait;
+                accNum = characterOfInterest.Acessory;
+                hatNum = characterOfInterest.Hat;
+                colorNum = characterOfInterest.Color;
+                outfitNum = characterOfInterest.Outfit;
             }
             // Otherwise set to defaults
             else{
@@ -206,8 +196,6 @@ namespace UI{
             ChangeSampleDisplay(1);
             ChangeSampleDisplay(2);
             ChangeSampleDisplay(3);
-            dbConnection.Close();
-
             UpdateButtonsText();
         }
 
@@ -224,26 +212,15 @@ namespace UI{
         /// Save a custom character
         /// </summary>
         private void SaveCharacter(){
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "INSERT OR REPLACE INTO CustomCharactersTable(id, name, perk, trait, accessory, hat, color, outfit) VALUES (" + 
-                                                "@id, @name, @perk, @trait, @acc, @hat, @color, @outfit);";
-            QueryParameter<string> stringParameter = new QueryParameter<string>("@name", nameField.text);
-            stringParameter.SetParameter(dbCommandInsertValue);
-
-            List<int> intParameters = new List<int>(){viewedCharacter, perkList.value, traitList.value, accNum, hatNum, colorNum, outfitNum};
-            List<string> intParameterNames = new List<string>(){"@id", "@perk", "@trait", "@acc", "@hat", "@color", "@outfit"};
-            for(int i = 0; i < intParameters.Count; i++){
-                QueryParameter<int> intParameter = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                intParameter.SetParameter(dbCommandInsertValue);
-            }
-            dbCommandInsertValue.ExecuteNonQuery();
+            CustomCharacter customCharacter = new CustomCharacter(){Id = viewedCharacter, CharacterName = nameField.text, Perk = perkList.value, Trait = traitList.value,
+                                                                    Acessory = accNum, Hat = hatNum, Color = colorNum, Outfit = outfitNum
+                                                                   };
+            DataUser.dataManager.InsertCharacter(customCharacter);
 
             int baseId = viewedCharacter - (pageNum - 1) * 9;
             characterDescText[baseId].text = "          Name: " + nameField.text + "\n          Perk: " + perkList.captionText.text 
                                             + "\n          Trait: " + traitList.captionText.text + "\n";  
             viewedCharacter = -1;
-            dbConnection.Close();
             UpdateButtonsText();
         }
 
@@ -277,18 +254,10 @@ namespace UI{
         /// Delete a custom character
         /// </summary>
         public void DeleteCharacter(){
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-            dbCommandInsertValue.CommandText = "DELETE FROM CustomCharactersTable WHERE id = @id;";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", viewedCharacter);
-            queryParameter.SetParameter(dbCommandInsertValue);
-
-            dbCommandInsertValue.ExecuteNonQuery();
-            
+            DataUser.dataManager.DeleteCharacter(viewedCharacter);            
             int baseId = viewedCharacter - (pageNum - 1) * 9;
             characterDescText[baseId].text = "          Create new character";
             viewedCharacter = -1;
-            dbConnection.Close();
             UpdateButtonsText();
         }
 
@@ -334,15 +303,13 @@ namespace UI{
             bool idFound = false;
             for(int i = lowerBound; i <= upperBound; i++){
                 baseId = i - (pageNum - 1) * 9;
-                IDbConnection dbConnection = GameDatabase.OpenDatabase();
-                IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT id, name, perk, trait, accessory, hat, color, outfit FROM CustomCharactersTable";
-                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
+                IEnumerable<CustomCharacter> characters = DataUser.dataManager.GetCustomCharacters();
+                CustomCharacter viewed = null;
 
-                // Search for the id (ids go 0-44)
-                while(dataReader.Read()){
-                    if(dataReader.GetInt32(0) == i){
+                foreach(CustomCharacter cc in characters){
+                    if(cc.Id == i){
                         idFound = true;
+                        viewed = cc;
                         break;
                     }
                 }
@@ -352,12 +319,12 @@ namespace UI{
                     icons[baseId].SetActive(true);
                     descText[baseId].gameObject.SetActive(true);
                     assignButtons[baseId].interactable = true;
-                    descText[baseId].text = "          Name: " + dataReader.GetString(1) + "\n          Perk: " + perkList.options[dataReader.GetInt32(2)].text
-                                                     + "\n          Trait: " + traitList.options[dataReader.GetInt32(3)].text + "\n";
-                    iconAccNum = dataReader.GetInt32(4);
-                    iconHatNum = dataReader.GetInt32(5);
-                    iconColorNum = dataReader.GetInt32(6);
-                    iconOutfitNum = dataReader.GetInt32(7);                  
+                    descText[baseId].text = "          Name: " + viewed.CharacterName + "\n          Perk: " + perkList.options[viewed.Perk].text
+                                                     + "\n          Trait: " + traitList.options[viewed.Trait].text + "\n";
+                    iconAccNum = viewed.Acessory;
+                    iconHatNum = viewed.Hat;
+                    iconColorNum = viewed.Color;
+                    iconOutfitNum = viewed.Outfit;                  
                 }
                 else if(GamemodeSelect.AssigningChar){
                     icons[baseId].SetActive(false);
@@ -376,7 +343,6 @@ namespace UI{
                 }
                 ChangeMenuIcon(baseId); 
                 idFound = false;
-                dbConnection.Close();
             }
         }
 

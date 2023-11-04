@@ -10,6 +10,8 @@ using UnityEngine.SceneManagement;
 using System;
 using RestPhase;
 using CombatPhase;
+using System.Linq;
+using TravelPhase;
 
 namespace UI{
     [DisallowMultipleComponent]
@@ -40,7 +42,7 @@ namespace UI{
 
         void OnEnable(){
             mainMenu = GameObject.FindGameObjectWithTag("MainScreen").GetComponent<MainMenu>();
-            leaderName = !Equals(RestMenu.LeaderName, "") ? RestMenu.LeaderName : !Equals(CombatManager.LeaderName, "") ? CombatManager.LeaderName : "NULL";
+            leaderName = !Equals(RestMenu.LeaderName, "") ? RestMenu.LeaderName : !Equals(TravelLoop.LeaderName, "") ? TravelLoop.LeaderName : !Equals(CombatManager.LeaderName, "") ? CombatManager.LeaderName : "NULL";
             CalculateScore();
         }
 
@@ -49,34 +51,20 @@ namespace UI{
         /// </summary>
         private void CalculateScore(){
             // Check for friends alive
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT friend1Name, friend2Name, friend3Name, leaderName FROM ActiveCharactersTable WHERE id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
+            IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters();
+            characters = characters.Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId);
+            friendsAlive = characters.Where<ActiveCharacter>(c=>c.IsLeader == 0).Count();
 
-            for(int i = 0; i < 3; i++){
-                friendsAlive += dataReader.IsDBNull(i) ? 0 : 1;
-            }
-
-            if(!dataReader.IsDBNull(3)){
-                leaderName = dataReader.GetString(3);
+            foreach(ActiveCharacter ac in characters){
+                if(ac.IsLeader == 1 && ac.CharacterName != null){
+                    leaderName = ac.CharacterName;
+                }
             }
 
             // Check resources
-            dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT difficulty, distance, food, gas, scrap, money, medkit, tire, battery, ammo, overallTime FROM SaveFilesTable " + 
-                                              "WHERE id = @id;";
-            queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);
-            dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
-
-            int distance = dataReader.GetInt32(1), difficulty = dataReader.GetInt32(0), food = dataReader.GetInt32(2), gas = (int)(dataReader.GetFloat(3)),
-                scrap = dataReader.GetInt32(4), money = dataReader.GetInt32(5), medkit = dataReader.GetInt32(6), tire = dataReader.GetInt32(7), battery = dataReader.GetInt32(8), 
-                ammo = dataReader.GetInt32(9), timeTaken = dataReader.GetInt32(10);
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            int distance = save.Distance, difficulty = save.Difficulty, food = save.Food, gas = (int)(save.Gas), scrap = save.Scrap, money = save.Money, 
+                medkit = save.Medkit, tire = save.Tire, battery = save.Battery, ammo = save.Ammo, timeTaken = save.OverallTime;
 
             // Score is base amount of supplies (medkit, tires, and batteries doubled) + a tenth of the distance + a time bonus determined below multiplied by a difficulty bonus
             // + friends alive (500 each).
@@ -87,23 +75,10 @@ namespace UI{
             finalScore *= difficulty % 2 == 0 ? 2 : 1;
 
             // Check for the number of high scores - creating a new score means id is one above the highest existing.
-            dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM LocalHighscoreTable";
-            int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar());
+            int count = DataUser.dataManager.GetScores().Count();
 
-            IDbCommand dbCommandInsertValues = dbConnection.CreateCommand();
-            dbCommandInsertValues.CommandText = "INSERT INTO LocalHighscoreTable (id, leaderName, difficulty, distance, friends, score) VALUES(" +
-                                                "@id, @leaderName, @diff, @dist, @alive, @score);";
-            QueryParameter<string> queryParameterStr = new QueryParameter<string>("@name", leaderName);
-            queryParameterStr.SetParameter(dbCommandInsertValues);
-            List<int> intParameters = new List<int>(){(count + 1), difficulty, distance, friendsAlive, finalScore};
-            List<string> intParameterNames = new List<string>(){"@id", "@diff", "@dist", "@alive", "@score"};
-            for(int i = 0; i < intParameters.Count; i++){
-                QueryParameter<int> saveParameter = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                saveParameter.SetParameter(dbCommandInsertValues);
-            }
-            dbCommandInsertValues.ExecuteNonQuery();
-            dbConnection.Close();
+            LocalHighscore highscore = new LocalHighscore(){Id = count + 1, Difficulty = difficulty, Distance = distance, FriendsAlive = friendsAlive, FinalScore = finalScore};
+            DataUser.dataManager.InsertScore(highscore);
 
             scoreDetailText.text = "Food: " + food + "\tGas: " + gas + "\tScrap: " + scrap + "\tMoney: " + money + "\tAmmo: " + ammo +
                                    "\nMedkit: " + medkit + "x2" + "\tBattery: " + battery + "x2" + "\tTire: " + tire + "x2\n" + "Distance: " + distance + " / 10\t" +

@@ -304,18 +304,10 @@ namespace CombatPhase{
         /// </summary>
         private void InitializeCharacter(){
             UpdateModel();
+            ActiveCharacter leader = DataUser.dataManager.GetLeader(GameLoop.FileId);
 
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT leaderAcc, leaderOutfit, leaderColor, leaderHat, leaderName, leaderHealth FROM ActiveCharactersTable WHERE id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValue);
-            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
-            dataReader.Read();
-
-            int acc = dataReader.GetInt32(0), outfit = dataReader.GetInt32(1), color = dataReader.GetInt32(2), hat = dataReader.GetInt32(3);
-            hp = dataReader.GetInt32(5);
-            nameText.text = dataReader.GetString(4);
+            int acc = leader.Acessory, outfit = leader.Outfit, color = leader.Color, hat = leader.Hat, hp = leader.Health;
+            nameText.text = leader.CharacterName;
 
             transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[color-1];
             transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[color-1];
@@ -377,19 +369,12 @@ namespace CombatPhase{
             playerHealthBar.value = hp;
             playerHealthText.text = "HP: " + hp.ToString() + "/100";
 
-            dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT ammo FROM SaveFilesTable WHERE id = @id";
-            queryParameter.SetParameter(dbCommandReadValue);
-            dataReader = dbCommandReadValue.ExecuteReader();
-            dataReader.Read();
-
-            TotalAvailableAmmo = dataReader.GetInt32(0);
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            TotalAvailableAmmo = save.Ammo;
             AmmoLoaded = TotalAvailableAmmo - 6 > 0 ? 6 : TotalAvailableAmmo;
             TotalAvailableAmmo -= AmmoLoaded;
 
             alertText = GameObject.FindWithTag("AlertText").GetComponent<TextMeshProUGUI>();
-
-            dbConnection.Close();
         }
     
         /// <summary>

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -47,12 +48,7 @@ namespace UI{
         /// Clear the scores in the database.
         /// </summary>
         public void ClearScore(){
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandDeleteValues = dbConnection.CreateCommand();
-            dbCommandDeleteValues.CommandText = "DELETE FROM LocalHighscoreTable";
-            dbCommandDeleteValues.ExecuteNonQuery();
-            dbConnection.Close();
-
+            DataUser.dataManager.DeleteScores();
             UpdateScreen();
         }
 
@@ -60,34 +56,28 @@ namespace UI{
         /// Update the score screen
         /// </summary>
         private void UpdateScreen(){
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM LocalHighscoreTable";
-            int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar());
-            string commandText = "SELECT leaderName, difficulty, distance, score FROM LocalHighscoreTable";
-            commandText += displayMode != 0 ? " WHERE difficulty = @Param1 ORDER BY score DESC LIMIT 8" : " ORDER BY score DESC LIMIT 8";
+            IEnumerable<LocalHighscore> scores = DataUser.dataManager.GetScores();
+            int count = scores.Count();
+            scores = scores.Where<LocalHighscore>(s=>s.Difficulty == displayMode);
+            scores = scores.OrderByDescending(s => s.FinalScore);
 
-            // Display the top 8 scores of the current display.
-            dbCommandReadValues.CommandText = commandText;
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@Param1", displayMode);
-            queryParameter.SetParameter(dbCommandReadValues);
-
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
             string scoreDisplay1 = "", scoreDisplay2 = "";
             int rowNum = 1;
+            
+            // Limit to 8 scores
+            foreach(LocalHighscore score in scores){
+                if(rowNum == 9){
+                    break;
+                }
 
-            while(dataReader.Read()){
-                int difficulty = dataReader.GetInt32(1);
-                string difficultyText = difficulty == 1 ? "Standard" : difficulty == 2 ? "Deadlier" : difficulty == 3 ? "Standard(C)" : "Deadlier(C)";
-
-                scoreDisplay1 += "\t" + rowNum++ + "\t\t" + dataReader.GetString(0) + "\n";
-                scoreDisplay2 += dataReader.GetInt32(2) + "\t\t\t" + difficultyText + "\t\t" + dataReader.GetInt32(3) + "\n";
+                int diff = score.Difficulty;
+                string diffText = diff == 1 ? "Standard" : diff == 2 ? "Deadlier" : diff == 3 ? "Standard(C)" : "Deadlier(C)";
+                scoreDisplay1 += "\t" + rowNum++ + "\t\t" + score.LeaderName + "\n";
+                scoreDisplay2 += score.Distance + "\t\t\t" + diffText + "\t\t" + score.FinalScore + "\n";
             }
             scoreText1.text = scoreDisplay1;
             scoreText2.text = scoreDisplay2;
             modeText.text = "Displaying scores for mode: " + displayDiffs[displayMode];
-
-            dbConnection.Close();
 
             // Only clear scores when there is a score in the database.
             clearScoreButton.interactable = count != 0;

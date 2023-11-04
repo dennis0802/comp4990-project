@@ -139,54 +139,28 @@ namespace RestPhase{
 
             // Update as necessary in the database
             // Check if a mechanic was used.
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValue);
-            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
-            dataReader.Read();
-
-            List<int> perksFound = new List<int>();
-            for(int i = 0; i < 4; i++){
-                if(!dataReader.IsDBNull(1+9*i)){
-                    perksFound.Add(dataReader.GetInt32(2+9*i));
-                }
-                else{
-                    perksFound.Add(-1);
+            bool mechanicPresent = false;
+            IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId);
+            foreach(ActiveCharacter character in characters){
+                if(character.Perk == 0){
+                    amountRecovered += 5;
+                    mechanicPresent = true;
+                    break;
                 }
             }
 
-            if(perksFound.Where(p => p == 0).Count() > 0){
-                amountRecovered += 5;
-            }
+            Car car = DataUser.dataManager.GetCarById(GameLoop.FileId);
+            car.CarHP += amountRecovered;
+            car.CarHP = car.CarHP > 100 ? 100 : car.CarHP;
 
-            dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM CarsTable WHERE id = @id";
-            queryParameter.SetParameter(dbCommandReadValue);
-            dataReader = dbCommandReadValue.ExecuteReader();
-            dataReader.Read();
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            save.Scrap -= scrapUsed;
 
-            int newHp = dataReader.GetInt32(1) + amountRecovered > 100 ? 100 : dataReader.GetInt32(1) + amountRecovered;
-
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE CarsTable SET carHp = @hp WHERE id = @id";
-            queryParameter.SetParameter(dbCommandUpdateValue);
-            queryParameter.ChangeParameterProperties("@hp", newHp);
-            queryParameter.SetParameter(dbCommandUpdateValue);
-            dbCommandUpdateValue.ExecuteNonQuery();
-
-            dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET scrap = scrap - @scrapUsed WHERE id = @id";
-            queryParameter.ChangeParameterProperties("@scrapUsed", scrapUsed);
-            queryParameter.SetParameter(dbCommandUpdateValue);
-            queryParameter.ChangeParameterProperties("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandUpdateValue);
-            dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
+            DataUser.dataManager.UpdateSave(save);
+            DataUser.dataManager.UpdateCar(car);
 
             repairScreenRecoverText.text = "You repaired for " + amountRecovered + " HP.";
-            repairScreenRecoverText.text += "\nA +5 bonus was applied because of a mechanic's presence.";
+            repairScreenRecoverText.text += mechanicPresent ? "\nA +5 bonus was applied because of a mechanic's presence." : "";
             
             restMenu.PerformWaitingAction(3);
             returnButton.SetActive(true);

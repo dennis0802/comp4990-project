@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using Mono.Data.Sqlite;
 using TMPro;
 using Database;
+using System.Linq;
 
 namespace UI{
     [DisallowMultipleComponent]
@@ -196,6 +197,7 @@ namespace UI{
                 PartnerOutfit = outfitNum;
                 PartnerAcc = accNum;
                 PartnerColor = colorNum;
+                CustomIDs[1] = -1;
             }
             else{
                 LeaderName = name;
@@ -205,6 +207,7 @@ namespace UI{
                 LeaderOutfit = outfitNum;
                 LeaderAcc = accNum;
                 LeaderColor = colorNum;
+                CustomIDs[0] = -1;
             }
             
             UpdateVisuals(perk, trait, colorNum, hatNum, outfitNum, accNum, name, isPartner);
@@ -223,17 +226,11 @@ namespace UI{
                 return;
             }
 
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-
             // Database commands to search for character id
             bool idFound = false;
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT id FROM CustomCharactersTable";
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-
-            // Search for the id (ids go 0-44)
-            while(dataReader.Read()){
-                if(dataReader.GetInt32(0) == accessId){
+            IEnumerable<CustomCharacter> characters = DataUser.dataManager.GetCustomCharacters();
+            foreach(CustomCharacter cc in characters){
+                if(cc.Id == accessId){
                     idFound = true;
                     break;
                 }
@@ -242,21 +239,16 @@ namespace UI{
             // If id found, access character info
             if(idFound){
                 AssigningChar = !AssigningChar;
-                dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT name, perk, trait, accessory, hat, color, outfit, id FROM CustomCharactersTable WHERE id = @access;";
-                QueryParameter<int> queryParameter = new QueryParameter<int>("@access", accessId);
-                queryParameter.SetParameter(dbCommandReadValues);
-                dataReader = dbCommandReadValues.ExecuteReader();
-                dataReader.Read();
+                CustomCharacter characterOfInterest = characters.Where<CustomCharacter>(c=>c.Id == accessId).First();
                 
-                name = dataReader.GetString(0);
-                perk = dataReader.GetInt32(1);
-                trait = dataReader.GetInt32(2);
-                accNum = dataReader.GetInt32(3);
-                hatNum = dataReader.GetInt32(4);
-                colorNum = dataReader.GetInt32(5);
-                outfitNum = dataReader.GetInt32(6);
-                customId = dataReader.GetInt32(7);
+                name = characterOfInterest.CharacterName;
+                perk = characterOfInterest.Perk;
+                trait = characterOfInterest.Trait;
+                accNum = characterOfInterest.Acessory;
+                hatNum = characterOfInterest.Hat;
+                colorNum = characterOfInterest.Color;
+                outfitNum = characterOfInterest.Outfit;
+                customId = characterOfInterest.Id;
 
                 if(assigningPartner){
                     PartnerName = name;
@@ -279,10 +271,8 @@ namespace UI{
                     CustomIDs[0] = customId;
                 }
                 UpdateVisuals(perk, trait, colorNum, hatNum, outfitNum, accNum, name, assigningPartner);
-                dbConnection.Close();
             }
             else{
-                dbConnection.Close();
                 return;
             }
         }

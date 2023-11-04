@@ -263,7 +263,7 @@ namespace RestPhase{
         private Coroutine coroutine;
         private int paranoidPresent = 0;
         // To track prices in town shops
-        private int[] sellingPrices = new int[7], buyingPrices = new int[7], shopStocks = new int[7];
+        private List<int> buyingPrices, sellingPrices, shopStocks;
         // For supply trading (not towns)
         private int tradeOffer, tradeDemand, tradeOfferQty, tradeDemandQty;
         // To track game phase (travel, combat, rest)
@@ -271,7 +271,7 @@ namespace RestPhase{
         // To track leader name for game over
         public static string LeaderName = "";
         // To track friends alive for game over
-        public static int FriendsAlive = 0, JobNum;
+        public static int JobNum;
         public static bool IsScavenging;
 
         void OnEnable(){
@@ -286,32 +286,25 @@ namespace RestPhase{
             ManageRewards();
 
             // Main menus
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
-                                              "WHERE SaveFilesTable.id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
-
-            int money = dataReader.GetInt32(10), food = dataReader.GetInt32(7), scrap = dataReader.GetInt32(9), medkit = dataReader.GetInt32(11), 
-                tires = dataReader.GetInt32(12), batteries = dataReader.GetInt32(13), ammo = dataReader.GetInt32(14), curDistance = dataReader.GetInt32(3);
-            phaseNum = dataReader.GetInt32(6);
-            float gas = dataReader.GetFloat(8);
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where(a=>a.FileId == GameLoop.FileId).OrderByDescending(a=>a.IsLeader);
+            ActiveCharacter[] temp = characters.ToArray<ActiveCharacter>();
+            int money = save.Money, food = save.Food, scrap = save.Scrap, medkit = save.Medkit, tires = save.Tire, batteries = save.Battery, ammo = save.Ammo, 
+                curDistance = save.Distance;
+            phaseNum = save.PhaseNum;
+            float gas = save.Gas;
 
             suppliesText1.text = "Food: " +  food + "kg\n\nGas: " + gas + " cans\n\nScrap: " + scrap + "\n\nMoney: $" +
                                  money + "\n\nMedkit: " + medkit;
             suppliesText2.text = "Tires: " + tires + "\n\nBatteries: " + batteries + "\n\nAmmo: " + ammo;
             curFoodText.text = "You have " + food + "kg of food";
-            locationText.text = phaseNum == 0 ? dataReader.GetString(5) : "The Road";
+            locationText.text = phaseNum == 0 ? save.CurrentLocation : "The Road";
 
             townButton.interactable = phaseNum == 0;
 
             for(int i = 0; i < 4; i++){
-                int index = 20 + 9 * i;
-                if(!dataReader.IsDBNull(index)){
-                    DisplayCharacter(index, i, dataReader);
+                if(i < temp.Count()){
+                    DisplayCharacter(i, temp[i], save);
                 }
                 else{
                     healButton[i].interactable = false;
@@ -321,28 +314,16 @@ namespace RestPhase{
                 }
             }
 
-            GameLoop.RationsMode = dataReader.GetInt32(17);
-            GameLoop.Hour = dataReader.GetInt32(15);
-            GameLoop.Pace = dataReader.GetInt32(18);
+            GameLoop.RationsMode = save.RationMode;
+            GameLoop.Hour = save.CurrentTime;
+            GameLoop.Pace = save.PaceMode;
             GameLoop.Activity = GameLoop.Hour >= 21 || GameLoop.Hour <= 5 ? 4 : GameLoop.Hour >= 18 || GameLoop.Hour <= 8 ? 3 : GameLoop.Hour >= 16 || GameLoop.Hour <= 10 ? 2 : 1;
 
-            // 22 + 9 * i gets the traits
             List<int> foundTraits = new List<int>();
-            for(int i = 0; i < 4; i++){
-                if(!dataReader.IsDBNull(20+9*i)){
-                    foundTraits.Add(dataReader.GetInt32(22+9*i));
-                }
-                else{
-                    foundTraits.Add(-1);
-                }
+            foreach(ActiveCharacter ac in characters){
+                foundTraits.Add(ac.Trait);
             }
-
-            if(foundTraits.Contains(1)){
-                paranoidPresent = 1;
-            }
-            else{
-                paranoidPresent = 0;
-            }
+            paranoidPresent = foundTraits.Contains(1) ? 1 : 0;
             
             rationsText.text = GameLoop.RationsMode == 1 ? "Current Rations: Low (1kg/person)" : 
                                 GameLoop.RationsMode == 2 ?  "Current Rations: Medium (2kg/person)" : "Current Rations: High (3kg/person)";
@@ -365,13 +346,7 @@ namespace RestPhase{
             }
 
             // Town shop menus
-            dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM TownTable WHERE id = @id";
-            queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);
-            dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
-
+            TownEntity townEntity = DataUser.dataManager.GetTownById(GameLoop.FileId);
             foreach (TextMeshProUGUI text in shopButtonTexts)
             {
                 text.text = GameLoop.IsSelling ? "Sell" : "Buy";
@@ -381,9 +356,14 @@ namespace RestPhase{
             GameLoop.SellRate = curDistance < 1000 ? 0.4f : curDistance < 1500 ? 0.3f : curDistance < 2000 ? 0.2f : 0.1f;
 
             int[] teamStocks = {food, (int)gas, scrap, medkit, tires, batteries, ammo};
-
+            buyingPrices = new List<int>(){townEntity.FoodPrice, townEntity.GasPrice, townEntity.ScrapPrice, townEntity.MedkitPrice, townEntity.BatteryPrice, townEntity.TirePrice,
+                                           townEntity.AmmoPrice
+                                          };
+            shopStocks = new List<int>(){townEntity.FoodStock, townEntity.GasStock, townEntity.ScrapStock, townEntity.MedkitStock, townEntity.BatteryStock, townEntity.TireStock,
+                                           townEntity.AmmoStock
+                                          };
+            sellingPrices = new List<int>(){0,0,0,0,0,0,0};
             for(int i = 0; i < 7; i++){
-                buyingPrices[i] = dataReader.GetInt32(i+1);
                 // Add a 10% discount if a charming character is present
                 buyingPrices[i] = foundTraits.Contains(0) ? (int)(buyingPrices[i] - buyingPrices[i] * 0.1f) : buyingPrices[i];
                 // Items will get more expensive with more distance
@@ -391,19 +371,18 @@ namespace RestPhase{
 
                 sellingPrices[i] = (int)((float)(buyingPrices[i]) * GameLoop.SellRate);
                 sellingPrices[i] = sellingPrices[i] == 0 ? 1 : sellingPrices[i];
-                shopStocks[i] = dataReader.GetInt32(i+8);
                 if(i == 0 || i == 6){
                     shopButtonTexts[i].text += " 10";
                 }
             }
 
-            foodRowText.text = "Food\t\t\t" + dataReader.GetInt32(8) + "\t\t       $" + buyingPrices[0] + "\t$" + sellingPrices[0] + "\t\t" + food;
-            gasRowText.text = "Gas\t\t\t" + dataReader.GetInt32(9) + "\t\t       $" + buyingPrices[1] + "\t$" + sellingPrices[1] + "\t\t" + gas;
-            scrapRowText.text = "Scrap\t\t\t" + dataReader.GetInt32(10) + "\t\t       $" + buyingPrices[2] + "\t$" + sellingPrices[2] + "\t\t" + scrap;
-            medRowText.text = "Medkit\t\t" + dataReader.GetInt32(11) + "\t\t       $" + buyingPrices[3] + "\t$" + sellingPrices[3] + "\t\t" + medkit;
-            tireRowText.text = "Tire\t\t\t" + dataReader.GetInt32(12) + "\t\t       $" + buyingPrices[4] + "\t$" + sellingPrices[4] + "\t\t" + tires;
-            batteryRowText.text = "Battery\t\t" + dataReader.GetInt32(13) + "\t\t       $" + buyingPrices[5] + "\t$" + sellingPrices[5] + "\t\t" + batteries;
-            ammoRowText.text = "Ammo\t\t" + dataReader.GetInt32(14) + "\t\t       $" + buyingPrices[6] + "\t$" + sellingPrices[6] + "\t\t" + ammo;
+            foodRowText.text = "Food\t\t\t" + townEntity.FoodStock + "\t\t       $" + buyingPrices[0] + "\t$" + sellingPrices[0] + "\t\t" + food;
+            gasRowText.text = "Gas\t\t\t" + townEntity.GasStock + "\t\t       $" + buyingPrices[1] + "\t$" + sellingPrices[1] + "\t\t" + gas;
+            scrapRowText.text = "Scrap\t\t\t" + townEntity.ScrapStock + "\t\t       $" + buyingPrices[2] + "\t$" + sellingPrices[2] + "\t\t" + scrap;
+            medRowText.text = "Medkit\t\t" + townEntity.MedkitStock + "\t\t       $" + buyingPrices[3] + "\t$" + sellingPrices[3] + "\t\t" + medkit;
+            tireRowText.text = "Tire\t\t\t" + townEntity.TireStock + "\t\t       $" + buyingPrices[4] + "\t$" + sellingPrices[4] + "\t\t" + tires;
+            batteryRowText.text = "Battery\t\t" + townEntity.BatteryStock + "\t\t       $" + buyingPrices[5] + "\t$" + sellingPrices[5] + "\t\t" + batteries;
+            ammoRowText.text = "Ammo\t\t" + townEntity.AmmoStock + "\t\t       $" + buyingPrices[6] + "\t$" + sellingPrices[6] + "\t\t" + ammo;
             moneyAmtText.text = foundTraits.Contains(0) ? "You have $" + money + ". A 10% discount has been applied because of your charm.": "You have $" + money;
 
             // Enable buttons depending on stock and money
@@ -413,7 +392,7 @@ namespace RestPhase{
                 if(GameLoop.IsSelling && teamStocks[i] <= 0){
                     shopButtons[i].interactable = false;
                 }
-                else if(!GameLoop.IsSelling && (money < dataReader.GetInt32(i+1) || shopStocks[i] <= 0)){
+                else if(!GameLoop.IsSelling && (money < buyingPrices[i] || shopStocks[i] <= 0)){
                     shopButtons[i].interactable = false;
                 }
                 else{
@@ -422,50 +401,54 @@ namespace RestPhase{
             }
 
             // Map
-            int nextDistance = phaseNum == 2 ? dataReader.GetInt32(28)-curDistance : 0, curTown = dataReader.GetInt32(27), prevTown = dataReader.GetInt32(30);
+            int nextDistance = phaseNum == 2 ? townEntity.NextDistanceAway-curDistance : 0, curTown = townEntity.CurTown, prevTown = townEntity.PrevTown;
             distanceText.text = "Distance Travelled: " + curDistance + " km\nDistance to Next Stop: " + nextDistance + " km";
             mapImageDisplay.sprite = GameLoop.RetrieveMapImage(prevTown, curTown);
-            
+
             // Job listings
+            List<int> missionRewards = new List<int>(){townEntity.Side1Reward, townEntity.Side2Reward, townEntity.Side3Reward};
+            List<int> missionTypes = new List<int>(){townEntity.Side1Type, townEntity.Side2Type, townEntity.Side3Type};
+            List<int> missionDifficulty = new List<int>(){townEntity.Side1Diff, townEntity.Side2Diff, townEntity.Side3Diff};
+            List<int> missionQty = new List<int>(){townEntity.Side1Qty, townEntity.Side1Qty, townEntity.Side1Qty};
+
             for(int i = 0; i < 3; i++){
-                if(dataReader.GetInt32(15+4*i) != 0){
+                if(missionRewards[i] != 0){
                     jobButtons[i].interactable = true;
-                    string type = dataReader.GetInt32(18+4*i) == 1 ? "Defence" : "Collect";
-                    string typeDesc = dataReader.GetInt32(18+4*i) == 1 ? "Those creatures are out wandering by my house again. Any travellers willing to defend me will be paid." 
+                    string type = missionTypes[i] == 1 ? "Defence" : "Collect";
+                    string typeDesc = missionTypes[i] == 1 ? "Those creatures are out wandering by my house again. Any travellers willing to defend me will be paid." 
                                                                        : "I dropped something precious to me in no man's land. Any travellers willing to find and return it for me will be paid.";
                     string reward = "";
 
-                    int rewardType = dataReader.GetInt32(15+4*i);
+                    int rewardType = missionRewards[i];
                     // 1-3 = food, 4-6 = gas, 7-9 = scrap, 10-12 = money, 13 = medkit, 14 = tire, 15 = battery, 16-18 = ammo
                     if(rewardType >= 1 && rewardType <= 3){
-                        reward = dataReader.GetInt32(16+4*i) + "kg food";
+                        reward = missionQty[i] + "kg food";
                     }
                     else if(rewardType >= 4 && rewardType <= 6){
-                        reward = dataReader.GetInt32(16+4*i) + " cans";
+                        reward = missionQty[i] + " cans";
                     }
                     else if(rewardType >= 7 && rewardType <= 9){
-                        reward = dataReader.GetInt32(16+4*i) + " scrap";
+                        reward = missionQty[i] + " scrap";
                     }
                     else if(rewardType >= 10 && rewardType <= 12){
-                        reward = "$" + dataReader.GetInt32(16+4*i);
+                        reward = "$" + missionQty[i];
                     }
                     else if(rewardType == 13){
-                        reward = dataReader.GetInt32(16+4*i) + " medkits";
+                        reward = missionQty[i] + " medkits";
                     }
                     else if(rewardType == 14){
-                        reward = dataReader.GetInt32(16+4*i) + " tires";
+                        reward = missionQty[i] + " tires";
                     }
                     else if(rewardType == 15){
-                        reward = dataReader.GetInt32(16+4*i) + " batteries";
+                        reward = missionQty[i] + " batteries";
                     }
                     else if(rewardType >= 16 && rewardType <= 18){
-                        reward = dataReader.GetInt32(16+4*i) + " ammo shells";
+                        reward = missionQty[i] + " ammo shells";
                     }
 
-                    string difficulty = dataReader.GetInt32(17+4*i) <= 20 ? "Simple" : dataReader.GetInt32(17+4*i) <= 40 ? "Dangerous" : "Fatal!";
+                    string difficulty = missionDifficulty[i] <= 20 ? "Simple" : missionDifficulty[i] <= 40 ? "Dangerous" : "Fatal!";
                     string jobDesc = type + "\nReward: " + reward + "\nDifficulty: " + difficulty + "\n\n" + typeDesc;
                     jobButtonDescs[i].text = jobDesc;
-
                 }
                 else{
                     jobButtons[i].interactable = false;
@@ -474,28 +457,21 @@ namespace RestPhase{
             }
 
             // Upgrades
-            dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT carHP, wheelUpgrade, batteryUpgrade, engineUpgrade, toolUpgrade, miscUpgrade1, miscUpgrade2 FROM CarsTable WHERE id = @id";
-            queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);
-            dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
+            Car car = DataUser.dataManager.GetCarById(GameLoop.FileId);
 
-            wheelText.text = dataReader.GetInt32(1) == 1 ? "Durable Tires\nTires always last regardless of terrain." : "No wheel upgrade available to list.";
-            batteryText.text = dataReader.GetInt32(2) == 1 ? "Durable Battery\nBattery always has power." : "No battery upgrade available to list.";
-            engineText.text = dataReader.GetInt32(3) == 1 ? "Fuel-Efficent Engine\nEngine consumes less gas for more distance." : "No engine upgrade available to list.";
-            toolText.text = dataReader.GetInt32(4) == 1 ? "Secure Chest\nNo supplies will be forgotten again." : "No tool upgrade available to list.";
-            misc1Text.text = dataReader.GetInt32(5) == 1 ? "Travel Garden\nGenerate 1kg of food/hour." : "No misc upgrade available to list.";
-            misc2Text.text = dataReader.GetInt32(6) == 1 ? "Cushioned Seating\nParty takes less damage when driving." : "No misc upgrade available to list.";
-            int carHP = dataReader.GetInt32(0);
+            wheelText.text = car.WheelUpgrade == 1 ? "Durable Tires\nTires always last regardless of terrain." : "No wheel upgrade available to list.";
+            batteryText.text = car.BatteryUpgrade == 1 ? "Durable Battery\nBattery always has power." : "No battery upgrade available to list.";
+            engineText.text = car.EngineUpgrade == 1 ? "Fuel-Efficent Engine\nEngine consumes less gas for more distance." : "No engine upgrade available to list.";
+            toolText.text = car.ToolUpgrade == 1 ? "Secure Chest\nNo supplies will be forgotten again." : "No tool upgrade available to list.";
+            misc1Text.text = car.MiscUpgrade1 == 1 ? "Travel Garden\nGenerate 1kg of food/hour." : "No misc upgrade available to list.";
+            misc2Text.text = car.MiscUpgrade2 == 1 ? "Cushioned Seating\nParty takes less damage when driving." : "No misc upgrade available to list.";
+            int carHP = car.CarHP;
             carHPSlider.value = carHP;
 
             // Enable buttons depending on car HP and amount of scrap
             for(int i = 0; i < scrapButtons.Length; i++){
                 scrapButtons[i].interactable = carHP != 100 && scrap >= (int)(Mathf.Pow(2,i));
             }
-
-            dbConnection.Close();
         }
 
         /// <summary>
@@ -515,21 +491,10 @@ namespace RestPhase{
             if(GameLoop.RationsMode > 3){
                 GameLoop.RationsMode = 1;
             }
-            
-            List<int> intParameters = new List<int>(){GameLoop.RationsMode, GameLoop.FileId};
-            List<string> intParameterNames = new List<string>(){"@ration", "@id"};
 
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET rations = @ration WHERE id = @id";
-
-            for(int i = 0; i < intParameters.Count; i++){
-                QueryParameter<int> queryParameter = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                queryParameter.SetParameter(dbCommandUpdateValue);
-            }
-            dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
-
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            save.RationMode = GameLoop.RationsMode;
+            DataUser.dataManager.UpdateSave(save);
             RefreshScreen();
         }
 
@@ -542,20 +507,9 @@ namespace RestPhase{
                 GameLoop.Pace = 1;
             }
 
-            List<int> intParameters = new List<int>(){GameLoop.Pace, GameLoop.FileId};
-            List<string> intParameterNames = new List<string>(){"@speed", "@id"};
-
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET speed = @speed WHERE id = @id";
-
-            for(int i = 0; i < intParameters.Count; i++){
-                QueryParameter<int> queryParameter = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                queryParameter.SetParameter(dbCommandUpdateValue);
-            }
-            dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
-
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            save.PaceMode = GameLoop.Pace;
+            DataUser.dataManager.UpdateSave(save);
             RefreshScreen();
         }
 
@@ -600,14 +554,9 @@ namespace RestPhase{
                 leavePopup.SetActive(true);
             }
             else{
-                IDbConnection dbConnection = GameDatabase.OpenDatabase();
-                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET inPhase = 1 WHERE id = @id";
-                QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-                queryParameter.SetParameter(dbCommandUpdateValue);
-                dbCommandUpdateValue.ExecuteNonQuery();
-
-                dbConnection.Close();
+                Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+                save.PhaseNum = 1;
+                DataUser.dataManager.UpdateSave(save);
 
                 SceneManager.LoadScene(2);
                 this.gameObject.SetActive(false);
@@ -629,46 +578,22 @@ namespace RestPhase{
         /// <summary>
         /// Heal a party member using a medkit.
         /// </summary>
+        /// <param name="id">The button of the team member to heal</param>
         public void UseMedkit(int id){
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id " + 
-                                              "WHERE SaveFilesTable.id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where(a=>a.FileId == GameLoop.FileId);
 
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText =  "UPDATE SaveFilesTable SET medkit = medkit - 1 WHERE id = @id";
-            queryParameter.SetParameter(dbCommandUpdateValue);
-            dbCommandUpdateValue.ExecuteNonQuery();
-            
-            int curHealth = dataReader.GetInt32(28 + 9 * id);
+            save.Medkit--;
+            DataUser.dataManager.UpdateSave(save);
+            List<int> teamHealth = new List<int>();
 
-            // Change player health value, max at 100.
-            string updateCommand = "UPDATE ActiveCharactersTable SET ";
-            switch(id){
-                case 0:
-                    updateCommand += curHealth + 15 > 100 ? "leaderHealth = 100" : "leaderHealth = leaderHealth + 15";
-                    break;
-                case 1:
-                    updateCommand += curHealth + 15 > 100 ? "friend1Health = 100" : "friend1Health = friend1Health + 15";
-                    break;
-                case 2:
-                    updateCommand += curHealth + 15 > 100 ? "friend2Health = 100" : "friend2Health = friend2Health + 15";
-                    break;
-                case 3:
-                    updateCommand += curHealth + 15 > 100 ? "friend3Health = 100" : "friend3Health = friend3Health + 15";
-                    break;
+            foreach(ActiveCharacter ac in characters){
+                teamHealth.Add(ac.Health);
             }
-            updateCommand += " WHERE id = " + GameLoop.FileId;
-
-            dbCommandUpdateValue.CommandText = updateCommand;
-            queryParameter.SetParameter(dbCommandUpdateValue);
-            dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
-
+            
+            ActiveCharacter[] temp = characters.ToArray<ActiveCharacter>();
+            temp[id].Health += temp[id].Health + 15 > 100 ? 100 : 15;
+            DataUser.dataManager.UpdateCharacters((IEnumerable<ActiveCharacter>)(temp));
             RefreshScreen();
         }
 
@@ -679,35 +604,25 @@ namespace RestPhase{
         public void TradeAction(int button){
             // Accept trade
             if(button == 1){
-                string offered = "", demanded = "";
+                tradeDemand = Random.Range(1,9);
+                tradeOffer = Random.Range(1,9);
 
-                IDbConnection dbConnection = GameDatabase.OpenDatabase();
-                IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-                dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = @id";
-                QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-                queryParameter.SetParameter(dbCommandReadValues);
-                IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-                dataReader.Read();
+                Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+                List<int> partyStock = new List<int>(){save.Food, (int)(save.Gas), save.Scrap, save.Money, save.Medkit, save.Tire, save.Battery, save.Ammo};
 
                 // Adjust stocks accordingly
-                int curPartyStock = 6 + tradeDemand == 8 ? (int)(dataReader.GetFloat(8)) - tradeDemandQty : dataReader.GetInt32(6 + tradeDemand) - tradeDemandQty;
-                int receivedStock = 6 + tradeOffer == 8 ? (int)(dataReader.GetFloat(8)) + tradeOfferQty : dataReader.GetInt32(6 + tradeOffer) + tradeOfferQty;
+                int curPartyStock = partyStock[tradeDemand-1] - tradeDemandQty;
+                int receivedStock = partyStock[tradeOffer-1] + tradeOfferQty;
 
-                offered = FilterItem(tradeOffer);
-                demanded = FilterItem(tradeDemand);
-
-                IDbCommand dbCommandUpdateValues = dbConnection.CreateCommand();
-                dbCommandUpdateValues.CommandText = "UPDATE SaveFilesTable SET " + offered + " @received, " + demanded + " @curStock WHERE id = @id";
-                List<string> intParameterNames = new List<string>{"@curStock", "@received", "@id"};
-                List<int> intParameters = new List<int>{curPartyStock, receivedStock, GameLoop.FileId};
-
-                for(int i = 0; i < intParameters.Count; i++){
-                    QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                    intParam.SetParameter(dbCommandUpdateValues);
-                }
-                
-                dbCommandUpdateValues.ExecuteNonQuery();
-                dbConnection.Close();
+                save.Food = partyStock[0];
+                save.Gas = (float)(partyStock[1]);
+                save.Scrap = partyStock[2];
+                save.Money = partyStock[3];
+                save.Medkit = partyStock[4];
+                save.Tire = partyStock[5];
+                save.Battery = partyStock[6];
+                save.Ammo = partyStock[7];
+                DataUser.dataManager.UpdateSave(save);
 
                 RefreshScreen();
             }
@@ -746,109 +661,45 @@ namespace RestPhase{
         /// </summary>
         /// <param name="id">The button that was clicked (1 = food, 2 = gas, 3 = scrap, 4 = medkit, 5 = tire, 6 = battery, 7 = ammo)</param>
         public void CompleteTownTransaction(int id){
-            int money = 0, onHand = 0, cost = 0, inStock = 0, qty = 1, sellFactor;
-            float gasTemp;
-            string updateCommandText = "", updateStockText = "";
-            
+            int cost = 0, sellFactor;
+
             sellFactor = GameLoop.IsSelling ? -1 : 1;
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            TownEntity townEntity = DataUser.dataManager.GetTownById(GameLoop.FileId);
 
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable LEFT JOIN TownTable ON SaveFilesTable.id = TownTable.id " + 
-                                              "WHERE SaveFilesTable.id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
+            List<int> partyStock = new List<int>(){save.Food, (int)(save.Gas), save.Scrap, save.Medkit, save.Tire, save.Battery, save.Ammo};
+            List<int> townStock = new List<int>(){townEntity.FoodStock, townEntity.GasStock, townEntity.ScrapStock, townEntity.MedkitStock, townEntity.TireStock,
+                                                  townEntity.BatteryStock, townEntity.AmmoStock};
 
-            money = dataReader.GetInt32(10);
-
-            switch(id){
-                // Food
-                case 1:
-                    qty = 10;
-                    onHand = dataReader.GetInt32(7) + qty * sellFactor;
+            for(int i = 0; i < 7; i++){
+                if(id - 1 == i){
+                    int qty = id == 1 || id == 7 ? 10 : 1;
+                    partyStock[i] += qty * sellFactor;
                     cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
-                    inStock = dataReader.GetInt32(27) - qty * sellFactor;
-                    updateCommandText = "food = ";
-                    updateStockText = "foodStock = ";
+                    townStock[i] -= qty * sellFactor;
                     break;
-                // Gas
-                case 2:
-                    onHand = (int)(dataReader.GetFloat(8) + qty * sellFactor);
-                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
-                    inStock = dataReader.GetInt32(28) - qty * sellFactor;
-                    updateCommandText = "gas = ";
-                    updateStockText = "gasStock = ";
-                    break;
-                // Scrap
-                case 3:
-                    onHand = dataReader.GetInt32(9) + qty * sellFactor;
-                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
-                    updateCommandText = "scrap = ";
-                    updateStockText = "scrapStock = ";
-                    inStock = dataReader.GetInt32(29) - qty * sellFactor;
-                    break;
-                // Medkit
-                case 4:
-                    onHand = dataReader.GetInt32(11) + qty * sellFactor;
-                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
-                    inStock = dataReader.GetInt32(30) - qty * sellFactor;
-                    updateCommandText = "medkit = ";
-                    updateStockText = "medkitStock = ";
-                    break;
-                // Tire
-                case 5:
-                    onHand = dataReader.GetInt32(12) + qty * sellFactor;
-                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
-                    inStock = dataReader.GetInt32(31) - qty * sellFactor;
-                    updateCommandText = "tire = ";
-                    updateStockText = "tireStock = ";
-                    break;
-                // Battery
-                case 6:
-                    onHand = dataReader.GetInt32(13) + qty * sellFactor;
-                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
-                    inStock = dataReader.GetInt32(32) - qty * sellFactor;
-                    updateCommandText = "battery = ";
-                    updateStockText = "batteryStock = ";
-                    break;
-                // Ammo
-                case 7:
-                    qty = 10;
-                    onHand = dataReader.GetInt32(14) + qty * sellFactor;
-                    cost = GameLoop.IsSelling ? sellingPrices[id-1] : buyingPrices[id-1];
-                    updateCommandText = "ammo = ";
-                    updateStockText = "ammoStock = ";
-                    inStock = dataReader.GetInt32(33) - qty * sellFactor;
-                    break;
+                }
             }
 
-            money += GameLoop.IsSelling ? sellingPrices[id-1] : cost * -sellFactor;
-            
-            List<string> intParameterNames = new List<string>{"@onHand", "@money", "@id"};
-            List<int> intParameters = new List<int>{onHand, money, GameLoop.FileId};
+            save.Food = partyStock[0];
+            save.Gas = (float)(partyStock[1]);
+            save.Scrap = partyStock[2];
+            save.Medkit = partyStock[3];
+            save.Tire = partyStock[4];
+            save.Battery = partyStock[5];
+            save.Ammo = partyStock[6];
+            townEntity.FoodStock = townStock[0]; 
+            townEntity.GasStock = townStock[1]; 
+            townEntity.ScrapStock = townStock[2];
+            townEntity.MedkitStock = townStock[3];
+            townEntity.TireStock = townStock[4];
+            townEntity.BatteryStock = townStock[5];
+            townEntity.AmmoStock = townStock[6];
 
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText =  "UPDATE SaveFilesTable SET " + updateCommandText + "@onHand, money = @money WHERE id = @id";
-            for(int i = 0; i < intParameters.Count; i++){
-                QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                intParam.SetParameter(dbCommandUpdateValue);
-            }
+            save.Money += GameLoop.IsSelling ? sellingPrices[id-1] : cost * -sellFactor;
 
-            dbCommandUpdateValue.ExecuteNonQuery();
-
-            dbCommandUpdateValue.CommandText =  "UPDATE TownTable SET " + updateStockText + " @stock WHERE id = @id";
-            intParameters = new List<int>{inStock, GameLoop.FileId};
-            intParameterNames = new List<string>{"@stock", "@id"};
-            
-            for(int i = 0; i < intParameters.Count; i++){
-                QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                intParam.SetParameter(dbCommandUpdateValue);
-            }
-            dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
-
+            DataUser.dataManager.UpdateSave(save);
+            DataUser.dataManager.UpdateTown(townEntity);
             RefreshScreen();
         }
 
@@ -856,23 +707,13 @@ namespace RestPhase{
         /// Check leader status.
         /// </summary>
         public void CheckLeaderStatus(){
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT leaderName FROM ActiveCharactersTable WHERE id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
-
-            // If leader name is null, they are dead. Bring to game over screen. Otherwise visibilities are toggled by the engine.
-            if(dataReader.IsDBNull(0)){
+            ActiveCharacter leader = DataUser.dataManager.GetLeader(GameLoop.FileId);
+            if(leader.CharacterName == null){
                 this.gameObject.SetActive(false);
                 travelScreen.SetActive(false);
                 gameOverScreen.SetActive(true);
                 backgroundPanel.SetActive(true);
             }
-
-            dbConnection.Close();
         }
 
         /// <summary>
@@ -899,47 +740,18 @@ namespace RestPhase{
         }
 
         /// <summary>
-        /// Filter the trade item.
-        /// </summary>
-        /// <param name="id">Item id</param>
-        /// <returns>The string of the item to use to update the database</returns>
-        private string FilterItem(int id){
-            string updateCommandText = id == 1 ? "food = " : id == 2 ? "gas = " : id == 3 ? "scrap = " : id == 4 ? "money = " : id == 5 ? "medkit = " : id == 6 ? "tire = " :
-                                       id == 7 ? "battery = " : "ammo = ";
-            return updateCommandText;
-        }
-
-        /// <summary>
         /// Change the ingame time
         /// </summary>
         private void ChangeTime(){
             GameLoop.Hour++;
-
             if(GameLoop.Hour == 25){
                 GameLoop.Hour = 1;
             }
 
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT overallTime FROM SaveFilesTable WHERE id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
-            int overallTime = dataReader.GetInt32(0);
-
-            IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-            dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET time = @time, overallTime = @overallTime WHERE id = @id";
-            List<string> intParameterNames = new List<string>{"@time", "@overallTime", "@id"};
-            List<int> intParameters = new List<int>{GameLoop.Hour, (overallTime+1), GameLoop.FileId};
-            for(int i = 0; i < intParameters.Count; i++){
-                QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                intParam.SetParameter(dbCommandUpdateValue);
-            }
-
-            dbCommandUpdateValue.ExecuteNonQuery();
-            dbConnection.Close();
-
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            save.CurrentTime = GameLoop.Hour;
+            save.OverallTime++;
+            DataUser.dataManager.UpdateSave(save);
             RefreshScreen();
         }
 
@@ -947,240 +759,133 @@ namespace RestPhase{
         /// Decrement food while performing waiting actions.
         /// </summary>
         private void DecrementFood(){
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT leaderName, friend1Name, friend2Name, friend3Name, leaderHealth, friend1Health, friend2Health, friend3Health, food, inPhase, " + 
-                                              "leaderMorale, friend1Morale, friend2Morale, friend3Morale, customIdLeader, customId1, customId2, customId3 FROM SaveFilesTable " + 
-                                              "LEFT JOIN ActiveCharactersTable ON SaveFilesTable.charactersId = ActiveCharactersTable.id WHERE SaveFilesTable.id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);            
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
+            IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(a=>a.FileId==GameLoop.FileId).OrderByDescending(a=>a.IsLeader);
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            List<string> deadCharacters = new List<string>();
+            List<int> deadIds = new List<int>();
+            bool flag = false;
+            string tempDisplayText = "";
 
-            int overallFood = dataReader.GetInt32(8), phase = dataReader.GetInt32(9);
-            List<int> teamHealth = new List<int>(), teamMorale = new List<int>(), intParameters;
-            List<string>intParameterNames = new List<string>{"@lHealth", "@t1Health", "@t2Health", "@t3Health", "@lMorale", "@t1Morale", "@t2Morale", "@t3Morale", 
-                                                                    "@id"};
-                
+            // Enough food to feed everyone
+            if(save.Food > 0){
+                foreach(ActiveCharacter character in characters){
+                    int hpRestore = GameLoop.RationsMode == 1 ? 3 : GameLoop.RationsMode == 2 ? 5 : 7;
+                    int moraleRestore = 3;
+                    hpRestore += save.PhaseNum == 0 ? 4 : 1;
 
-            // Decrement food if available, otherwise health and morale decrease.
-            if(overallFood > 0){
-                // For each living character on the team, they consume 1, 2, or 3 units of food each hour depending on the ration mode.
-                for(int i = 0; i < 4; i++){
-                    if(!dataReader.IsDBNull(i)){
-                        int curHp = dataReader.GetInt32(4+i),
-                            curMorale = dataReader.GetInt32(10+i);
-                        
-                        overallFood = GameLoop.RationsMode == 1 ? overallFood - 1 : GameLoop.RationsMode == 2 ? overallFood - 2 : overallFood - 3;
-                        overallFood = overallFood <= 0 ? 0 : overallFood;
-                        int hpRestore = GameLoop.RationsMode == 1 ? 3 : GameLoop.RationsMode == 2 ? 5 : 7;
-                        // Heal more in town than on the road
-                        hpRestore += phase == 0 ? 4 : 1;
-                        
-                        // If the character is hurt, recover a little health based on ration mode
-                        if(curHp > 0 && curHp < 100){
-                            curHp = curHp + hpRestore > 100 ? 100 : curHp + hpRestore;
-                        }
-                        if(curMorale > 0 && curMorale < 100){
-                            curMorale = curMorale + 3 > 100 ? 100 : curMorale + 3;
-                        }
-                        teamHealth.Add(curHp);
-                        teamMorale.Add(curMorale);
+                    // Running out of food midway turns into loss
+                    if(save.Food <= 0){
+                        hpRestore = save.PhaseNum == 0 ? -2 : -4;
+                        moraleRestore = -3;
                     }
-                    // Character is dead.
-                    else{
-                        teamHealth.Add(0);
-                        teamMorale.Add(0);
+
+                    save.Food -= GameLoop.RationsMode;
+                    save.Food = save.Food <= 0 ? 0 : save.Food;
+
+                    if(character.Health > 0 && character.Health < 100){
+                        character.Health += hpRestore;
+                        character.Health = character.Health > 100 ? 100 : character.Health;
+                    }
+                    if(character.Morale > 0 && character.Morale < 100){
+                        character.Morale += moraleRestore;
+                        character.Morale = character.Morale > 100 ? 100 : character.Morale;
+                    }
+                    DataUser.dataManager.UpdateCharacters(characters);
+
+                    if(character.Health <= 0){
+                        if(character.IsLeader == 1){
+                            LeaderName = character.CharacterName;
+                            DataUser.dataManager.DeleteActiveCharacter(character.Id);
+                            return;
+                        }
+                        DataUser.dataManager.DeleteActiveCharacter(character.Id);
+                        deadCharacters.Add(character.CharacterName);
+                        deadIds.Add(character.Id);
+                        flag = true;
                     }
                 }
-                dataReader.Close();
-
-                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET food = @food WHERE id = @id";
-                queryParameter.SetParameter(dbCommandUpdateValue);
-                queryParameter.ChangeParameterProperties("@food", overallFood);
-                queryParameter.SetParameter(dbCommandUpdateValue);     
-                dbCommandUpdateValue.ExecuteNonQuery();
-
-                dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = "UPDATE ActiveCharactersTable SET leaderHealth = @lHealth, friend1Health = @t1Health, friend2Health = @t2Health, " + 
-                                                   "friend3Health = @t3Health, leaderMorale = @lMorale, friend1Morale = @t1Morale, friend2Morale = @t2Morale, " + 
-                                                   "friend3Morale = @t3Morale WHERE id = @id" ; 
-                intParameterNames = new List<string>{"@lHealth", "@t1Health", "@t2Health", "@t3Health", "@lMorale", "@t1Morale", "@t2Morale", "@t3Morale", "@id"};
-                intParameters = new List<int>{teamHealth[0], teamHealth[1], teamHealth[2], teamHealth[3], teamMorale[0], teamMorale[1], teamMorale[2], teamMorale[3],
-                                                        GameLoop.FileId};
-                for(int i = 0; i < intParameters.Count; i++){
-                    QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                    intParam.SetParameter(dbCommandUpdateValue);
-                }
-                dbCommandUpdateValue.ExecuteNonQuery();
-                dbConnection.Close();
+                DataUser.dataManager.UpdateSave(save);
             }
             // For each living character, their morale and health decrease.
             else{
-                List<string> names = new List<string>();
-                List<int> customIds = new List<int>();
-                
-                for(int i = 0; i < 4; i++){
-                    if(!dataReader.IsDBNull(i)){
-                        int curHp = dataReader.GetInt32(4+i);
-                        int curMorale = dataReader.GetInt32(10+i);
+                foreach(ActiveCharacter character in characters){
+                    int hpLoss = save.PhaseNum == 0 ? 2 : 4, moraleLoss = 3;
 
-                        if(curHp > 0){
-                            curHp = curHp - 5 < 0 ? 0: curHp - 5;
-                            curMorale = curMorale - 5 < 0 ? 0 : curMorale - 5;
-                            teamHealth.Add(curHp);
-                            teamMorale.Add(curMorale);
+                    if(character.Health > 0){
+                        character.Health -= hpLoss;
+                        character.Morale -= moraleLoss;
+                        character.Morale = character.Morale < 0 ? 0 : character.Morale;
+                    }
+                    DataUser.dataManager.UpdateCharacters(characters);
+
+                    if(character.Health <= 0){
+                        if(character.IsLeader == 1){
+                            LeaderName = character.CharacterName;
+                            DataUser.dataManager.DeleteActiveCharacter(character.Id);
+                            return;
                         }
-                        names.Add(dataReader.GetString(i));
-                        customIds.Add(dataReader.GetInt32(14+i));
-                    }
-                    // Character is dead, they have 0hp.
-                    else{
-                        teamHealth.Add(0);
-                        teamMorale.Add(0);
-                        names.Add("_____TEMPNULL");
-                        customIds.Add(-1);
-                    }
-                }
-
-                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                string tempCommand = "UPDATE ActiveCharactersTable SET leaderHealth = @lHealth, friend1Health = @t1Health, friend2Health = @t2Health, " + 
-                                     "friend3Health = @t3Health, leaderMorale = @lMorale, friend1Morale = @t1Morale, friend2Morale = @t2Morale, " + 
-                                     "friend3Morale = @t3Morale " ;
-
-                // Check if any character has died.
-                string tempDisplayText = "";
-
-                bool flag = false;
-                List<string> deadCharacters = new List<string>();
-                List<int> deadIds = new List<int>();
-
-                for(int i = 0; i < teamHealth.Count; i++){
-                    int index = 20 + 9 * i;
-
-                    // A recently dead player will have their no hp but their name wasn't recorded as _____TEMPNULL
-                    if(teamHealth[i] == 0 && !Equals(names[i], "_____TEMPNULL")){
+                        DataUser.dataManager.DeleteActiveCharacter(character.Id);
+                        deadCharacters.Add(character.CharacterName);
+                        deadIds.Add(character.CustomCharacterId);
                         flag = true;
-                        deadCharacters.Add(names[i]);
-                        deadIds.Add(customIds[i]);
+                    }
+                }
+            }
 
-                        // Leader died = game over
-                        if(i == 0){
-                            tempDisplayText += names[0] + " has died.";
-                            tempCommand += ", leaderName = null";
-
-                            CancelRest();
-
-                            popupText.text = tempDisplayText;
-                            confirmPopup.SetActive(true);
-                            this.gameObject.SetActive(false);
-                            LeaderName = names[0];
-                            FriendsAlive = names.Where(s => !Equals(s, "_____TEMPNULL") && !Equals(s, names[0])).Count();
-
-                            dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = " + GameLoop.FileId;
-
-                            intParameterNames = new List<string>{"@lHealth", "@t1Health", "@t2Health", "@t3Health", "@lMorale", "@t1Morale", "@t2Morale", "@t3Morale", 
-                                                                              "@id"};
-                            intParameters = new List<int>{teamHealth[0], teamHealth[1], teamHealth[2], teamHealth[3], teamMorale[0], teamMorale[1], teamMorale[2], 
-                                                                    teamMorale[3], GameLoop.FileId};
-                            for(int j = 0; j < intParameters.Count; i++){
-                                QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[j], intParameters[j]);
-                                intParam.SetParameter(dbCommandUpdateValue);
-                            }
-
-                            dbCommandUpdateValue.ExecuteNonQuery();
-                            dbConnection.Close();
-                            return; 
-                        }
-                        tempCommand += ", friend" + i + "Name = null";
+            if(flag){
+                IEnumerable<ActiveCharacter> deadMembers = characters.Where(a=>a.Health <= 0);
+                foreach(ActiveCharacter dead in deadMembers){
+                    if(deadIds.Contains(dead.CustomCharacterId)){
+                        PerishedCustomCharacter perished = new PerishedCustomCharacter(){FileId = GameLoop.FileId, CustomCharacterId = dead.CustomCharacterId};
+                        DataUser.dataManager.InsertPerishedCustomCharacter(perished);
+                    }
+                }
+                
+                for(int i = 0; i < deadCharacters.Count; i++){
+                    if(deadCharacters.Count == 1){
+                        tempDisplayText += deadCharacters[i];
+                    }
+                    else if(i == deadCharacters.Count - 1){
+                        tempDisplayText += "and " + deadCharacters[i];
+                    }
+                    else{
+                        tempDisplayText += deadCharacters[i] + ", ";
                     }
                 }
 
-                // Display characters that have died.
-                if(flag){
-                    dbCommandReadValues = dbConnection.CreateCommand();
-                    dbCommandReadValues.CommandText = "SELECT COUNT(*) FROM PerishedCustomTable WHERE saveFileId = @id";
-                    queryParameter.ChangeParameterProperties("@id", GameLoop.FileId);
-                    queryParameter.SetParameter(dbCommandUpdateValue);     
-                    int count = Convert.ToInt32(dbCommandReadValues.ExecuteScalar()); 
+                tempDisplayText += deadCharacters.Count > 1 ? " have died." : " has died.";
+                CancelRest();
 
-                    foreach(int id in deadIds){
-                        if(id == -1){
-                            continue;
-                        }
-                        IDbCommand dbCommandInsertValue = dbConnection.CreateCommand();
-                        dbCommandInsertValue.CommandText = "INSERT INTO PerishedCustomTable (id, saveFileId, customCharacterId)" +
-                                                            "VALUES (@id, @fileid, @charId)";
-                        intParameterNames = new List<string>{"@id", "@fileId", "@charId"};
-                        intParameters = new List<int>{(count+1), GameLoop.FileId, id};
-                        for(int i = 0; i < intParameters.Count; i++){
-                            QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                            intParam.SetParameter(dbCommandUpdateValue);
-                        }                       
-                        dbCommandInsertValue.ExecuteNonQuery();
-                        count++;
-                    }
-
-                    for(int i = 0; i < deadCharacters.Count; i++){
-                        if(deadCharacters.Count == 1 && !Equals(deadCharacters[i], "_____TEMPNULL")){
-                            tempDisplayText += deadCharacters[i];
-                        }
-                        else if(i == deadCharacters.Count - 1 && !Equals(deadCharacters[i], "_____TEMPNULL")){
-                            tempDisplayText += "and " + deadCharacters[i];
-                        }
-                        else if(!Equals(deadCharacters[i], "_____TEMPNULL")){
-                            tempDisplayText += deadCharacters[i] + ", ";
-                        }
-                    }
-
-                    tempDisplayText += deadCharacters.Count > 1 ? " have died." : " has died.";
-                    CancelRest();
-
-                    popupText.text = tempDisplayText;
-                    confirmPopup.SetActive(true);
-                    this.gameObject.SetActive(false);
-                }
-
-                dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = tempCommand + " WHERE id = @id";
-                intParameterNames = new List<string>{"@lHealth", "@t1Health", "@t2Health", "@t3Health", "@lMorale", "@t1Morale", "@t2Morale", "@t3Morale", 
-                                                                    "@id"};
-                intParameters = new List<int>{teamHealth[0], teamHealth[1], teamHealth[2], teamHealth[3], teamMorale[0], teamMorale[1], teamMorale[2], 
-                                                        teamMorale[3], GameLoop.FileId};
-                for(int i = 0; i < intParameters.Count; i++){
-                    QueryParameter<int> intParam = new QueryParameter<int>(intParameterNames[i], intParameters[i]);
-                    intParam.SetParameter(dbCommandUpdateValue);
-                }
-                dbCommandUpdateValue.ExecuteNonQuery();
-                dbConnection.Close();
+                popupText.text = tempDisplayText;
+                confirmPopup.SetActive(true);
+                this.gameObject.SetActive(false);
             }
         }
 
         /// <summary>
         /// Display party members in the menu.
         /// </summary>
-        /// <param name="index">The index to start at in the left joined table</param>
         /// <param name="charNumber">Character number to distinguish leader / friend #</param>
-        /// <param name="dataReader">Data reader actively reading from database</param>
-        private void DisplayCharacter(int index, int charNumber, IDataReader dataReader){
-            string morale = dataReader.GetInt32(index+7) >= 20 ? dataReader.GetInt32(index+7) >= 40 ? dataReader.GetInt32(index+7) >= 60 ? dataReader.GetInt32(index+7) >= 80 
+        /// <param name="character">The current character</param>
+        /// <param name="save">The current save file</param>
+        private void DisplayCharacter(int charNumber, ActiveCharacter character, Save save){
+            string morale = character.Morale >= 20 ? character.Morale >= 40 ? character.Morale >= 60 ? character.Morale >= 80 
                 ? "Hopeful" : "Elated" : "Indifferent" : "Glum" : "Despairing";
 
             playerModel[charNumber].SetActive(true);
-            playerText[charNumber].text = dataReader.GetString(index) + "\n" + GameLoop.Perks[dataReader.GetInt32(index+1)] + "\n" + GameLoop.Traits[dataReader.GetInt32(index+2)] + "\n" + morale;
+            playerText[charNumber].text = character.CharacterName + "\n" + GameLoop.Perks[character.Perk] + "\n" + GameLoop.Traits[character.Trait] + "\n" + morale;
             playerHealth[charNumber].gameObject.SetActive(true);
-            playerHealth[charNumber].value = dataReader.GetInt32(index+8);
-            healButton[charNumber].interactable = playerHealth[charNumber].value != 100 && dataReader.GetInt32(11) != 0;
+            playerHealth[charNumber].value = character.Health;
+            healButton[charNumber].interactable = playerHealth[charNumber].value != 100 && save.Medkit != 0;
 
             GameObject model = playerModel[charNumber];
 
             // Color
-            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[dataReader.GetInt32(index + 5)-1];
-            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[dataReader.GetInt32(index + 5)-1];
+            model.transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[character.Color-1];
+            model.transform.GetChild(0).transform.GetChild(1).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[character.Color-1];
 
             // Hat
-            switch(dataReader.GetInt32(index + 6)){
+            switch(character.Hat){
                 case 1:
                     model.transform.GetChild(3).transform.GetChild(0).gameObject.SetActive(false);
                     model.transform.GetChild(3).transform.GetChild(1).gameObject.SetActive(false);
@@ -1196,7 +901,7 @@ namespace RestPhase{
             }
 
             // Outfit
-            switch(dataReader.GetInt32(index + 4)){
+            switch(character.Outfit){
                 case 1:
                     model.transform.GetChild(1).transform.GetChild(0).gameObject.SetActive(false);
                     model.transform.GetChild(1).transform.GetChild(1).gameObject.SetActive(false);
@@ -1212,7 +917,7 @@ namespace RestPhase{
             }
 
             // Accessory
-            switch(dataReader.GetInt32(index + 3)){
+            switch(character.Acessory){
                 case 1:
                     model.transform.GetChild(2).transform.GetChild(0).gameObject.SetActive(false);
                     model.transform.GetChild(2).transform.GetChild(1).gameObject.SetActive(false);
@@ -1249,20 +954,11 @@ namespace RestPhase{
             offerItem = tradeOffer == 1 ? "kg of food" : tradeOffer == 2 ? "cans of gas" : tradeOffer == 3 ? "scrap" : tradeOffer == 4 ? "dollars" :
                         tradeOffer == 5 ? "medkits" : tradeOffer == 6 ? "tires" : tradeOffer == 7 ? "batteries" : "ammo";
 
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT carHp, isBatteryDead, isTireFlat FROM CarsTable WHERE id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);        
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
-            int carHp = dataReader.GetInt32(0);
-            bool batteryDead = dataReader.GetInt32(1) == 1, tireFlat = dataReader.GetInt32(2) == 1;
-
             // Bias the offer to be tires, scrap, or batteries if the car cannot move
-            offerItem = carHp == 0 ? "scrap" : batteryDead ? "batteries" : tireFlat ? "tires" : offerItem;
-            tradeOffer = carHp == 0 ? 3 : batteryDead ? 7 : tireFlat ? 6 : tradeOffer;
-            tradeOfferQty = carHp == 0 ? Random.Range(1,20) : batteryDead || tireFlat ? tradeOfferQty = Random.Range(2,4) : tradeOfferQty;
+            Car car = DataUser.dataManager.GetCarById(GameLoop.FileId);
+            offerItem = car.CarHP == 0 ? "scrap" : car.IsBatteryDead == 1 ? "batteries" : car.IsTireFlat == 1 ? "tires" : offerItem;
+            tradeOffer = car.CarHP == 0 ? 3 : car.IsBatteryDead == 1 ? 7 : car.IsTireFlat == 1 ? 6 : tradeOffer;
+            tradeOfferQty = car.CarHP == 0 ? Random.Range(1,20) : car.IsBatteryDead == 1 || car.IsTireFlat == 1 ? tradeOfferQty = Random.Range(2,4) : tradeOfferQty;
 
             // Reroll demand if offer is the same as demand
             if(tradeOffer == tradeDemand){
@@ -1272,19 +968,11 @@ namespace RestPhase{
                 tradeDemandQty = tradeDemand >= 5 && tradeDemand <= 7 ? Random.Range(2,4) : Random.Range(1,20);
             }
 
-            dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT * FROM SaveFilesTable WHERE id = @id";
-            queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);        
-            dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
-
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
             demandItem = tradeDemand == 1 ? "kg of food" : tradeDemand == 2 ? "cans of gas" : tradeDemand == 3 ? "scrap" : tradeDemand == 4 ? "dollars" :
                         tradeDemand == 5 ? "medkits" : tradeDemand == 6 ? "tires" : tradeDemand == 7 ? "batteries" : "ammo";
-            curPartyStock = tradeDemand == 1 ? dataReader.GetInt32(7) : tradeDemand == 2 ? (int)(dataReader.GetFloat(8)) : tradeDemand == 3 ? dataReader.GetInt32(9) : 
-                            tradeDemand == 4 ? dataReader.GetInt32(10) : tradeDemand == 5 ? dataReader.GetInt32(11) : tradeDemand == 6 ? dataReader.GetInt32(12) : 
-                            tradeDemand == 7 ? dataReader.GetInt32(13) : dataReader.GetInt32(14);
-            dbConnection.Close();
+            curPartyStock = tradeDemand == 1 ? save.Food : tradeDemand == 2 ? (int)(save.Gas) : tradeDemand == 3 ? save.Scrap : tradeDemand == 4 ? save.Money : 
+                            tradeDemand == 5 ? save.Medkit : tradeDemand == 6 ? save.Tire : tradeDemand == 7 ? save.Battery : save.Ammo;
             traderOfferText.text = "I request your " + tradeDemandQty + " " + demandItem + " in return for " + tradeOfferQty + " " + offerItem;
 
             // Check current stock and update the accept button accordingly.
@@ -1296,22 +984,31 @@ namespace RestPhase{
         /// </summary>
         private void ManageRewards(){
             if(CombatManager.SucceededJob){
-                IDbConnection dbConnection = GameDatabase.OpenDatabase();
-                IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-                dbCommandReadValue.CommandText = "SELECT side" + RestMenu.JobNum + "Qty, side" + RestMenu.JobNum + "Reward FROM TownTable WHERE id = @id";
-                QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-                queryParameter.SetParameter(dbCommandReadValue);        
-                IDataReader dataReader = dbCommandReadValue.ExecuteReader();
-                dataReader.Read();
+                TownEntity town = DataUser.dataManager.GetTownById(GameLoop.FileId);
+                Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+                int qty = RestMenu.JobNum == 1 ? town.Side1Qty : RestMenu.JobNum == 2 ? town.Side2Qty : town.Side3Qty;
+                int reward = RestMenu.JobNum == 1 ? town.Side1Reward : RestMenu.JobNum == 2 ? town.Side2Reward : town.Side3Reward;
 
-                int reward = dataReader.GetInt32(1);
-                int qty = dataReader.GetInt32(0);
-
-                IDbCommand dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = "UPDATE TownTable SET side" + JobNum + "Type = 0, side" + JobNum + "Diff = 0, side" + JobNum + "Reward = 0, side" + JobNum 
-                                                    + "Qty = 0 WHERE id = @id";
-                queryParameter.SetParameter(dbCommandUpdateValue);    
-                dbCommandUpdateValue.ExecuteNonQuery();
+                switch(RestMenu.JobNum){
+                    case 1:
+                        town.Side1Type = 0;
+                        town.Side1Diff = 0;
+                        town.Side1Reward = 0;
+                        town.Side1Qty = 0;
+                        break;
+                    case 2:
+                        town.Side2Type = 0;
+                        town.Side2Diff = 0;
+                        town.Side2Reward = 0;
+                        town.Side2Qty = 0;
+                        break;
+                    case 3:
+                        town.Side3Type = 0;
+                        town.Side3Diff = 0;
+                        town.Side3Reward = 0;
+                        town.Side3Qty = 0;
+                        break;
+                }
 
                 string displayText = "You have received the following for completing the job:\n* " + qty;
 
@@ -1322,18 +1019,34 @@ namespace RestPhase{
                 string temp = reward <= 3 ?  "food = food + " : reward <= 6 ? "gas = gas + " : reward <= 9 ? "scrap = scrap + " : reward <= 12 ? "money = money +" :
                                reward == 13 ? "medkit = medkit + " : reward <= 14 ? "tire = tire + " : reward == 15 ? " battery = battery + " : "ammo = ammo + ";
 
+                if(reward <= 3){
+                    save.Food += reward;
+                }
+                else if(reward <= 6){
+                    save.Gas += reward;
+                }
+                else if(reward <= 9){
+                    save.Scrap += reward;
+                }
+                else if(reward <= 12){
+                    save.Money += reward;
+                }
+                else if(reward == 13){
+                    save.Medkit += reward;
+                }
+                else if(reward == 14){
+                    save.Tire += reward;
+                }
+                else if(reward == 15){
+                    save.Battery += reward;
+                }
+                else{
+                    save.Ammo += reward;
+                }
+
                 // Update the database (change resources and clear the board)
-                dbCommandUpdateValue = dbConnection.CreateCommand();
-                dbCommandUpdateValue.CommandText = "UPDATE SaveFilesTable SET " + temp + "@qty WHERE id = @id";
-                                                                              
-                QueryParameter<string> stringParameter = new QueryParameter<string>("@temp", temp);
-                stringParameter.SetParameter(dbCommandUpdateValue);
-                QueryParameter<int> intParameter = new QueryParameter<int>("@qty", qty);
-                intParameter.SetParameter(dbCommandUpdateValue);
-                intParameter.ChangeParameterProperties("@id", GameLoop.FileId);
-                intParameter.SetParameter(dbCommandUpdateValue);
-                dbCommandUpdateValue.ExecuteNonQuery();
-                dbConnection.Close();
+                DataUser.dataManager.UpdateSave(save);
+                DataUser.dataManager.UpdateTown(town);
 
                 // Launch popup
                 JobNum = 0;

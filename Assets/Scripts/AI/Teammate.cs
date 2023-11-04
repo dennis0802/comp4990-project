@@ -138,29 +138,10 @@ namespace AI{
         /// </summary>
         private void InitializeCharacter(){
             UpdateModel();
-
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValue = dbConnection.CreateCommand();
-            dbCommandReadValue.CommandText = "SELECT * FROM ActiveCharactersTable WHERE id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValue);
-            IDataReader dataReader = dbCommandReadValue.ExecuteReader();
-            dataReader.Read();
-
-            int acc = dataReader.GetInt32(4+9*id), outfit = dataReader.GetInt32(5+9*id), color = dataReader.GetInt32(6+9*id), hat = dataReader.GetInt32(7+9*id),
-                hpDB = dataReader.GetInt32(9+9*id), livingMembers = 0;
-
-            // An ally is living if their name is not null
-            for(int i = 0; i < 4; i++){
-                if(!dataReader.IsDBNull(1+9*i)){
-                    livingMembers++;
-                }
-            }
-            
+            ActiveCharacter teammate = DataUser.dataManager.GetCharacter(GameLoop.FileId, id);
+            int acc = teammate.Acessory, outfit = teammate.Outfit, color = teammate.Color, hat = teammate.Hat, hpDB = teammate.Health;
             nameText.text = allyName;
             hp = hpDB;
-
-            dbConnection.Close();
 
             // Visuals
             transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[color-1];
@@ -215,7 +196,7 @@ namespace AI{
             shootLocation = GameObject.FindGameObjectsWithTag("ShootLocation").Where(s => s.GetComponentInParent<Teammate>() == this).First();
             shotgunShootLocations = GameObject.FindGameObjectsWithTag("ShotgunShootLocation").Where(s => s.GetComponentInParent<Teammate>() == this).ToArray();
 
-            ammoTotal = Player.TotalAvailableAmmo/livingMembers;
+            ammoTotal = Player.TotalAvailableAmmo/DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId).Count();
             Player.TotalAvailableAmmo -= ammoTotal;
             Reload();
         }

@@ -56,19 +56,9 @@ namespace TravelPhase{
         /// Set the movement speed of items in the travel phase
         /// </summary>
         void SetMovementSpeed(){
-            IDbConnection dbConnection = GameDatabase.OpenDatabase();
-            IDbCommand dbCommandReadValues = dbConnection.CreateCommand();
-            dbCommandReadValues.CommandText = "SELECT speed FROM SaveFilesTable WHERE id = @id";
-            QueryParameter<int> queryParameter = new QueryParameter<int>("@id", GameLoop.FileId);
-            queryParameter.SetParameter(dbCommandReadValues);
-            IDataReader dataReader = dbCommandReadValues.ExecuteReader();
-            dataReader.Read();
-
-            int speed = dataReader.GetInt32(0);
-            speed = speed == 0 ? 40 : speed == 1 ? 50 : 60;
-
-            dbConnection.Close();
-
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            int speed = save.PaceMode;
+            speed = speed == 0 ? 65 : speed == 1 ? 85 : 95;
             movement = new Vector3((float)(speed) * 0.75f, 0f, 0f);
             rotationSpeed = speed * -2f;
         }
