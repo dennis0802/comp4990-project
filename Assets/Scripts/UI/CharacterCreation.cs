@@ -215,7 +215,7 @@ namespace UI{
             CustomCharacter customCharacter = new CustomCharacter(){Id = viewedCharacter, CharacterName = nameField.text, Perk = perkList.value, Trait = traitList.value,
                                                                     Acessory = accNum, Hat = hatNum, Color = colorNum, Outfit = outfitNum
                                                                    };
-            DataUser.dataManager.InsertCharacter(customCharacter);
+            DataUser.dataManager.InsertOrReplaceCharacter(customCharacter);
 
             int baseId = viewedCharacter - (pageNum - 1) * 9;
             characterDescText[baseId].text = "          Name: " + nameField.text + "\n          Perk: " + perkList.captionText.text 

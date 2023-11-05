@@ -94,8 +94,6 @@ namespace TravelPhase{
         public static bool GoingToCombat = false;
         public static List<string> queriesToPerform = new List<string>();
         public static List<List<object>> parametersForQueries = new List<List<object>>();
-        public static List<IDbCommand> commandsToPerform = new List<IDbCommand>();
-        public static String LeaderName;
 
         void Start(){
             popupSound = GetComponent<AudioSource>();
@@ -122,8 +120,6 @@ namespace TravelPhase{
                 if(Timer >= 8.0f){
                     if(Drive()){
                         int eventChance = Random.Range(1,101);
-                        //Debug.Log("Event rolled: " + eventChance + "completed " + System.DateTime.Now.ToString());
-                        //eventChance = 42;
 
                         // 44/100 chance of generating an event
                         if(eventChance <= 44){
@@ -137,7 +133,7 @@ namespace TravelPhase{
                         }
                     }
                     ChangeGameData();
-                    
+                    HasCharacterDied();
                     Timer = 0.0f;
                 }
             }
@@ -150,6 +146,7 @@ namespace TravelPhase{
             playerText.text = "";
             IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId).OrderByDescending(c=>c.IsLeader);
             ActiveCharacter[] tempCharacters = characters.ToArray<ActiveCharacter>();
+            int used = 0;
 
             for(int i = 0; i < tempCharacters.Count(); i++){
                 if(i == 0 & tempCharacters[i].IsLeader != 1){
@@ -158,7 +155,13 @@ namespace TravelPhase{
                 else{
                     playerHealthBars[i].value = tempCharacters[i].Health;
                     playerText.text += i == 0 ? tempCharacters[i].CharacterName + "\nCar\n" : tempCharacters[i].CharacterName + "\n";
+                    used = i;
                 }
+            }
+
+            used++;
+            for(;used < 4; used++){
+                playerHealthBars[used].value = 0;
             }
 
             TownEntity townEntity = DataUser.dataManager.GetTownById(GameLoop.FileId);
@@ -178,8 +181,12 @@ namespace TravelPhase{
         /// Change game data based on supplied queries, to be done as the user resumes travel, preventing exploit of making progress and leaving on a bad event
         /// </summary>
         private void ChangeGameData(){
-            DataUser.dataManager.UpdateTravel(queriesToPerform, parametersForQueries);
-            RefreshScreen();
+            for(int i = 0; i < queriesToPerform.Count(); i++){
+                DataUser.dataManager.UpdateTravel(queriesToPerform[i], parametersForQueries[i].ToArray<object>());
+                RefreshScreen();
+            }
+            queriesToPerform.Clear();
+            parametersForQueries.Clear();
         }
 
         /// <summary>
@@ -262,7 +269,8 @@ namespace TravelPhase{
             IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where(c=>c.FileId == GameLoop.FileId).OrderByDescending(c=>c.IsLeader);
             ActiveCharacter[] tempCharacters = characters.ToArray<ActiveCharacter>();
 
-            for(int i = 0; i < 4; i++){
+            int used = 0;
+            for(int i = 0; i < characters.Count(); i++){
                 if(i == 0 && tempCharacters[i].CharacterName == null){
                     playerHealthBars[i].value = 0;
                     tempPlayerText += "\nCar\n";
@@ -275,7 +283,13 @@ namespace TravelPhase{
                     playerHealthBars[i].value = 0;
                     tempPlayerText += "\n";
                 }
+                used++;
             }
+
+            for(;used < 4; used++){
+                playerHealthBars[used].value = 0;
+            }           
+
             playerText.text = tempPlayerText;
 
             // Read the database for travel (key supplies, distance) info
@@ -316,6 +330,7 @@ namespace TravelPhase{
             Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
             save.PhaseNum = 0;
             save.CurrentLocation = townEntity.NextTownName;
+            DataUser.dataManager.UpdateSave(save);
             PopupActive = true;
             Timer = 0.0f;
             PrepRestScreen();
@@ -338,13 +353,10 @@ namespace TravelPhase{
         public void ResumeTravel(){
             PopupActive = false;
             ChangeGameData();
-
+            HasCharacterDied();
             if(GoingToCombat){
                 CombatManager.PrevMenuRef = this.gameObject;
                 StartCoroutine(GameLoop.LoadAsynchronously(3));
-            }
-            else{
-                HasCharacterDied();
             }
         }
 
@@ -446,12 +458,12 @@ namespace TravelPhase{
                 }
                 save.OverallTime++;
 
-                string repairCommand = "UPDATE Save SET time = ?, overallTime = ?, battery = ?, tire = ? WHERE id = ?";
+                string repairCommand = "UPDATE Save SET CurrentTime = ?, overallTime = ?, battery = ?, tire = ? WHERE Id = ?";
                 parameters = new List<object>(){GameLoop.Hour, save.OverallTime, save.Battery, save.Tire, GameLoop.FileId};
                 queriesToPerform.Add(repairCommand);
                 parametersForQueries.Add(parameters);
 
-                repairCommand = "UPDATE Car SET IsBatteryDead = ? IsTireFlat = ? WHERE id = ?";
+                repairCommand = "UPDATE Car SET IsBatteryDead = ? IsTireFlat = ? WHERE Id = ?";
                 parameters = new List<object>(){car.IsBatteryDead, car.IsTireFlat, GameLoop.FileId};
                 queriesToPerform.Add(repairCommand);
                 parametersForQueries.Add(parameters);
@@ -469,7 +481,7 @@ namespace TravelPhase{
             }
             save.OverallTime++;
 
-            string temp = "UPDATE Save SET time = ?, overallTime = ?, distance = ? WHERE id = ?";
+            string temp = "UPDATE Save SET CurrentTime = ?, overallTime = ?, distance = ? WHERE Id = ?";
             parameters = new List<object>(){GameLoop.Hour, save.OverallTime, newDistance, GameLoop.FileId};
             queriesToPerform.Add(temp);
             parametersForQueries.Add(parameters);
@@ -477,9 +489,10 @@ namespace TravelPhase{
             carHP = carHP - decay > 0 ? carHP - decay : 0;
             carHealthBar.value = carHP;
 
-            temp = "UPDATE Car SET carHP = ? WHERE id = ?";
+            temp = "UPDATE Car SET carHP = ? WHERE Id = ?";
             parameters = new List<object>(){carHP, GameLoop.FileId};
             queriesToPerform.Add(temp);
+            parametersForQueries.Add(parameters);
 
             // Characters will always take some damage when travelling, regardless of rations
             IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId).OrderByDescending(c=>c.IsLeader);
@@ -496,6 +509,7 @@ namespace TravelPhase{
                 moraleDecay = 10;
             }
 
+            temp = "UPDATE ActiveCharacter SET Health = ?, Morale = ? WHERE Id = ?";
             foreach(ActiveCharacter character in characters){
                 int curHp = character.Health, curMorale = character.Morale;
                 hpDecay = overallFood <= 0 ? 5 : hpDecay;
@@ -504,8 +518,9 @@ namespace TravelPhase{
                 overallFood = overallFood <= 0 ? 0 : overallFood;
                 curHp = curHp - hpDecay > 0 ? curHp - hpDecay : 0;
                 curMorale = curMorale - moraleDecay > 0 ? curMorale - moraleDecay : 0;
-                teamHealth.Add(curHp);
-                teamMorale.Add(curMorale);
+                queriesToPerform.Add(temp);
+                parameters = new List<object>(){curHp, curMorale, character.Id};
+                parametersForQueries.Add(parameters);
             }
 
             ActiveCharacter[] tempCharacters = characters.ToArray<ActiveCharacter>();
@@ -529,7 +544,7 @@ namespace TravelPhase{
             // Each timestep consumes quarter of a gas resource
             gas -= 0.25f;
 
-            temp = "UPDATE SaveFilesTable SET food = ?, gas = ? WHERE id = ?";
+            temp = "UPDATE Save SET food = ?, gas = ? WHERE Id = ?";
             parameters = new List<object>(){overallFood, gas, GameLoop.FileId};
             queriesToPerform.Add(temp);
             parametersForQueries.Add(parameters);
@@ -540,28 +555,6 @@ namespace TravelPhase{
 
             supplyText.text = "Food: " + overallFood + "kg\nGas: " +  gas + " cans\nDistance to Destination: " +  distanceLeft
                             + "km\nDistance Travelled: " + newDistance + "km\nTime: " + time + timing + "\nActivity: " + activity;           
-            
-            temp = "UPDATE ActiveCharactersTable SET leaderHealth = ?, friend1Health = ?, friend2Health = ?, friend3Health = ?, leaderMorale = ?, friend1Morale = ?, " + 
-                   "friend2Morale = ?, friend3Morale = ? WHERE id = ?";
-
-            parameters = new List<object>();
-            while(teamHealth.Count < 4){
-                teamHealth.Add(0);
-            }
-            foreach(int health in teamHealth){
-                parameters.Add(health);
-            }
-
-            while(teamMorale.Count < 4){
-                teamMorale.Add(0);
-            }
-            foreach(int morale in teamMorale){
-                parameters.Add(morale);
-            }
-
-            parameters.Add(GameLoop.FileId);
-            queriesToPerform.Add(temp);
-            parametersForQueries.Add(parameters);
 
             // Check if any character has died.
             if(HasCharacterDied()){
@@ -598,8 +591,10 @@ namespace TravelPhase{
                 if(character.Health <= 0){
                     // Leader died - game over
                     if(character.IsLeader == 1){
-                        LeaderName = character.CharacterName;
                         DataUser.dataManager.DeleteActiveCharacter(character.Id);
+                        tempDisplayText += character.CharacterName + " has died.";
+                        LaunchPopup(tempDisplayText);
+                        RefreshScreen();
                         return true;
                     }
                     DataUser.dataManager.DeleteActiveCharacter(character.Id);
@@ -620,17 +615,18 @@ namespace TravelPhase{
 
                 for(int i = 0; i < deadCharacters.Count; i++){
                     if(deadCharacters.Count == 1){
-                        tempDisplayText += deadCharacters[i];
+                        tempDisplayText += deadCharacters[i] + " has ";
                     }
                     else if(i == deadCharacters.Count - 1){
-                        tempDisplayText += "and " + deadCharacters[i];
+                        tempDisplayText += "and " + deadCharacters[i] + "have ";
                     }
                     else{
                         tempDisplayText += deadCharacters[i] + ", ";
                     }
                 }
-                tempDisplayText += deadCharacters.Count > 1 ? " have died." : " has died.";
-                LaunchPopup(tempDisplayText);
+
+                LaunchPopup(tempDisplayText + "died");
+                RefreshScreen();
                 return true;
             }
             return false;

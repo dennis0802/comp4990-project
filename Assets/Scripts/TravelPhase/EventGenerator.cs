@@ -31,7 +31,7 @@ namespace TravelPhase{
             Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
             int diff = save.Difficulty;
 
-            IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId && c.CharacterName != null).OrderByDescending(c=>c.IsLeader);
+            IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId).OrderByDescending(c=>c.IsLeader);
             ActiveCharacter[] tempCharacters = characters.ToArray<ActiveCharacter>();
             List<int> availablePerks = new List<int>(), availableTraits = new List<int>();
             for(int i = 0; i < tempCharacters.Count(); i++){
@@ -48,30 +48,18 @@ namespace TravelPhase{
                 
                 // Pick a player
                 rand = Random.Range(0,tempCharacters.Count());
-                string name = tempCharacters[rand].CharacterName;
+                ActiveCharacter selected = tempCharacters[rand];
+                string name = selected.CharacterName;
                 string[] temp = {" breaks a rib.", " breaks a leg.", " breaks an arm.", " sits down wrong."};
-                int hpLoss = diff % 2 == 0 ? Random.Range(13,20) : Random.Range(5,13), curHealth = tempCharacters[rand].Health;
+                int hpLoss = diff % 2 == 0 ? Random.Range(13,20) : Random.Range(5,13), curHealth = selected.Health;
                 // Lose less HP if cushion upgrade found
                 hpLoss -= cushioned == 1 ? 5 : 0;
                 curHealth = curHealth - hpLoss > 0 ? curHealth - hpLoss : 0;
 
-                List<int> teamHealth = new List<int>(), ids = new List<int>();
-                foreach(ActiveCharacter character in characters){
-                    teamHealth.Add(character.Health);
-                    ids.Add(character.Id);
-                }
-                while(teamHealth.Count < 4){
-                    teamHealth.Add(0);
-                }
-
                 string commandText = "UPDATE ActiveCharacter SET Health = ? WHERE Id = ?";
-                for(int i = 0; i < teamHealth.Count(); i++){
-                    TravelLoop.queriesToPerform.Add(commandText);
-                    List<object> parameters = new List<object>();
-                    parameters.Add(teamHealth[i]);
-                    parameters.Add(ids[i]);
-                    TravelLoop.parametersForQueries.Add(parameters);
-                }
+                TravelLoop.queriesToPerform.Add(commandText);
+                List<object> parameters = new List<object>(){curHealth, selected.Id};
+                TravelLoop.parametersForQueries.Add(parameters);
                 msg = name + temp[rand];
             }
             // 3/44 possibility for a random resource type decay more (ex. 10 cans of gas goes missing. Everyone blames Bob.)
@@ -156,7 +144,7 @@ namespace TravelPhase{
             else if(eventChance <= 10){
                 int hpLoss = diff % 2 == 0 ? Random.Range(20,30) : Random.Range(10,20), curHealth = car.CarHP;
                 curHealth = curHealth - hpLoss > 0 ? curHealth - hpLoss : 0;
-                string commandText = "UPDATE CarsTable SET carHP = ? WHERE Id = ?";    
+                string commandText = "UPDATE Car SET carHP = ? WHERE Id = ?";    
                 TravelLoop.queriesToPerform.Add(commandText);
                 List<object> parameters = new List<object>{curHealth, GameLoop.FileId};
                 TravelLoop.parametersForQueries.Add(parameters);
@@ -165,7 +153,7 @@ namespace TravelPhase{
             }
             // 3/44 possibility for more resources to be found (ex. Bob finds 10 cans of gas in an abandoned car)
             else if(eventChance <= 13){
-                string temp = "", name = "", commandText = "UPDATE SaveFilesTable SET ";
+                string temp = "", name = "", commandText = "UPDATE Save SET ";
                 int type = Random.Range(0,8), gain = diff % 2 == 0 ? Random.Range(15,30) : Random.Range(10,20), curStock = 0, rand = 0;
                 float curGasStock = 0;
                 List<string> tempTexts = new List<string>(){"kg of food", "cans of gas", "scrap", "dollars", "medkits", "tires", "batteries", "ammo"},
@@ -238,7 +226,7 @@ namespace TravelPhase{
                         perkRoll = GamemodeSelect.Perks[perk];
                         traitRoll = GamemodeSelect.Traits[trait];
                     }
-                    // Generate random character
+                    // Read from a custom character
                     else{
                         int rand = -1;
 
@@ -260,14 +248,14 @@ namespace TravelPhase{
                         traitRoll = GamemodeSelect.Traits[trait];
                     }
 
-                    string commandText = "INSERT OR REPLACE INTO ActiveCharacter(CharacterName, Perk, Trait, Outfit, Accessory, Color, Hat, IsLeader, Health, Morale, CustomCharacterId) " + 
+                    string commandText = "INSERT OR REPLACE INTO ActiveCharacter(CharacterName, Perk, Trait, Outfit, Acessory, Color, Hat, IsLeader, Health, Morale, CustomCharacterId, FileId) " + 
                                          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     List<object> parameters = new List<object>(){name, perk, trait, outfit, acc, color, hat, 0, 100, 75, idRead, GameLoop.FileId};
                     TravelLoop.queriesToPerform.Add(commandText);
                     TravelLoop.parametersForQueries.Add(parameters);
 
                     if(perk == 2){
-                        commandText = "UPDATE SaveFilesTable SET medkit = ? WHERE Id = ?";
+                        commandText = "UPDATE Save SET medkit = ? WHERE Id = ?";
                         parameters = new List<object>(){save.Medkit + 1, GameLoop.FileId};
                         TravelLoop.queriesToPerform.Add(commandText);
                         TravelLoop.parametersForQueries.Add(parameters);
@@ -297,7 +285,7 @@ namespace TravelPhase{
                     commandTemp = selected == 0 ? "wheelUpgrade = ? " : selected == 1 ? "batteryUpgrade = ? " : selected == 2 ? "engineUpgrade = ? " : selected == 3 ? "toolUpgrade == ? " :
                                     selected == 4 ? "miscUpgrade1 = ? " : "miscUpgrade2 = ? ";
 
-                    string commandText = "UPDATE CarsTable SET " + commandTemp + " WHERE Id = ?";
+                    string commandText = "UPDATE Car SET " + commandTemp + " WHERE Id = ?";
                     List<object> parameters = new List<object>(){1, GameLoop.FileId};
                     TravelLoop.queriesToPerform.Add(commandText);
                     TravelLoop.parametersForQueries.Add(parameters);
@@ -312,16 +300,16 @@ namespace TravelPhase{
             }
             // 2/44 possibility for party-wide damage. (ex. The party cannot find clean water. Everyone is dehydrated.)
             else if(eventChance <= 21){
-                int hpLoss = diff % 2 == 0 ? Random.Range(10,15) : Random.Range(5,10);
-
                 List<object> parameters = new List<object>();
                 foreach(ActiveCharacter character in characters){
                     string commandText = "UPDATE ActiveCharacter SET Health = ? WHERE Id = ?";
                     TravelLoop.queriesToPerform.Add(commandText);
                     parameters = new List<object>();
+                    int hpLoss = diff % 2 == 0 ? Random.Range(10,16) : Random.Range(5,11);
                     int newHp = character.Health - hpLoss > 0 ? character.Health - hpLoss : 0;
-                    parameters.Add(character.Health);
+                    parameters.Add(newHp);
                     parameters.Add(character.Id);
+                    TravelLoop.parametersForQueries.Add(parameters);
                 }
 
                 msg = "The party cannot find clean water. Everyone is dehydrated.";
@@ -340,7 +328,7 @@ namespace TravelPhase{
                     // Determine if the car can still move.
                     if(tires > 0){
                         tires--;
-                        string commandText = "UPDATE SaveFilesTable SET tire = ? WHERE Id = ?";
+                        string commandText = "UPDATE Save SET tire = ? WHERE Id = ?";
                         parameters.Add(tires);
                         parameters.Add(GameLoop.FileId);
                         TravelLoop.queriesToPerform.Add(commandText);
@@ -348,7 +336,7 @@ namespace TravelPhase{
                         msg = "The car goes over some rough terrain and the tire pops.\nYou replace your flat tire.";
                     }
                     else{
-                        string commandText = "UPDATE CarsTable SET isTireFlat = ? WHERE Id = ?";
+                        string commandText = "UPDATE Car SET isTireFlat = ? WHERE Id = ?";
                         parameters.Add(1);
                         parameters.Add(GameLoop.FileId);
                         TravelLoop.queriesToPerform.Add(commandText);
@@ -371,7 +359,7 @@ namespace TravelPhase{
                     // Determine if the car can still move.
                     if(batteries > 0){
                         batteries--;
-                        string commandText = "UPDATE SaveFilesTable SET battery = ? WHERE Id = ?";
+                        string commandText = "UPDATE Save SET battery = ? WHERE Id = ?";
                         parameters.Add(batteries);
                         parameters.Add(GameLoop.FileId);
                         TravelLoop.queriesToPerform.Add(commandText);
@@ -379,7 +367,7 @@ namespace TravelPhase{
                         msg = "There is smoke coming from the hood - the car battery is dead.\nYou replace your dead battery.";
                     }
                     else{
-                        string commandText = "UPDATE CarsTable SET isBatteryDead = ? WHERE Id = ?";
+                        string commandText = "UPDATE Car SET isBatteryDead = ? WHERE Id = ?";
                         parameters.Add(1);
                         parameters.Add(GameLoop.FileId);
                         TravelLoop.queriesToPerform.Add(commandText);
@@ -401,8 +389,7 @@ namespace TravelPhase{
                 int lowMorale = morale.Where(m => m >= 0 && m <= 20).Count();
                 if(lowMorale > 0){
                     ActiveCharacter lowestMorale = tempCharacters.OrderBy(c=>c.Morale).First();
-                    string commandText = "UPDATE ActiveCharactersTable SET CharacterName = ? WHERE Id = ?";
-                    parameters.Add(null);
+                    string commandText = "DELETE FROM ActiveCharacter WHERE Id = ?";
                     parameters.Add(lowestMorale.Id);
                     TravelLoop.queriesToPerform.Add(commandText);
                     TravelLoop.parametersForQueries.Add(parameters);
@@ -422,7 +409,7 @@ namespace TravelPhase{
 
                 // Raise for living characters
                 foreach(ActiveCharacter character in characters){
-                    string commandText = "UPDATE ActiveCharactersTable SET Morale = ? WHERE FileId = ?";
+                    string commandText = "UPDATE ActiveCharacter SET Morale = ? WHERE FileId = ?";
                     TravelLoop.queriesToPerform.Add(commandText);
                     List<object> parameters = new List<object>(){character.Morale + moraleGain, GameLoop.FileId};
                     TravelLoop.parametersForQueries.Add(parameters);                
@@ -439,7 +426,7 @@ namespace TravelPhase{
 
                 // Lower for living characters
                 foreach(ActiveCharacter character in characters){
-                    string commandText = "UPDATE ActiveCharactersTable SET Morale = ? WHERE FileId = ?";
+                    string commandText = "UPDATE ActiveCharacter SET Morale = ? WHERE FileId = ?";
                     TravelLoop.queriesToPerform.Add(commandText);
                     List<object> parameters = new List<object>(){character.Morale - moraleLoss, GameLoop.FileId};
                     TravelLoop.parametersForQueries.Add(parameters);                
@@ -452,14 +439,15 @@ namespace TravelPhase{
                 int nameIndex = availableTraits.IndexOf(4), hurtMember = 0;
                 ActiveCharacter attacker = tempCharacters[nameIndex];
 
-                tempCharacters.ToList<ActiveCharacter>().RemoveAt(nameIndex);
-                hurtMember = Random.Range(0, tempCharacters.Length);
-                ActiveCharacter hurtCharacter = tempCharacters[hurtMember];
+                List<ActiveCharacter> tempList = tempCharacters.ToList<ActiveCharacter>();
+                tempList.RemoveAt(nameIndex);
+                hurtMember = Random.Range(0, tempList.Count());
+                ActiveCharacter hurtCharacter = tempList[hurtMember];
 
                 string name = attacker.CharacterName, hurtName = hurtCharacter.CharacterName;
                 int hpLoss = diff % 2 == 0 ? 10 : 5, hurtHP = hurtCharacter.Health - hpLoss > 0 ? hurtCharacter.Health - hpLoss : 0;
 
-                string commandText = "UPDATE ActiveCharactersTable SET Health = ? WHERE Id = ?";
+                string commandText = "UPDATE ActiveCharacter SET Health = ? WHERE Id = ?";
                 TravelLoop.queriesToPerform.Add(commandText);
                 List<object> parameters = new List<object>(){hurtHP, hurtCharacter.Id};
                 TravelLoop.parametersForQueries.Add(parameters); 
@@ -471,13 +459,14 @@ namespace TravelPhase{
                 int nameIndex = availablePerks.IndexOf(3), healMember = 0;
                 ActiveCharacter surgeon = tempCharacters[nameIndex];
 
-                tempCharacters.ToList<ActiveCharacter>().RemoveAt(nameIndex);
-                healMember = Random.Range(0, tempCharacters.Length);
-                ActiveCharacter healed = tempCharacters[healMember];
+                List<ActiveCharacter> tempList = tempCharacters.ToList<ActiveCharacter>();
+                tempList.RemoveAt(nameIndex);
+                healMember = Random.Range(0, tempList.Count());
+                ActiveCharacter healed = tempList[healMember];
 
                 string name = surgeon.CharacterName, healName = healed.CharacterName;
                 int hpGain = diff % 2 == 0 ? 5 : 10, healHP = healed.Health + hpGain > 100 ? 100 : healed.Health + hpGain;
-                string commandText = "UPDATE ActiveCharactersTable SET Health = ? WHERE Id = ?";
+                string commandText = "UPDATE ActiveCharacter SET Health = ? WHERE Id = ?";
                 TravelLoop.queriesToPerform.Add(commandText);
                 List<object> parameters = new List<object>(){healHP, healed.Id};
                 TravelLoop.parametersForQueries.Add(parameters); 
@@ -513,7 +502,7 @@ namespace TravelPhase{
                     commandTemp = selected == 0 ? "wheelUpgrade = ? " : selected == 1 ? "batteryUpgrade = ?" : selected == 2 ? "engineUpgrade = ?" : selected == 3 ? "toolUpgrade == ?" :
                                 selected == 4 ? "miscUpgrade1 = ?" : "miscUpgrade2 = ?";
 
-                    string commandText = "UPDATE CarsTable SET " + commandTemp + " WHERE Id = ?";
+                    string commandText = "UPDATE Car SET " + commandTemp + " WHERE Id = ?";
                     List<object> parameters = new List<object>(){1, GameLoop.FileId};
                     TravelLoop.queriesToPerform.Add(commandText);
                     TravelLoop.parametersForQueries.Add(parameters);
@@ -529,7 +518,7 @@ namespace TravelPhase{
             }
             // 2/44 possibility for someone to be pulled out of the car and left for dead if travelling with ravenous activity
             // Morale will determine if member fights them off.
-            else if(eventChance <= 44 && GameLoop.Activity == 4){
+            else if(eventChance <= 44 && GameLoop.Activity == 4 && tempCharacters.Count() > 1){
                 List<int> morale = new List<int>();
                 int selected;
                 tempCharacters = tempCharacters.Where<ActiveCharacter>(c=>c.IsLeader == 0).ToArray<ActiveCharacter>();
@@ -541,12 +530,14 @@ namespace TravelPhase{
                 // Select a living party member to attack
                 selected = Random.Range(0, tempCharacters.Count());
                 ActiveCharacter victim = tempCharacters[selected];
-                string name = victim.CharacterName, commandText = "DELETE FROM ActiveCharactersTable WHERE Id = ?";
+                string name = victim.CharacterName, commandText = "DELETE FROM ActiveCharacter WHERE Id = ?";
 
                 if(victim.Morale < 40){
                     List<object> parameters = new List<object>(){victim.Id};
                     TravelLoop.queriesToPerform.Add(commandText);
-                    TravelLoop.parametersForQueries.Add(parameters);                    
+                    TravelLoop.parametersForQueries.Add(parameters);
+
+                    msg = victim.CharacterName + "is pulled out of the car and is unable to fight back against the mutants.";                    
                 }
                 else{
                     msg = "Mutants attempt to pull " + victim.CharacterName + " out of the car, but fail to do so.";

@@ -151,12 +151,12 @@ namespace Database{
         }
 
         /// <summary>
-        /// Get the leader
+        /// Get a character
         /// </summary>
         /// <param name="fileId">The file id of the character to find</param>
         /// <param name="charId">The character id of the character to find</param>
         public ActiveCharacter GetCharacter(int fileId, int charId){
-            return _connection.Find<ActiveCharacter>(a=>a.FileId == fileId && a.IsLeader == 1 && a.Id == charId);
+            return _connection.Find<ActiveCharacter>(a=>a.FileId == fileId && a.Id == charId);
         }
 
         /// <summary>
@@ -187,8 +187,8 @@ namespace Database{
         /// Insert the new character
         /// </summary>
         /// <param name="character">The character to insert</param>
-        public void InsertCharacter(CustomCharacter character){
-            _connection.Insert(character);
+        public void InsertOrReplaceCharacter(CustomCharacter character){
+            _connection.InsertOrReplace(character);
         }
 
         /// <summary>
@@ -263,12 +263,8 @@ namespace Database{
             _connection.Update(character);
         }
 
-        public void UpdateTravel(List<string> queries, List<List<object>> parameters){
-            object[] tempParameters = parameters.ToArray<object>();
-            for(int i = 0; i < queries.Count(); i++){
-                _connection.Execute(queries[i], parameters[i]);
-            }
-            
+        public void UpdateTravel(string query, object[] parameters){
+            _connection.Execute(query, parameters);
         }
     }
 }

@@ -42,7 +42,7 @@ namespace UI{
 
         void OnEnable(){
             mainMenu = GameObject.FindGameObjectWithTag("MainScreen").GetComponent<MainMenu>();
-            leaderName = !Equals(RestMenu.LeaderName, "") ? RestMenu.LeaderName : !Equals(TravelLoop.LeaderName, "") ? TravelLoop.LeaderName : !Equals(CombatManager.LeaderName, "") ? CombatManager.LeaderName : "NULL";
+            leaderName = GameLoop.LeaderName;
             CalculateScore();
         }
 
@@ -77,7 +77,7 @@ namespace UI{
             // Check for the number of high scores - creating a new score means id is one above the highest existing.
             int count = DataUser.dataManager.GetScores().Count();
 
-            LocalHighscore highscore = new LocalHighscore(){Id = count + 1, Difficulty = difficulty, Distance = distance, FriendsAlive = friendsAlive, FinalScore = finalScore};
+            LocalHighscore highscore = new LocalHighscore(){Id = count + 1, LeaderName = leaderName, Difficulty = difficulty, Distance = distance, FriendsAlive = friendsAlive, FinalScore = finalScore};
             DataUser.dataManager.InsertScore(highscore);
 
             scoreDetailText.text = "Food: " + food + "\tGas: " + gas + "\tScrap: " + scrap + "\tMoney: " + money + "\tAmmo: " + ammo +

@@ -51,6 +51,7 @@ namespace UI{
         public static GameObject GameOverScreen;
         public static Sprite[] Maps;
         public static GameObject MainPanel;
+        public static string LeaderName;
 
         void Awake(){
             Maps = maps;
@@ -59,6 +60,7 @@ namespace UI{
         private void Start(){
             GameOverScreen = gameOverScreen;
             MainPanel = mainPanel;
+            LeaderName = DataUser.dataManager.GetLeader(GameLoop.FileId).CharacterName;
         }
 
         private void Update(){

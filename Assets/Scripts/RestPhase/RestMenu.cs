@@ -268,9 +268,6 @@ namespace RestPhase{
         private int tradeOffer, tradeDemand, tradeOfferQty, tradeDemandQty;
         // To track game phase (travel, combat, rest)
         private int phaseNum;
-        // To track leader name for game over
-        public static string LeaderName = "";
-        // To track friends alive for game over
         public static int JobNum;
         public static bool IsScavenging;
 
@@ -409,7 +406,7 @@ namespace RestPhase{
             List<int> missionRewards = new List<int>(){townEntity.Side1Reward, townEntity.Side2Reward, townEntity.Side3Reward};
             List<int> missionTypes = new List<int>(){townEntity.Side1Type, townEntity.Side2Type, townEntity.Side3Type};
             List<int> missionDifficulty = new List<int>(){townEntity.Side1Diff, townEntity.Side2Diff, townEntity.Side3Diff};
-            List<int> missionQty = new List<int>(){townEntity.Side1Qty, townEntity.Side1Qty, townEntity.Side1Qty};
+            List<int> missionQty = new List<int>(){townEntity.Side1Qty, townEntity.Side2Qty, townEntity.Side3Qty};
 
             for(int i = 0; i < 3; i++){
                 if(missionRewards[i] != 0){
@@ -592,7 +589,7 @@ namespace RestPhase{
             }
             
             ActiveCharacter[] temp = characters.ToArray<ActiveCharacter>();
-            temp[id].Health += temp[id].Health + 15 > 100 ? 100 : 15;
+            temp[id].Health = temp[id].Health + 15 > 100 ? 100 : temp[id].Health + 15;
             DataUser.dataManager.UpdateCharacters((IEnumerable<ActiveCharacter>)(temp));
             RefreshScreen();
         }
@@ -604,9 +601,6 @@ namespace RestPhase{
         public void TradeAction(int button){
             // Accept trade
             if(button == 1){
-                tradeDemand = Random.Range(1,9);
-                tradeOffer = Random.Range(1,9);
-
                 Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
                 List<int> partyStock = new List<int>(){save.Food, (int)(save.Gas), save.Scrap, save.Money, save.Medkit, save.Tire, save.Battery, save.Ammo};
 
@@ -614,14 +608,59 @@ namespace RestPhase{
                 int curPartyStock = partyStock[tradeDemand-1] - tradeDemandQty;
                 int receivedStock = partyStock[tradeOffer-1] + tradeOfferQty;
 
-                save.Food = partyStock[0];
-                save.Gas = (float)(partyStock[1]);
-                save.Scrap = partyStock[2];
-                save.Money = partyStock[3];
-                save.Medkit = partyStock[4];
-                save.Tire = partyStock[5];
-                save.Battery = partyStock[6];
-                save.Ammo = partyStock[7];
+                switch(tradeDemand){
+                    case 1:
+                        save.Food = curPartyStock;
+                        break;
+                    case 2:
+                        save.Gas = curPartyStock;
+                        break;
+                    case 3:
+                        save.Scrap = curPartyStock;
+                        break;
+                    case 4:
+                        save.Money = curPartyStock;
+                        break;
+                    case 5:
+                        save.Medkit = curPartyStock;
+                        break;
+                    case 6:
+                        save.Tire = curPartyStock;
+                        break;
+                    case 7:
+                        save.Battery = curPartyStock;
+                        break;
+                    case 8:
+                        save.Ammo = curPartyStock;
+                        break;
+                }
+
+                switch(tradeOffer){
+                    case 1:
+                        save.Food = receivedStock;
+                        break;
+                    case 2:
+                        save.Gas = receivedStock;
+                        break;
+                    case 3:
+                        save.Scrap = receivedStock;
+                        break;
+                    case 4:
+                        save.Money = receivedStock;
+                        break;
+                    case 5:
+                        save.Medkit = receivedStock;
+                        break;
+                    case 6:
+                        save.Tire = receivedStock;
+                        break;
+                    case 7:
+                        save.Battery = receivedStock;
+                        break;
+                    case 8:
+                        save.Ammo = receivedStock;
+                        break;
+                }
                 DataUser.dataManager.UpdateSave(save);
 
                 RefreshScreen();
@@ -708,7 +747,7 @@ namespace RestPhase{
         /// </summary>
         public void CheckLeaderStatus(){
             ActiveCharacter leader = DataUser.dataManager.GetLeader(GameLoop.FileId);
-            if(leader.CharacterName == null){
+            if(leader == null){
                 this.gameObject.SetActive(false);
                 travelScreen.SetActive(false);
                 gameOverScreen.SetActive(true);
@@ -772,13 +811,6 @@ namespace RestPhase{
                     int hpRestore = GameLoop.RationsMode == 1 ? 3 : GameLoop.RationsMode == 2 ? 5 : 7;
                     int moraleRestore = 3;
                     hpRestore += save.PhaseNum == 0 ? 4 : 1;
-
-                    // Running out of food midway turns into loss
-                    if(save.Food <= 0){
-                        hpRestore = save.PhaseNum == 0 ? -2 : -4;
-                        moraleRestore = -3;
-                    }
-
                     save.Food -= GameLoop.RationsMode;
                     save.Food = save.Food <= 0 ? 0 : save.Food;
 
@@ -790,19 +822,7 @@ namespace RestPhase{
                         character.Morale += moraleRestore;
                         character.Morale = character.Morale > 100 ? 100 : character.Morale;
                     }
-                    DataUser.dataManager.UpdateCharacters(characters);
-
-                    if(character.Health <= 0){
-                        if(character.IsLeader == 1){
-                            LeaderName = character.CharacterName;
-                            DataUser.dataManager.DeleteActiveCharacter(character.Id);
-                            return;
-                        }
-                        DataUser.dataManager.DeleteActiveCharacter(character.Id);
-                        deadCharacters.Add(character.CharacterName);
-                        deadIds.Add(character.Id);
-                        flag = true;
-                    }
+                    DataUser.dataManager.UpdateCharacter(character);
                 }
                 DataUser.dataManager.UpdateSave(save);
             }
@@ -816,11 +836,15 @@ namespace RestPhase{
                         character.Morale -= moraleLoss;
                         character.Morale = character.Morale < 0 ? 0 : character.Morale;
                     }
-                    DataUser.dataManager.UpdateCharacters(characters);
+                    DataUser.dataManager.UpdateCharacter(character);
 
                     if(character.Health <= 0){
                         if(character.IsLeader == 1){
-                            LeaderName = character.CharacterName;
+                            tempDisplayText = character.CharacterName + " has died.";
+                            popupText.text = tempDisplayText;
+                            confirmPopup.SetActive(true);
+                            this.gameObject.SetActive(false); 
+                            CancelRest();
                             DataUser.dataManager.DeleteActiveCharacter(character.Id);
                             return;
                         }

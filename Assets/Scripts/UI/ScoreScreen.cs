@@ -58,7 +58,9 @@ namespace UI{
         private void UpdateScreen(){
             IEnumerable<LocalHighscore> scores = DataUser.dataManager.GetScores();
             int count = scores.Count();
-            scores = scores.Where<LocalHighscore>(s=>s.Difficulty == displayMode);
+            if(displayMode != 0){
+                scores = scores.Where<LocalHighscore>(s=>s.Difficulty == displayMode);
+            }
             scores = scores.OrderByDescending(s => s.FinalScore);
 
             string scoreDisplay1 = "", scoreDisplay2 = "";

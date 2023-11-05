@@ -306,7 +306,8 @@ namespace CombatPhase{
             UpdateModel();
             ActiveCharacter leader = DataUser.dataManager.GetLeader(GameLoop.FileId);
 
-            int acc = leader.Acessory, outfit = leader.Outfit, color = leader.Color, hat = leader.Hat, hp = leader.Health;
+            int acc = leader.Acessory, outfit = leader.Outfit, color = leader.Color, hat = leader.Hat;
+            hp = leader.Health;
             nameText.text = leader.CharacterName;
 
             transform.GetChild(0).transform.GetChild(0).GetComponent<MeshRenderer>().material = CharacterCreation.Colors[color-1];

@@ -221,8 +221,13 @@ namespace UI
 
             foreach(Save save in saves){
                 ActiveCharacter leader = DataUser.dataManager.GetLeader(save.Id);
+                if(leader == null){
+                    targetFile = save.Id;
+                    DeleteFile();
+                    continue;
+                }
                 string diff = save.Difficulty == 1 ? "Standard" : save.Difficulty == 2 ? "Deadlier" : save.Difficulty == 3 ? "Standard Custom" : "Deadlier Custom";
-                fileDescriptors[save.Id].text = " File " + save.Id + "\n  " + leader.CharacterName + "\n  " + save.Distance + "km\t" + save.CurrentLocation + "\n  " + diff;
+                fileDescriptors[save.Id].text = " File " + (save.Id + 1) + "\n  " + leader.CharacterName + "\n  " + save.Distance + "km\t" + save.CurrentLocation + "\n  " + diff;
             }
         }
 
@@ -328,7 +333,7 @@ namespace UI
                                                Side2Qty = start.GetMissions()[1].GetMissionQty(), Side2Type = start.GetMissions()[1].GetMissionType(), Side2Diff = start.GetMissions()[1].GetMissionDifficulty(),
                                                Side3Reward = start.GetMissions()[2].GetMissionReward(), Side3Qty = start.GetMissions()[2].GetMissionQty(), 
                                                Side3Type = start.GetMissions()[2].GetMissionType(), Side3Diff = start.GetMissions()[2].GetMissionDifficulty(), CurTown = 0, PrevTown = -1,
-                                               NextDistanceAway = 0, NextTownName = ""
+                                               NextDistanceAway = 0, NextTownName = "", Id = targetFile
                                             };
             DataUser.dataManager.InsertTown(town);
 

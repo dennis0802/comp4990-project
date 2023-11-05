@@ -58,7 +58,7 @@ namespace TravelPhase{
         void SetMovementSpeed(){
             Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
             int speed = save.PaceMode;
-            speed = speed == 0 ? 65 : speed == 1 ? 85 : 95;
+            speed = speed == 0 ? 40 : speed == 1 ? 50 : 60;
             movement = new Vector3((float)(speed) * 0.75f, 0f, 0f);
             rotationSpeed = speed * -2f;
         }

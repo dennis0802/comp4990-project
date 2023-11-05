@@ -121,7 +121,6 @@ namespace CombatPhase{
         public static GameObject Camera, CombatEnvironment, PrevMenuRef, ZoomReticle, NormalReticle;
         public static BaseState Mind => Singleton.mind;
         public static Vector2 RandomPosition => Random.insideUnitCircle * 45;
-        public static string LeaderName;
         public static int EnemiesToKill, JobType;
 
         // Start is called before the first frame update
@@ -294,7 +293,6 @@ namespace CombatPhase{
             IEnumerable<ActiveCharacter> friends = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId && c.IsLeader == 0);
             playerHealthBar.value = leader.Health;
             playerHealthText.text = "HP: " + playerHealthBar.value + "/100";
-            LeaderName = leader.CharacterName;
 
             // Load AI teammates in
             foreach(ActiveCharacter friend in friends){
