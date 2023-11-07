@@ -50,6 +50,9 @@ namespace UI{
                 else if(GameLoop.Hour >= 10 && GameLoop.Hour <= 17){
                     skybox.material = midday;
                 }
+            }
+            else{
+                skybox.material = night;
             }  
         }
 
