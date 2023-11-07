@@ -3133,7 +3133,7 @@ MonoBehaviour:
   playerPrefab: {fileID: 4324690102972426135, guid: d5faa173f1b3a3c499da74513556f6fd, type: 3}
   allyPrefab: {fileID: 4324690102972426135, guid: e44e9ecb24c20724abecabd8e1832df0, type: 3}
   enemyPrefab: {fileID: 1249038079134667008, guid: d2bf6aa3926b9b445afa8beab5c889b6, type: 3}
-  bossEnemyPrefab: {fileID: 0}
+  bossEnemyPrefab: {fileID: 1249038079134667008, guid: ea684af8677da3f449f2472cc3af3424, type: 3}
   combatCamera:
   - {fileID: 664243478}
   - {fileID: 4487980943487160315}

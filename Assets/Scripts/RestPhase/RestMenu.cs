@@ -268,12 +268,25 @@ namespace RestPhase{
         private int tradeOffer, tradeDemand, tradeOfferQty, tradeDemandQty;
         // To track game phase (travel, combat, rest)
         private int phaseNum;
+        private bool isInDelay;
+        private float timer;
         public static int JobNum;
         public static bool IsScavenging;
 
         void OnEnable(){
             backgroundPanel.SetActive(true);
             RefreshScreen();
+        }
+
+        void Update(){
+            Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
+            if(Equals(save.CurrentLocation, "Vancouver") && SceneManager.GetActiveScene().buildIndex == 1){
+                TravelLoop.InFinalCombat = true;
+                backgroundPanel.SetActive(false);
+                StartCoroutine(GameLoop.LoadAsynchronously(3));
+                CombatManager.PrevMenuRef = this.gameObject;
+                gameObject.SetActive(false);
+            }
         }
 
         /// <summary>
@@ -801,7 +814,6 @@ namespace RestPhase{
             IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(a=>a.FileId==GameLoop.FileId).OrderByDescending(a=>a.IsLeader);
             Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
             List<string> deadCharacters = new List<string>();
-            List<int> deadIds = new List<int>();
             bool flag = false;
             string tempDisplayText = "";
 
@@ -850,7 +862,6 @@ namespace RestPhase{
                         }
                         DataUser.dataManager.DeleteActiveCharacter(character.Id);
                         deadCharacters.Add(character.CharacterName);
-                        deadIds.Add(character.CustomCharacterId);
                         flag = true;
                     }
                 }
@@ -859,7 +870,7 @@ namespace RestPhase{
             if(flag){
                 IEnumerable<ActiveCharacter> deadMembers = characters.Where(a=>a.Health <= 0);
                 foreach(ActiveCharacter dead in deadMembers){
-                    if(deadIds.Contains(dead.CustomCharacterId)){
+                    if(dead.CustomCharacterId != -1){
                         PerishedCustomCharacter perished = new PerishedCustomCharacter(){FileId = GameLoop.FileId, CustomCharacterId = dead.CustomCharacterId};
                         DataUser.dataManager.InsertPerishedCustomCharacter(perished);
                     }

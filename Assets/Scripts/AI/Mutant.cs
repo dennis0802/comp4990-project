@@ -87,7 +87,7 @@ namespace AI{
             hp -= amt;
             if(hp <= 0){
                 // Check if counters need to change
-                if(CombatManager.JobType == 1 || TravelLoop.GoingToCombat){
+                if(CombatManager.JobType == 1 || TravelLoop.GoingToCombat || TravelLoop.InFinalCombat){
                     CombatManager.EnemiesToKill--;
                 }
 

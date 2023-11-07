@@ -75,6 +75,10 @@ namespace TravelPhase{
         [SerializeField]
         private GameObject[] restScreens;
 
+        [Tooltip("Rest menu master object")]
+        [SerializeField]
+        private GameObject restMenuMaster;
+
         // To track if a popup is active, will restrict when driving loop occurs.
         public static bool PopupActive = false, InFinalCombat = false;
         // To track the new town number and the distance away
@@ -317,6 +321,7 @@ namespace TravelPhase{
             PopupActive = true;
             Timer = 0.0f;
             PrepRestScreen();
+            restMenuMaster.SetActive(true);
             SceneManager.LoadScene(1);
         }
 
@@ -339,9 +344,11 @@ namespace TravelPhase{
             if(townEntity.NextTownName.Equals("Vancouver")){
                 InFinalCombat = true;
                 CombatManager.PrevMenuRef = this.gameObject;
+                GameLoop.MainPanel.SetActive(false);
                 StartCoroutine(GameLoop.LoadAsynchronously(3));
             }
             else{
+                restMenuMaster.SetActive(true);
                 restScreens[0].transform.parent.GetComponent<RestMenu>().RefreshScreen();
                 SceneManager.LoadScene(1);
             }
@@ -583,7 +590,6 @@ namespace TravelPhase{
         private bool HasCharacterDied(){
             IEnumerable<ActiveCharacter> characters = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId).OrderByDescending(c=>c.IsLeader);
             List<string> deadCharacters = new List<string>();
-            List<int> deadIds = new List<int>();
             bool flag = false;
             string tempDisplayText = "";
 
@@ -599,7 +605,6 @@ namespace TravelPhase{
                     }
                     DataUser.dataManager.DeleteActiveCharacter(character.Id);
                     deadCharacters.Add(character.CharacterName);
-                    deadIds.Add(character.CustomCharacterId);
                     flag = true;
                 }
             }
@@ -607,7 +612,7 @@ namespace TravelPhase{
             if(flag){
                 IEnumerable<ActiveCharacter> deadMembers = characters.Where(a=>a.Health <= 0);
                 foreach(ActiveCharacter dead in deadMembers){
-                    if(deadIds.Contains(dead.CustomCharacterId)){
+                    if(dead.CustomCharacterId != -1){
                         PerishedCustomCharacter perished = new PerishedCustomCharacter(){FileId = GameLoop.FileId, CustomCharacterId = dead.CustomCharacterId};
                         DataUser.dataManager.InsertPerishedCustomCharacter(perished);
                     }

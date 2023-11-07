@@ -164,7 +164,7 @@ namespace CombatPhase{
                 enemyTimer += Time.deltaTime;
 
                 // Job combat functions
-                if(RestMenu.JobNum != 0 || TravelLoop.GoingToCombat){
+                if(RestMenu.JobNum != 0 || TravelLoop.GoingToCombat || TravelLoop.InFinalCombat){
                     // Collection job
                     if(JobType == 2 && TargetItemFound){
                         EndCombat();
@@ -207,7 +207,7 @@ namespace CombatPhase{
                 combatText.text = Player.UsingGun ? "Equipped: " + weaponList[GunSelected] + "\nLoaded = " + Player.AmmoLoaded + "\nTotal Ammo: " + Player.TotalAvailableAmmo 
                                     : "Equipped: " + weaponList[PhysSelected];
                 combatText.text += RestMenu.IsScavenging ? "\nTime: " + System.Math.Round(scavengeTimeLimit, 2) : "";
-                combatText.text += JobType == 1 || TravelLoop.GoingToCombat ? "\nEnemies Remaining: " + EnemiesToKill : "";
+                combatText.text += JobType == 1 || TravelLoop.GoingToCombat || TravelLoop.InFinalCombat ? "\nEnemies Remaining: " + EnemiesToKill : "";
 
                 // AI actions
                 if(Time.timeScale != 0){
@@ -329,25 +329,27 @@ namespace CombatPhase{
                 if(JobType == 2){
                     SpawnEntity(1, false, true);
                 }
-                // Final combat section
-                else if(TravelLoop.InFinalCombat){
-                    InitializeDefenceMission(9);
-                    GameObject bossObj = SpawnEntity(4, false, false);
-
-                    Mutant m = bossObj.GetComponent<Mutant>();
-                    float upperBoundDetection = diff == 1 || diff == 3 ? 10.0f : 16.0f;
-
-                    m.SetDetectionRange(Random.Range(10.0f, upperBoundDetection));
-                    m.SetDestination(m.gameObject.transform.position);
-                    m.SetHP(Random.Range(30,45));
-                    int damage = diff == 1 || diff == 3 ? Random.Range(10,15) : Random.Range(15,20);
-                    m.SetStrength(damage);
-                }
                 // Spawn enemies if a defence job
                 else{
                     int enemiesToSpawn = jobDiff <= 20 ? 5 : jobDiff <= 40 ? 7 : 9;
                     InitializeDefenceMission(enemiesToSpawn);
                 }
+            }
+
+            // Final combat section
+            else if(TravelLoop.InFinalCombat){
+                InitializeDefenceMission(9);
+                GameObject bossObj = SpawnEntity(4, false, false);
+                EnemiesToKill++;
+
+                Mutant m = bossObj.GetComponent<Mutant>();
+                float upperBoundDetection = diff == 1 || diff == 3 ? 10.0f : 16.0f;
+
+                m.SetDetectionRange(Random.Range(10.0f, upperBoundDetection));
+                m.SetDestination(m.gameObject.transform.position);
+                m.SetHP(Random.Range(30,45));
+                int damage = diff == 1 || diff == 3 ? Random.Range(10,15) : Random.Range(15,20);
+                m.SetStrength(damage);
             }
 
             // If coming from the travel menu, treat as a defence mission
@@ -372,6 +374,11 @@ namespace CombatPhase{
             // Update player count (check if any teammates perished)
             if(DeadMembers.Count > 0){
                 foreach(int id in DeadMembers){
+                    ActiveCharacter character = DataUser.dataManager.GetCharacter(GameLoop.FileId, id);
+                    if(character.CustomCharacterId != -1){
+                        PerishedCustomCharacter perished = new PerishedCustomCharacter(){FileId = GameLoop.FileId, CustomCharacterId = character.CustomCharacterId};
+                        DataUser.dataManager.InsertPerishedCustomCharacter(perished);
+                    }
                     DataUser.dataManager.DeleteActiveCharacter(id);
                 }
             }
@@ -415,6 +422,9 @@ namespace CombatPhase{
             if(TravelLoop.GoingToCombat){
                 temp += "You successfully defended your party.\n";
             }
+            else if(TravelLoop.InFinalCombat){
+                temp += "You successfully arrive in Vancouver.\n";
+            }
             else if(RestMenu.JobNum == 0){
                 temp += "You collected:\n";
                 temp += foodFound > 0 ? "* " + foodFound + " kg of food\n" : "";
@@ -429,10 +439,6 @@ namespace CombatPhase{
             else if(RestMenu.JobNum != 0){
                 temp += "You successfully completed the task.\n";
             }
-            else if(TravelLoop.InFinalCombat){
-                temp += "You successfully arrive in Vancouver.\n";
-            }
-
             endCombatText.text = temp;
         }
 
@@ -455,21 +461,25 @@ namespace CombatPhase{
                 SucceededJob = true;
                 TargetItemFound = false;
                 SceneManager.LoadScene(1);
+                PrevMenuRef.SetActive(true);
             }
             else if(RestMenu.IsScavenging){
                 RestMenu.IsScavenging = false;
                 SceneManager.LoadScene(1);
+                PrevMenuRef.SetActive(true);
             }
             else if(TravelLoop.InFinalCombat){
                 GameLoop.GameOverScreen.SetActive(true);
                 GameLoop.MainPanel.SetActive(true);
+                this.gameObject.SetActive(false);
             }
             else if(TravelLoop.GoingToCombat){
                 TravelLoop.GoingToCombat = false;
                 GameLoop.MainPanel.SetActive(false);
+                PrevMenuRef.SetActive(true);
                 SceneManager.LoadScene(2);
             }
-            PrevMenuRef.SetActive(true);
+            
         }
 
         /// <summary>

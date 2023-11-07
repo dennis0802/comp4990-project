@@ -1,5 +1,7 @@
 using Database;
 using System;
+using System.Text;
+using System.Security.Cryptography;
 using SqlCipher4Unity3D;
 using SQLite.Attribute;
 using System.Collections.Generic;
@@ -11,10 +13,15 @@ namespace Database{
     {
         private readonly SQLiteConnection _connection;
         // Start is called before the first frame update
-        public DataManager()
+        public DataManager(string pass, string salt, string dbUri)
         {
-            string dbUri = "AppData.sqlite";
-            _connection = new SQLiteConnection(dbUri, "b'$2b$12$YWNdD4iKGkC5IqvDAUOwJet7ebD5PwZXSQn1zftXWWfiw4/raC.He'");
+            var sha256 = SHA256.Create();
+            // Hash 
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(pass));  
+            // Get the hashed string.  
+            var hash = BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
+
+            _connection = new SQLiteConnection(dbUri, hash+salt);
         }
 
         /// <summary>
