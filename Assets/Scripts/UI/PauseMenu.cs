@@ -52,7 +52,7 @@ namespace UI{
         private GameObject backgroundPanel;
 
         // To track if the game is paused.
-        public static bool IsPaused = false;
+        public static bool IsPaused = false, PauseDisabled = false;
         private InputAction pauseAction;
 
         void Start(){
@@ -60,7 +60,7 @@ namespace UI{
         }
 
         void Update(){
-            if(SceneManager.GetActiveScene().buildIndex != 3 && pauseAction.triggered){
+            if(!PauseDisabled && SceneManager.GetActiveScene().buildIndex != 3 && pauseAction.triggered){
                 if(IsPaused){
                     Resume();
                 }

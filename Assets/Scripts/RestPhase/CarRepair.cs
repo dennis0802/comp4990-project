@@ -73,6 +73,7 @@ namespace RestPhase{
             scrapUsed = (int)(Mathf.Pow(2, id));
             tries = scrapUsed;
             returnButton.SetActive(false);
+            PauseMenu.PauseDisabled = true;
             coroutine = StartCoroutine(Process());
         }
 

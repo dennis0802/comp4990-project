@@ -268,8 +268,6 @@ namespace RestPhase{
         private int tradeOffer, tradeDemand, tradeOfferQty, tradeDemandQty;
         // To track game phase (travel, combat, rest)
         private int phaseNum;
-        private bool isInDelay;
-        private float timer;
         public static int JobNum;
         public static bool IsScavenging;
 
@@ -582,6 +580,7 @@ namespace RestPhase{
         /// </summary>
         /// <param name="id">The id of the action; 1 = trading, 2 = resting, 3 = repairing</param>
         public void PerformWaitingAction(int id){
+            PauseMenu.PauseDisabled = true;
             coroutine = StartCoroutine(Delay(id));
         }
 
@@ -692,6 +691,7 @@ namespace RestPhase{
         /// </summary>
         public void CancelRest(){
             StopCoroutine(coroutine);
+            PauseMenu.PauseDisabled = false;
             restCancelButton.interactable = false;
             restReturnButton.interactable = true;
             restStartButton.interactable = true;
@@ -1171,6 +1171,7 @@ namespace RestPhase{
                 RefreshScreen();
                 ChangeTime();
             }
+            PauseMenu.PauseDisabled = false;
         }
     }
 
