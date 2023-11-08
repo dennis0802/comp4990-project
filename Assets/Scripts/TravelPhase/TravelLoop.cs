@@ -124,6 +124,7 @@ namespace TravelPhase{
                 if(Timer >= 8.0f){
                     if(Drive()){
                         int eventChance = Random.Range(1,101);
+                        eventChance = 13;
 
                         // 44/100 chance of generating an event
                         if(eventChance <= 44){

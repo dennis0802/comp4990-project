@@ -170,12 +170,10 @@ namespace TravelPhase{
                 if(type != 8){
                     curStock = partyStock[type] + gain;
                     parameters.Add(curStock);
-                    commandText += curStock.ToString();
                 }
                 else{
                     curGasStock = partyStock[type] + (float)(gain);
                     parameters.Add(curGasStock);
-                    commandText += curGasStock.ToString();
                 }
                 commandText += " WHERE Id = ?";
                 parameters.Add(GameLoop.FileId);
