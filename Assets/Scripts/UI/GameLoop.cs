@@ -52,19 +52,22 @@ namespace UI{
         public static Sprite[] Maps;
         public static GameObject MainPanel;
         public static string LeaderName;
-
-        void Awake(){
-            Maps = maps;
-        }
+        private int currentFile = -1;
 
         private void Start(){
             GameOverScreen = gameOverScreen;
             MainPanel = mainPanel;
-            LeaderName = DataUser.dataManager.GetLeader(GameLoop.FileId).CharacterName;
+        }
+
+        void Awake(){
+            Maps = maps;      
         }
 
         private void Update(){
-            
+            if(Equals("", LeaderName) || currentFile != GameLoop.FileId){
+                LeaderName = DataUser.dataManager.GetLeader(GameLoop.FileId).CharacterName;
+                currentFile = GameLoop.FileId;
+            }
         }
 
         /// <summary>
