@@ -616,7 +616,7 @@ namespace RestPhase{
                 Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
                 List<int> partyStock = new List<int>(){save.Food, (int)(save.Gas), save.Scrap, save.Money, save.Medkit, save.Tire, save.Battery, save.Ammo};
 
-                // Adjust stocks accordingly
+                // Adjust stocks accordingly 
                 int curPartyStock = partyStock[tradeDemand-1] - tradeDemandQty;
                 int receivedStock = partyStock[tradeOffer-1] + tradeOfferQty;
 
