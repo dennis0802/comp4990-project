@@ -46,17 +46,17 @@ namespace CombatPhase{
         [SerializeField]
         private GameObject playerPrefab;
 
+        [Tooltip("Player low hp panel")]
+        [SerializeField]
+        private GameObject lowHPPanel;
+
         [Tooltip("AI teammate object")]
         [SerializeField]
         private GameObject allyPrefab;
 
-        [Tooltip("Enemy object")]
+        [Tooltip("Enemy objects")]
         [SerializeField]
-        private GameObject enemyPrefab;
-
-        [Tooltip("Boss enemy object")]
-        [SerializeField]
-        private GameObject bossEnemyPrefab;
+        private GameObject[] enemyPrefabs;
 
         [Tooltip("Cameras used during combat phase")]
         [SerializeField]
@@ -92,6 +92,8 @@ namespace CombatPhase{
         [Min(0)]
         [SerializeField]
         private int maxAgentsPerUpdate;
+
+        // Map generator
         private static MapGenerator mapGenerator;
         // All agents in the scene
         public List<BaseAgent> Agents {get; private set;} = new();
@@ -103,10 +105,11 @@ namespace CombatPhase{
         // To track the player
         private GameObject player, ally, restMenu;
         // Difficult and agent index
-        private int diff, _currentAgentIndex, jobDiff;
+        private int diff, _currentAgentIndex, jobDiff, rolledMutantSpawn;
         // Flags for generating the combat world
         private bool flag = false, defenceMissionSet = false;
         private List<Teammate> teammates = new List<Teammate>();
+        private Player playerMain;
         // For scavenging, to allow scavenging up to x seconds.
         private float scavengeTimeLimit = 0.0f, itemTimer = 0.0f, spawnItemTime = 0.0f;
         // Spawn timing
@@ -134,10 +137,10 @@ namespace CombatPhase{
             PrevMenuRef.SetActive(false);
             ZoomReticle = GameObject.FindWithTag("ZoomReticle");
             NormalReticle = GameObject.FindWithTag("NormalReticle");
-            if(SceneManager.GetActiveScene().buildIndex == 3 && CombatEnvironment == null){
+            if(SceneManager.GetActiveScene().buildIndex == 1 && CombatEnvironment == null){
                 CombatEnvironment = GameObject.FindWithTag("CombatEnvironment");
             }
-            else if(SceneManager.GetActiveScene().buildIndex != 3 && CombatEnvironment != null){
+            else if(SceneManager.GetActiveScene().buildIndex != 1 && CombatEnvironment != null){
                 CombatEnvironment = null;
             }
             ZoomReticle.SetActive(false);
@@ -204,10 +207,13 @@ namespace CombatPhase{
                     InitializeMutant();
                 }
 
+                playerHealthBar.value = playerMain.hp;
+                playerHealthText.text = "HP: " + playerHealthBar.value + "/100";
                 combatText.text = Player.UsingGun ? "Equipped: " + weaponList[GunSelected] + "\nLoaded = " + Player.AmmoLoaded + "\nTotal Ammo: " + Player.TotalAvailableAmmo 
                                     : "Equipped: " + weaponList[PhysSelected];
                 combatText.text += RestMenu.IsScavenging ? "\nTime: " + System.Math.Round(scavengeTimeLimit, 2) : "";
                 combatText.text += JobType == 1 || TravelLoop.GoingToCombat || TravelLoop.InFinalCombat ? "\nEnemies Remaining: " + EnemiesToKill : "";
+                lowHPPanel.SetActive(playerMain.hp <= 25);
 
                 // AI actions
                 if(Time.timeScale != 0){
@@ -259,6 +265,9 @@ namespace CombatPhase{
             InCombat = true;
             panel.SetActive(false);
             CombatEnvironment.SetActive(true);
+            playerSpawnPoints = GameObject.FindGameObjectsWithTag("PlayerSpawn");
+            enemySpawnPoints = GameObject.FindGameObjectsWithTag("EnemySpawn");
+            pickupSpawnPoints = GameObject.FindGameObjectsWithTag("PickupSpawn");
             NormalReticle.SetActive(true);
             Cursor.lockState = CursorLockMode.Locked;
 
@@ -283,16 +292,12 @@ namespace CombatPhase{
             // Difficulty and activity determine enemy spawn time.
             spawnEnemyTime = diff == 1 || diff == 3 ? 10.0f : 8.0f;
             spawnEnemyTime += GameLoop.Activity == 1 ? 2.0f : GameLoop.Activity == 2 ? 0.0f : GameLoop.Activity == 3 ? -1.0f : -3.0f;
-
-            playerSpawnPoints = GameObject.FindGameObjectsWithTag("PlayerSpawn");
-            enemySpawnPoints = GameObject.FindGameObjectsWithTag("EnemySpawn");
-            pickupSpawnPoints = GameObject.FindGameObjectsWithTag("PickupSpawn");
             player = SpawnEntity(2, true, false);
+            playerMain = player.GetComponent<Player>();
 
             ActiveCharacter leader = DataUser.dataManager.GetLeader(GameLoop.FileId);
+            playerMain.hp = leader.Health;
             IEnumerable<ActiveCharacter> friends = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId && c.IsLeader == 0);
-            playerHealthBar.value = leader.Health;
-            playerHealthText.text = "HP: " + playerHealthBar.value + "/100";
 
             // Load AI teammates in
             foreach(ActiveCharacter friend in friends){
@@ -300,7 +305,7 @@ namespace CombatPhase{
                 Teammate t = ally.GetComponent<Teammate>();
                 t.id = friend.Id;
                 t.allyName = friend.CharacterName;
-                t.SetDetectionRange(15.0f);
+                t.SetDetectionRange(35.0f);
                 t.usingGun = true;
                 t.isSharpshooter = friend.Perk == 1;
                 t.isHotHeaded = friend.Trait == 1;
@@ -343,11 +348,12 @@ namespace CombatPhase{
                 EnemiesToKill++;
 
                 Mutant m = bossObj.GetComponent<Mutant>();
-                float upperBoundDetection = diff == 1 || diff == 3 ? 10.0f : 16.0f;
+                m.mutantType = 3;
+                float upperBoundDetection = diff == 1 || diff == 3 ? 61.0f : 81.0f;
 
-                m.SetDetectionRange(Random.Range(10.0f, upperBoundDetection));
+                m.SetDetectionRange(Random.Range(20.0f, upperBoundDetection));
                 m.SetDestination(m.gameObject.transform.position);
-                m.SetHP(Random.Range(30,45));
+                m.SetHP(Random.Range(45,60));
                 int damage = diff == 1 || diff == 3 ? Random.Range(10,15) : Random.Range(15,20);
                 m.SetStrength(damage);
             }
@@ -460,12 +466,12 @@ namespace CombatPhase{
             if(RestMenu.JobNum != 0){
                 SucceededJob = true;
                 TargetItemFound = false;
-                SceneManager.LoadScene(1);
+                SceneManager.LoadScene(0);
                 PrevMenuRef.SetActive(true);
             }
             else if(RestMenu.IsScavenging){
                 RestMenu.IsScavenging = false;
-                SceneManager.LoadScene(1);
+                SceneManager.LoadScene(0);
                 PrevMenuRef.SetActive(true);
             }
             else if(TravelLoop.InFinalCombat){
@@ -477,7 +483,7 @@ namespace CombatPhase{
                 TravelLoop.GoingToCombat = false;
                 GameLoop.MainPanel.SetActive(false);
                 PrevMenuRef.SetActive(true);
-                SceneManager.LoadScene(2);
+                SceneManager.LoadScene(0);
             }
             
         }
@@ -519,20 +525,22 @@ namespace CombatPhase{
         /// <param name="isTarget">If the entity spawned is the target collectible for jobs</param>
         /// <returns>The entity spawned</returns>
         private GameObject SpawnEntity(int type, bool isPlayer, bool isTarget){
-            int spawnSelected, itemSelected = Random.Range(1, 101);
+            int spawnSelected, itemSelected = Random.Range(1, 101), enemySelected = Random.Range(0,3);
             
             // 20% for food (0), 10% for gas (1), 20% for scrap (2), 20% for money (3), 10% for medkit (4), 20% for ammo (5)
             itemSelected = itemSelected <= 20 ? 0 : itemSelected <= 30 ? 1 : itemSelected <= 50 ? 2 : itemSelected <= 70 ? 3 : itemSelected <= 80 ? 4 : 5; 
             GameObject[] spawnPointsOfInterest = type == 1 ? pickupSpawnPoints : type == 2 ? playerSpawnPoints: enemySpawnPoints;
-            GameObject toSpawn = type == 1 ? pickupPrefabs[itemSelected] : type == 2 ? allyPrefab : enemyPrefab;
+            GameObject toSpawn = type == 1 ? pickupPrefabs[itemSelected] : type == 2 ? allyPrefab : enemyPrefabs[enemySelected];
             toSpawn = type == 1 && isTarget ? targetPickup : type == 2 && isPlayer ? playerPrefab : toSpawn;
 
             // If spawning an enemy during non-defence missions, spawn wherever. Otherwise pick an unused spawnpoint
             if(type == 3 && (JobType == 1 || JobType == 2)){
                 spawnSelected = Random.Range(0, spawnPointsOfInterest.Length);
+                rolledMutantSpawn = enemySelected;
             }
             else if(type == 4 && TravelLoop.InFinalCombat){
-                toSpawn = bossEnemyPrefab;
+                toSpawn = enemyPrefabs[3];
+                rolledMutantSpawn = 3;
                 spawnSelected = Random.Range(0, spawnPointsOfInterest.Length);
             }
             else{
@@ -551,16 +559,20 @@ namespace CombatPhase{
         /// </summary>
         private void InitializeMutant(){
             GameObject enemySpawn = SpawnEntity(3, false, false);
-            
             Mutant m = enemySpawn.GetComponent<Mutant>();
-            float upperBoundDetection = diff == 1 || diff == 3 ? 8.0f : 14.0f;
+            m.mutantType = rolledMutantSpawn;
+
+            int hpSet = m.mutantType == 0 ? Random.Range(15,20) : m.mutantType == 1 ? Random.Range(30,45) : Random.Range(10,15), 
+                damage = diff == 1 || diff == 3 ? Random.Range(6,11) : Random.Range(10,15);
+            float upperBoundDetection = diff == 1 || diff == 3 ? 41.0f : 50.0f;
+            upperBoundDetection += m.mutantType == 2 ? 3.0f : 0.0f;
+
             if(RestMenu.JobNum != 0){
                 upperBoundDetection += jobDiff <= 20 ? -2 : jobDiff <= 40 ? 0 : 2;
             }
-            m.SetDetectionRange(Random.Range(8.0f, upperBoundDetection));
+            m.SetDetectionRange(Random.Range(25.0f, upperBoundDetection));
             m.SetDestination(m.gameObject.transform.position);
-            m.SetHP(Random.Range(10,15));
-            int damage = diff == 1 || diff == 3 ? Random.Range(6,11) : Random.Range(10,15);
+            m.SetHP(hpSet);
             m.SetStrength(damage);
         }
         

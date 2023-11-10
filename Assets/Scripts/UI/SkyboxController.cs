@@ -39,21 +39,16 @@ namespace UI{
         // Update is called once per frame
         void Update()
         {
-            if(SceneManager.GetActiveScene().buildIndex > 0){
-                // Depending on the 24-hour time, change the skybox material
-                if(GameLoop.Hour >= 21 || GameLoop.Hour <= 5){
-                    skybox.material = night;
-                }
-                else if(GameLoop.Hour >= 18 || GameLoop.Hour <= 9){
-                    skybox.material = dimming;
-                }
-                else if(GameLoop.Hour >= 10 && GameLoop.Hour <= 17){
-                    skybox.material = midday;
-                }
-            }
-            else{
+            // Depending on the 24-hour time, change the skybox material
+            if(GameLoop.Hour >= 21 || GameLoop.Hour <= 5){
                 skybox.material = night;
-            }  
+            }
+            else if(GameLoop.Hour >= 18 || GameLoop.Hour <= 9){
+                skybox.material = dimming;
+            }
+            else if(GameLoop.Hour >= 10 && GameLoop.Hour <= 17){
+                skybox.material = midday;
+            }
         }
 
         void FixedUpdate(){

@@ -322,7 +322,6 @@ namespace TravelPhase{
             Timer = 0.0f;
             PrepRestScreen();
             restMenuMaster.SetActive(true);
-            SceneManager.LoadScene(1);
         }
 
         /// <summary>
@@ -345,12 +344,11 @@ namespace TravelPhase{
                 InFinalCombat = true;
                 CombatManager.PrevMenuRef = this.gameObject;
                 GameLoop.MainPanel.SetActive(false);
-                StartCoroutine(GameLoop.LoadAsynchronously(3));
+                StartCoroutine(GameLoop.LoadAsynchronously(1));
             }
             else{
                 restMenuMaster.SetActive(true);
                 restScreens[0].transform.parent.GetComponent<RestMenu>().RefreshScreen();
-                SceneManager.LoadScene(1);
             }
         }
 
@@ -363,7 +361,7 @@ namespace TravelPhase{
             HasCharacterDied();
             if(GoingToCombat){
                 CombatManager.PrevMenuRef = this.gameObject;
-                StartCoroutine(GameLoop.LoadAsynchronously(3));
+                StartCoroutine(GameLoop.LoadAsynchronously(1));
             }
         }
 

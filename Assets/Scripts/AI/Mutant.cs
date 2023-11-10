@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using CombatPhase;
 using RestPhase;
@@ -8,10 +9,25 @@ using TravelPhase;
 namespace AI{
     public class Mutant : BaseAgent
     {
+        
+        [Tooltip("Bullet prefab")]
+        [SerializeField]
+        private GameObject bulletPrefab;
+
         /// <summary>
         /// Min speed to be considered stopped.
         /// </summary>
         public float minStopSpeed;
+
+        /// <summary>
+        /// Delay to shoot
+        /// </summary>
+        public float shotDelay = 0.0f;
+
+        /// <summary>
+        /// Type of mutant (0 = standard, 1 = big, 2 = ranged, 3 = boss)
+        /// </summary>
+        public int mutantType;
 
         /// <summary>
         /// Strength of mutant's attacks (damage that can be dealt to players)
@@ -34,13 +50,33 @@ namespace AI{
         public Transform TargetTransform;
 
         /// <summary>
+        /// List of colliders on the agent
+        /// </summary> 
+        public Collider[] Colliders {get; private set;}
+
+        /// <summary>
         /// Physical damage audio
         /// </summary> 
         private AudioSource physDamageAudio;
 
+        /// <summary>
+        /// Shooting audio
+        /// </summary> 
+        private AudioSource shootingAudio;
+
+        /// <summary>
+        /// Location to spawn bullets regularly
+        /// </summary>
+        private GameObject shootLocation;
+
         protected override void Start(){
             base.Start();
-            physDamageAudio = GetComponent<AudioSource>();
+            List<Collider> colliders = GetComponents<Collider>().ToList();
+            colliders.AddRange(GetComponentsInChildren<Collider>());
+            Colliders = colliders.Distinct().ToArray();
+            shootLocation = GameObject.FindGameObjectsWithTag("ShootLocation").Where(s => s.GetComponentInParent<Mutant>() == this).FirstOrDefault();
+            physDamageAudio = GetComponents<AudioSource>()[0];
+            shootingAudio = GetComponents<AudioSource>()[1];
         }
 
         /// <summary>
@@ -49,7 +85,6 @@ namespace AI{
         /// <param name="amt">The amount of damaged received</param>
         private IEnumerator ReceivePhysicalDamage(int amt){
             damagedRecently = true;
-            physDamageAudio.Play();
             hp -= amt;
 
             // Die
@@ -108,6 +143,27 @@ namespace AI{
         /// </summary>
         public void SetStrength(int amt){
             strength = amt;
+        }
+
+        /// <summary>
+        /// Attempt to shoot a team member
+        /// </summary>
+        public void Shoot(){
+            if(this.mutantType <= 1){
+                return;
+            }
+            else{
+                // Spawn the bullet here
+                GameObject bullet = Instantiate(bulletPrefab, shootLocation.transform.position, shootLocation.transform.rotation);
+                bullet.transform.SetParent(CombatManager.CombatEnvironment.transform);
+                Projectile projectile = bullet.GetComponent<Projectile>();
+                projectile.Shooter = gameObject;
+                projectile.Velocity = mutantType == 3 ? 20 : 15;
+                projectile.Damage = mutantType == 3 ? 7 : 5;
+
+                shootingAudio.Play();
+                shotDelay = 1.0f;
+            }
         }
     }
 }

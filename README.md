@@ -30,10 +30,12 @@ immersive the game environment is to end-users.
 * Game AI concepts from Dr. Akram Vasighizaker's COMP4770-2023W Artificial Intelligence for Games class
 * Player model visuals from Dr. Akram Vasighizaker's COMP4770-2023W Artificial Intelligence for Games class
 * Camera control done with Cinemachine Package
-* Gun sounds from https://mixkit.co/free-sound-effects/gun/
+* Gun sounds from https://mixkit.co/free-sound-effects/gun/ and https://mixkit.co/free-sound-effects/laser/
 * Alert sound from https://mixkit.co/free-sound-effects/buzzer/
 * Event popup sound from https://mixkit.co/free-sound-effects/notification/?page=2
 * Physical attack sound from https://mixkit.co/free-sound-effects/sword/
+* Mutant hurt sound from https://mixkit.co/free-sound-effects/monster/
+* Damage sound from https://assetstore.unity.com/packages/audio/sound-fx/free-sound-effects-pack-155776
 * Crosshairs from https://www.kenney.nl/assets/crosshair-pack
 * Map from https://www.freeusandworldmaps.com/html/USAandCanada/USPrintableOutline.html
 * Main Menu BGM (Once and For All) by Onoychenkomusic from https://pixabay.com/music/search/genre/main%20title/
@@ -41,6 +43,10 @@ immersive the game environment is to end-users.
 * Combat BGM (Are You Afraid of the Dark) by Ivan Luzan from https://pixabay.com/music/search/genre/main%20title/
 * Wall Texture by PamNawi from https://opengameart.org/content/handpainted-stone-wall-textures
 * Tartan Textures by Luke.RUSTLTD from https://opengameart.org/content/25-tartan-patterns
+* Metal Textures by josepharaoh99 from https://opengameart.org/content/metal-from-frying-pan
+* Glass Texture by Fupi from https://opengameart.org/content/shiny-window-pane
+* Slime (Grass) Texture by LuminousDragonGames from https://opengameart.org/content/10-seamless-grass-textures-that-are-2048-x-2048
+* Planks and Stone Texture by profpatonildo from https://opengameart.org/content/cartoon-outdoor-tileable-textures
 * Package for implementing SQLCipher: https://github.com/netpyoung/SqlCipher4Unity3D
 
 ### SQLite's Licnese

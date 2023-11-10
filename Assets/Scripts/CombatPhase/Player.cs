@@ -29,16 +29,6 @@ namespace CombatPhase{
         private GameObject bulletPrefab;
 
         /// <summary>
-        /// The player's health bar
-        /// </summary>
-        private Slider playerHealthBar;
-
-        /// <summary>
-        /// The text displaying the player's total health
-        /// </summary>
-        private TextMeshProUGUI playerHealthText;
-
-        /// <summary>
         /// The zoomed in reticle when using the rifle.
         /// </summary>
         private Image zoomReticle;
@@ -174,7 +164,7 @@ namespace CombatPhase{
         public bool CanShoot = true;
 
         /// <summary>
-        /// List of colliders on the agent
+        /// List of colliders on the player
         /// </summary> 
         public Collider[] Colliders {get; private set;}
 
@@ -268,15 +258,13 @@ namespace CombatPhase{
                     else if(!UsingGun){
                         // Check for the closest enemy and attack if close enough
                         GameObject[] mutants = GameObject.FindGameObjectsWithTag("Mutant");
-                        GameObject target = mutants.Where(m => Vector3.Distance(transform.position, m.transform.position) < 1.0f).First();
+                        GameObject target = mutants.Where(m => Vector3.Distance(transform.position, m.transform.position) < CombatManager.PhysSelected * 2).First();
 
                         if(target != null){
                             Mutant m = target.GetComponent<Mutant>();
                             m.PhysicalDamage(physicalDamageOutput);
                         }
-                        else{
-                            physSound.Play();
-                        }
+                        physSound.Play();
                     }
                 }
 
@@ -359,16 +347,11 @@ namespace CombatPhase{
             }
 
             combatManager = GameObject.FindWithTag("CombatManager").GetComponent<CombatManager>();
-            playerHealthBar = GameObject.FindWithTag("PlayerHealthBar").GetComponent<Slider>();
-            playerHealthText = GameObject.FindWithTag("PlayerHealthText").GetComponent<TextMeshProUGUI>();
             shootLocation = GameObject.FindWithTag("ShootLocation");
             shotgunShootLocations = GameObject.FindGameObjectsWithTag("ShotgunShootLocation");
 
             int gun = CombatManager.GunSelected;
             reloadTimer = gun == 0 ? 3 : gun == 1 ? 5 : 7;
-            
-            playerHealthBar.value = hp;
-            playerHealthText.text = "HP: " + hp.ToString() + "/100";
 
             Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
             TotalAvailableAmmo = save.Ammo;
@@ -399,8 +382,6 @@ namespace CombatPhase{
         private IEnumerator ReceiveDamage(int amt){
             damagedRecently = true;
             hp -= amt;
-            playerHealthBar.value = hp;
-            playerHealthText.text = "HP: " + hp.ToString() + "/100";
 
             if(hp <= 0){
                 combatManager.EndCombatDeath();
@@ -438,6 +419,18 @@ namespace CombatPhase{
             if(!damagedRecently){
                 damagedRecently = true;
                 StartCoroutine(ReceiveDamage(amt));
+            }
+        }
+
+        /// <summary>
+        /// Attempt to range damage the teammate
+        /// </summary>
+        /// <param name="amt">The amount of damaged received</param>
+        public void RangedDamage(int amt){
+            // Since this relies on a collision (ie. not frame-by-frame in Update, no invincibility frames are needed)
+            hp -= amt;
+            if(hp <= 0){
+                combatManager.EndCombatDeath();
             }
         }
 

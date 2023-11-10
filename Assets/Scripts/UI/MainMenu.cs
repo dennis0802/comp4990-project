@@ -202,7 +202,6 @@ namespace UI
             accessScreen.SetActive(false);
             mainGameUI.SetActive(true);
             mainMenuScreen.SetActive(false);
-            SceneManager.LoadScene(1);
             GameLoop.FileId = id;
         }
 

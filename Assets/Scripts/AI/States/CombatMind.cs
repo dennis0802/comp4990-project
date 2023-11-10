@@ -19,15 +19,17 @@ namespace AI.States{
         /// When agent executes the state
         /// </summary> 
         public override void Execute(BaseAgent agent){
-            // NOTES:
-            // All movement operations need velocity to be checked to avoid weird looking movements from the destination changing
+            // NOTE: All movement operations need velocity to be checked to avoid weird looking movements from the destination changing constantly
             switch(agent){
-                // Mutant mind
+                // ---------------------------------------- MUTANT MIND ------------------------------------------------------
                 case Mutant mutant:
                     // Mutants are only concerned with attacking the player - find the nearest one
                     Mutant m = agent as Mutant;
 
-                    // Find a target if none set (this will also help mutants stay on one target and not move confused).
+                    // Add delay to shooting
+                    m.shotDelay -= m.shotDelay <= 0.0f ? 0.0f : m.DeltaTime;
+
+                    // Find a target if none set (this will also help mutants stay on one target).
                     if(m.TargetTransform == null){
                         m.TargetTransform = m.Sense<NearestPartySensor, Transform>();
                     }
@@ -39,13 +41,13 @@ namespace AI.States{
                             m.SetDestination(new Vector3(pos.x, 0, pos.y + 60f));
                         }
                     }
-
+                    
                     // Move towards and attack
                     else{
                         Transform altTarget = m.Sense<NearestPartySensor, Transform>();
-
-                        // Attempt attack when close enough, move closer otherwise
-                        if(Vector3.Distance(m.TargetTransform.position, m.transform.position) < 1.0f){
+                    
+                        // Attempt physical attack (type 0 and 1) when close enough
+                        if(m.mutantType <= 1 && Vector3.Distance(m.TargetTransform.position, m.transform.position) < 2.0f){
                             Player player = m.TargetTransform.GetComponent<Player>();
                             Teammate partyMember = m.TargetTransform.GetComponent<Teammate>();
 
@@ -62,20 +64,31 @@ namespace AI.States{
                                 }
                             }
                         }
+                        // Attempt a ranged attack (type 2 and 3) when close enough
+                        else if(m.mutantType >= 1 && Vector3.Distance(m.TargetTransform.position, m.transform.position) < 15.0f){
+                            m.LookToTarget(m.TargetTransform);
+
+                            if(m.shotDelay <= 0){
+                                m.Shoot();
+                            }
+                        }
                         // Detecting a character that is closer than the current target
                         else if(altTarget is not null && Vector3.Distance(m.transform.position, altTarget.position) < Vector3.Distance(m.transform.position, m.TargetTransform.position)){
                             m.TargetTransform = altTarget;
                         }
                         // Pursue the player until close enough
-                        // NOTE: while there is steering behaviour for pursuit, would require knowing
-                        else{
+                        else if(m.GetVelocity().magnitude < m.minStopSpeed){
                             m.SetDestination(m.TargetTransform.position);
                         }
-                    }
 
+                        // Losing sight of target
+                        if(Vector3.Distance(m.TargetTransform.position, m.transform.position) > m.DetectionRange){
+                            m.TargetTransform = null;
+                        }
+                    }
                     break;
 
-                // Teammate mind
+                // ---------------------------------------- TEAMMATE MIND ------------------------------------------------------
                 case Teammate teammate:
                     Teammate t = agent as Teammate;
                     Mutant nearestMutant = t.Sense<NearestMutantSensor, Mutant>();
@@ -165,8 +178,8 @@ namespace AI.States{
                             t.UpdateModel();
                         }
 
-                        // Physical attack within range
-                        else if(!t.usingGun && Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f && t.hp > 25){
+                        // Physical attack within range, differs per weapon
+                        else if(!t.usingGun && Vector3.Distance(nearestMutant.transform.position, t.transform.position) < CombatManager.PhysSelected * 2 && t.hp > 25){
                             Debug.Log(t.name + " within physical range");
                             t.LookToTarget(nearestMutant.transform);
                             nearestMutant.PhysicalDamage(t.physicalDamageOutput);

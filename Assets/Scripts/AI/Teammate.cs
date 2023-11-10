@@ -56,7 +56,7 @@ namespace AI{
         public int hp = 0;
 
         /// <summary>
-        /// Teammate's health
+        /// Delay to shoot
         /// </summary>
         public float shotDelay = 0.0f;
 
@@ -119,6 +119,11 @@ namespace AI{
         /// If player has hotheaded trait
         /// </summary>
         public bool isHotHeaded;
+
+        /// <summary>
+        /// If player is actively poisoned
+        /// </summary>
+        public bool isPoisoned;
 
         protected override void Start(){
             base.Start();
@@ -245,6 +250,19 @@ namespace AI{
             if(!damagedRecently){
                 damagedRecently = true;
                 StartCoroutine(ReceiveDamage(amt));
+            }
+        }
+
+        /// <summary>
+        /// Attempt to range damage the teammate
+        /// </summary>
+        /// <param name="amt">The amount of damaged received</param>
+        public void RangedDamage(int amt){
+            // Since this relies on a collision (ie. not frame-by-frame in Update, no invincibility frames are needed)
+            hp -= amt;
+            if(hp <= 0){
+                CombatManager.RemoveAgent(this);
+                Destroy(gameObject);
             }
         }
 

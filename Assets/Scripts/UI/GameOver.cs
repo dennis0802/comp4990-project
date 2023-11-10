@@ -92,7 +92,6 @@ namespace UI{
         /// </summary>
         public void ConfirmView(){
             GameLoop.FileId = -1;
-            SceneManager.LoadScene(0);
         }
     }
 }

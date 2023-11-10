@@ -14,7 +14,7 @@ namespace UI{
         // To track rations; 1 = low, 2 = medium, 3 = high
         public static int RationsMode = 2;
         // To track the time (24-hour, assume a universal clock and no timezones)
-        public static int Hour = 12;
+        public static int Hour = 0;
         // To track the mutant activity; 1 = low, 2 = medium, 3 = high, 4 = ravenous
         public static int Activity = 1;
         // To track the pace of the car; 1 = slow, 2 = medium, 3 = fast

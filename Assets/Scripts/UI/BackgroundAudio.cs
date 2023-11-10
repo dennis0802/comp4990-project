@@ -9,11 +9,9 @@ namespace UI{
         [Tooltip("Audio sources for bgm")]
         [SerializeField]
         private List<AudioClip> bgms;
-
+        
         private static List<AudioClip> BGMs;
-
-        private int currentScene = -1, sceneRead, prevScene;
-        private static bool isPlaying;
+        private int sceneRead;
         public AudioSource currentlyPlaying;
         public static BackgroundAudio instance;
 
@@ -29,27 +27,15 @@ namespace UI{
 
         void Update(){
             sceneRead = SceneManager.GetActiveScene().buildIndex;
-            if(currentScene != sceneRead){
-                prevScene = currentScene;
-                currentScene = sceneRead;
-                isPlaying = false;
-                
-                if(currentScene == 0 && !isPlaying){
-                    LoadAudio(0);
-                }
 
-                else if(currentScene <= 2 && !isPlaying){
-                    // Resting and travelling use the same audio, ignore if going from between the 2
-                    if((prevScene == 1 && currentScene == 2) || (prevScene == 2 && currentScene == 1)){
-                        return;
-                    }
-                    LoadAudio(1);
-                }   
-
-                // Audio start will be handled by an external function via a button press
-                else if(currentScene == 3 && !isPlaying){
-                    LoadAudio(2);
-                }
+            if(GameLoop.FileId == -1 && currentlyPlaying.clip != BGMs[0]){
+                LoadAudio(0);
+            }
+            else if(sceneRead == 0 && GameLoop.FileId > -1 && currentlyPlaying.clip != BGMs[1]){
+                LoadAudio(1);
+            }
+            else if(sceneRead == 1 && currentlyPlaying.clip != BGMs[2]){
+                LoadAudio(2);
             }
         }
 
@@ -63,7 +49,6 @@ namespace UI{
             currentlyPlaying.loop = true;
             currentlyPlaying.volume = index == 2 ? 0.25f : 0.5f;
             currentlyPlaying.Play();
-            isPlaying = true;
         }
     }
 }

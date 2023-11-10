@@ -278,10 +278,10 @@ namespace RestPhase{
 
         void Update(){
             Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
-            if(Equals(save.CurrentLocation, "Vancouver") && SceneManager.GetActiveScene().buildIndex == 1){
+            if(Equals(save.CurrentLocation, "Vancouver") && SceneManager.GetActiveScene().buildIndex == 0){
                 TravelLoop.InFinalCombat = true;
                 backgroundPanel.SetActive(false);
-                StartCoroutine(GameLoop.LoadAsynchronously(3));
+                StartCoroutine(GameLoop.LoadAsynchronously(1));
                 CombatManager.PrevMenuRef = this.gameObject;
                 gameObject.SetActive(false);
             }
@@ -547,7 +547,7 @@ namespace RestPhase{
             }
 
             backgroundPanel.SetActive(false);
-            StartCoroutine(GameLoop.LoadAsynchronously(3));
+            StartCoroutine(GameLoop.LoadAsynchronously(1));
             CombatManager.PrevMenuRef = this.gameObject;
         }
 
@@ -556,7 +556,6 @@ namespace RestPhase{
         /// </summary>
         public void LeaveTown(){
             if(phaseNum == 0){
-                SceneManager.LoadScene(2);
                 this.gameObject.SetActive(false);
                 TravelLoop.PopupActive = true;
                 leavePopup.SetActive(true);
@@ -566,7 +565,6 @@ namespace RestPhase{
                 save.PhaseNum = 1;
                 DataUser.dataManager.UpdateSave(save);
 
-                SceneManager.LoadScene(2);
                 this.gameObject.SetActive(false);
                 travelScreen.SetActive(true);
                 travelWindow.SetActive(true);
@@ -1055,28 +1053,28 @@ namespace RestPhase{
                                reward == 13 ? "medkit = medkit + " : reward <= 14 ? "tire = tire + " : reward == 15 ? " battery = battery + " : "ammo = ammo + ";
 
                 if(reward <= 3){
-                    save.Food += reward;
+                    save.Food += qty;
                 }
                 else if(reward <= 6){
-                    save.Gas += reward;
+                    save.Gas += qty;
                 }
                 else if(reward <= 9){
-                    save.Scrap += reward;
+                    save.Scrap += qty;
                 }
                 else if(reward <= 12){
-                    save.Money += reward;
+                    save.Money += qty;
                 }
                 else if(reward == 13){
-                    save.Medkit += reward;
+                    save.Medkit += qty;
                 }
                 else if(reward == 14){
-                    save.Tire += reward;
+                    save.Tire += qty;
                 }
                 else if(reward == 15){
-                    save.Battery += reward;
+                    save.Battery += qty;
                 }
                 else{
-                    save.Ammo += reward;
+                    save.Ammo += qty;
                 }
 
                 // Update the database (change resources and clear the board)

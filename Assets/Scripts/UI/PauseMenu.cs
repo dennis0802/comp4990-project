@@ -60,7 +60,7 @@ namespace UI{
         }
 
         void Update(){
-            if(!PauseDisabled && SceneManager.GetActiveScene().buildIndex != 3 && pauseAction.triggered){
+            if(!PauseDisabled && SceneManager.GetActiveScene().buildIndex != 1 && pauseAction.triggered){
                 if(IsPaused){
                     Resume();
                 }
