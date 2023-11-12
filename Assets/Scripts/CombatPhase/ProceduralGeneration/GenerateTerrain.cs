@@ -26,6 +26,7 @@ namespace CombatPhase.ProceduralGeneration {
 
         void Start() {
             mapGenerator = FindObjectOfType<MapGenerator>();
+            terrainChunksVisibleLastUpdate.Clear();
 
             maxViewDst = detailLevels[detailLevels.Length-1].visibleDstThreshold;
             chunkSize = mapGenerator.mapChunkSize - 1;

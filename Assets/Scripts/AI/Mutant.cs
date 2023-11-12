@@ -121,6 +121,9 @@ namespace AI{
             }
         }
 
+        /// <summary>
+        /// Kill the mutant
+        /// </summary>
         public void Die(){
             // Check if counters need to change
             if(CombatManager.JobType == 1 || TravelLoop.GoingToCombat || TravelLoop.InFinalCombat){

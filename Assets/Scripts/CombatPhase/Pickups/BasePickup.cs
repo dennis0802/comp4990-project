@@ -36,6 +36,7 @@ namespace CombatPhase.Pickups{
         private void DetectPickup(Component other){
             Player player = other.gameObject.GetComponent<Player>();
             Teammate teammate = other.gameObject.GetComponent<Teammate>();
+            CombatManager.itemCollected.Play();
 
             if(player != null){
                 OnPickup(player);

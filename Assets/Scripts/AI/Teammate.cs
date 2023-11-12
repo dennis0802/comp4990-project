@@ -125,6 +125,16 @@ namespace AI{
         /// </summary>
         public bool isHotHeaded;
 
+        /// <summary>
+        /// If player can shoot
+        /// </summary>
+        public float physDelay;
+
+        /// <summary>
+        /// If player can physically attack
+        /// </summary>
+        public float reloadDelay;
+
         protected override void Start(){
             base.Start();
             InitializeCharacter();
@@ -208,6 +218,35 @@ namespace AI{
         }
 
         /// <summary>
+        /// Receive damage from a mutant and apply "invincibility frames"
+        /// </summary>
+        /// <param name="amt">The amount of damaged received</param>
+        private IEnumerator ReceiveDamage(int amt){
+            damagedRecently = true;
+            hp -= amt;
+            hurtAudio.Play();
+
+            if(hp <= 0){
+                Die();
+            }
+            yield return new WaitForSeconds(2.0f);
+            damagedRecently = false;
+        }
+
+        /// <summary>
+        /// Kill the teammate
+        /// </summary>
+        private void Die(){
+            // Display on screen to alert player
+            alertText.text = allyName + " has perished.";
+
+            // Die
+            CombatManager.RemoveAgent(this);
+            CombatManager.DeadMembers.Add(id);
+            Destroy(gameObject);
+        }
+
+        /// <summary>
         /// Update model based on weapon selected
         /// </summary>
         public void UpdateModel(){
@@ -219,28 +258,6 @@ namespace AI{
                 transform.GetChild(5).transform.GetChild(CombatManager.GunSelected).gameObject.SetActive(false);
                 transform.GetChild(5).transform.GetChild(CombatManager.PhysSelected).gameObject.SetActive(true);
             }
-        }
-
-        /// <summary>
-        /// Receive damage from a mutant and apply "invincibility frames"
-        /// </summary>
-        /// <param name="amt">The amount of damaged received</param>
-        private IEnumerator ReceiveDamage(int amt){
-            damagedRecently = true;
-            hp -= amt;
-            hurtAudio.Play();
-
-            if(hp <= 0){
-                // Display on screen to alert player
-                alertText.text = allyName + " has perished.";
-
-                // Die
-                CombatManager.RemoveAgent(this);
-                CombatManager.DeadMembers.Add(id);
-                Destroy(gameObject);
-            }
-            yield return new WaitForSeconds(2.0f);
-            damagedRecently = false;
         }
 
         /// <summary>
@@ -264,10 +281,7 @@ namespace AI{
             hp -= amt;
             hurtAudio.Play();
             if(hp <= 0){
-                alertText.text = allyName + " has perished.";
-
-                CombatManager.RemoveAgent(this);
-                Destroy(gameObject);
+                Die();
             }
         }
 
@@ -275,6 +289,8 @@ namespace AI{
         /// Reload gun with ammo
         /// </summary>
         public void Reload(){
+            int gun = CombatManager.GunSelected;
+            reloadDelay = gun == 0 ? 3 : gun == 1 ? 5 : 7;
             ammoLoaded = ammoTotal - 6 > 0 ? 6 : ammoTotal;
             ammoTotal -= ammoLoaded;
         }

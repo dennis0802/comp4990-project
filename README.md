@@ -35,6 +35,7 @@ immersive the game environment is to end-users.
 * Event popup sound from https://mixkit.co/free-sound-effects/notification/?page=2
 * Physical attack sound from https://mixkit.co/free-sound-effects/sword/
 * Mutant hurt sound from https://mixkit.co/free-sound-effects/monster/
+* Combat win and pickup sound effect from https://mixkit.co/free-sound-effects/correct/
 * Damage sound from https://assetstore.unity.com/packages/audio/sound-fx/free-sound-effects-pack-155776
 * Crosshairs from https://www.kenney.nl/assets/crosshair-pack
 * Map from https://www.freeusandworldmaps.com/html/USAandCanada/USPrintableOutline.html

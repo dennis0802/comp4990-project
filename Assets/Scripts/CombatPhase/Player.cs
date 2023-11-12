@@ -169,12 +169,17 @@ namespace CombatPhase{
         public bool CanShoot = true;
 
         /// <summary>
+        /// Flag if player can physically attack.
+        /// </summary> 
+        public bool CanAttack = true;
+
+        /// <summary>
         /// List of colliders on the player
         /// </summary> 
         public Collider[] Colliders {get; private set;}
 
         // Start is called before the first frame update
-        void Start()
+        private void Start()
         {
             playerShoot = playerInput.actions["LeftClick"];
             playerMove = playerInput.actions["Move"];
@@ -204,7 +209,7 @@ namespace CombatPhase{
         }
 
         // Update is called once per frame
-        void Update()
+        private void Update()
         {
             // Combat actions for the player
             if(CombatManager.InCombat){
@@ -261,16 +266,20 @@ namespace CombatPhase{
                     else if(CanShoot && UsingGun && AmmoLoaded == 0){
                         emptyAudio.Play();
                     }
-                    else if(!UsingGun){
+                    else if(!UsingGun && CanAttack){
                         // Check for the closest enemy and attack if close enough
                         GameObject[] mutants = GameObject.FindGameObjectsWithTag("Mutant");
-                        GameObject target = mutants.Where(m => Vector3.Distance(transform.position, m.transform.position) < CombatManager.PhysSelected * 2).First();
+                        GameObject target = null;
+                        if(mutants.Count() > 1){
+                           target = mutants.Where(m => Vector3.Distance(transform.position, m.transform.position) < CombatManager.PhysSelected * 1.5f).FirstOrDefault();
+                        }
 
                         if(target != null){
                             Mutant m = target.GetComponent<Mutant>();
                             m.PhysicalDamage(physicalDamageOutput);
                         }
                         physSound.Play();
+                        StartCoroutine(PhysDelay());
                     }
                 }
 
@@ -370,14 +379,14 @@ namespace CombatPhase{
         /// <summary>
         /// Toggle running when shift key is hit
         /// </summary>
-        void PressSprint(){
+        private void PressSprint(){
             isRunning = !AimCamera.IsSwitched;
         }
 
         /// <summary>
         /// Toggle running when shift key is released
         /// </summary>
-        void ReleaseSprint(){
+        private void ReleaseSprint(){
             isRunning = false;
         }
 
@@ -418,6 +427,31 @@ namespace CombatPhase{
         }
 
         /// <summary>
+        /// Delay physical weapon use
+        /// </summary>
+        /// <param name="delay">The delay to reload</param>
+        private IEnumerator PhysDelay(){
+            CanAttack = false;
+            float delay = CombatManager.PhysSelected == 3 ? 0.5f : CombatManager.PhysSelected == 4 ? 1f : 2f;
+            yield return new WaitForSeconds(delay);
+            CanAttack = true;
+        }
+
+        /// <summary>
+        /// Update model depending on player weapon choice
+        /// </summary>
+        private void UpdateModel(){
+            if(UsingGun){
+                transform.GetChild(5).transform.GetChild(CombatManager.GunSelected).gameObject.SetActive(true);
+                transform.GetChild(5).transform.GetChild(CombatManager.PhysSelected).gameObject.SetActive(false);
+            }
+            else{
+                transform.GetChild(5).transform.GetChild(CombatManager.GunSelected).gameObject.SetActive(false);
+                transform.GetChild(5).transform.GetChild(CombatManager.PhysSelected).gameObject.SetActive(true);
+            }
+        }
+
+        /// <summary>
         /// Attempt to damage the player
         /// </summary>
         /// <param name="amt">The amount of damaged received</param>
@@ -439,20 +473,6 @@ namespace CombatPhase{
             hurtAudio.Play();
             if(hp <= 0){
                 combatManager.EndCombatDeath();
-            }
-        }
-
-        /// <summary>
-        /// Update model depending on player weapon choice
-        /// </summary>
-        private void UpdateModel(){
-            if(UsingGun){
-                transform.GetChild(5).transform.GetChild(CombatManager.GunSelected).gameObject.SetActive(true);
-                transform.GetChild(5).transform.GetChild(CombatManager.PhysSelected).gameObject.SetActive(false);
-            }
-            else{
-                transform.GetChild(5).transform.GetChild(CombatManager.GunSelected).gameObject.SetActive(false);
-                transform.GetChild(5).transform.GetChild(CombatManager.PhysSelected).gameObject.SetActive(true);
             }
         }
     }

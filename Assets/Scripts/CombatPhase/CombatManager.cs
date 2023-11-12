@@ -95,20 +95,20 @@ namespace CombatPhase{
 
         // Map generator
         private static MapGenerator mapGenerator;
-        // All agents in the scene
-        public List<BaseAgent> Agents {get; private set;} = new();
-
-        // All registered states
-        private static readonly Dictionary<Type, BaseState> RegisteredStates = new();
         // To track spawn points for the party, enemies, and pickups
         private GameObject[] playerSpawnPoints, enemySpawnPoints, pickupSpawnPoints;
         // To track the player
         private GameObject player, ally, restMenu;
+        private AudioSource winSound, loseSound;
         // Difficult and agent index
         private int diff, _currentAgentIndex, jobDiff, rolledMutantSpawn;
         // Flags for generating the combat world
         private bool flag = false, defenceMissionSet = false;
+        // List of teammates
         private List<Teammate> teammates = new List<Teammate>();
+        // List of weapons
+        private List<string> weaponList = new List<string>(){"Pistol", "Rifle", "Shotgun", "Knife", "Bat", "Shovel"};
+        // Main player
         private Player playerMain;
         // For scavenging, to allow scavenging up to x seconds.
         private float scavengeTimeLimit = 0.0f, itemTimer = 0.0f, spawnItemTime = 0.0f;
@@ -116,19 +116,30 @@ namespace CombatPhase{
         private float spawnEnemyTime = 0.0f, enemyTimer = 0.0f;
         // To determine weapons selected
         public static int GunSelected = -1, PhysSelected = -1;
-        // List of weapons
-        private List<string> weaponList = new List<string>(){"Pistol", "Rifle", "Shotgun", "Knife", "Bat", "Shovel"};
+        // List of dead members
         public static List<int> DeadMembers = new List<int>();
+        // Audio for collecting items (putting them on the item as they're destroyed doesn't work)
+        public static AudioSource itemCollected;
         protected static CombatManager Singleton;
+        // Flags
         public static bool InCombat = false, SucceededJob = false, TargetItemFound = false;
+        public static int EnemiesToKill, JobType;
+        // Combat manager objects
         public static GameObject Camera, CombatEnvironment, PrevMenuRef, ZoomReticle, NormalReticle;
+        // AI
         public static BaseState Mind => Singleton.mind;
         public static Vector2 RandomPosition => Random.insideUnitCircle * 45;
-        public static int EnemiesToKill, JobType;
+        // All agents in the scene
+        public List<BaseAgent> Agents {get; private set;} = new();
+        // All registered states
+        private static readonly Dictionary<Type, BaseState> RegisteredStates = new();
 
         // Start is called before the first frame update
         void Start(){
             Camera = combatCamera[0];
+            loseSound = GetComponents<AudioSource>()[1];
+            winSound = GetComponents<AudioSource>()[2];
+            itemCollected = GetComponents<AudioSource>()[3];
         }
 
         void OnEnable()
@@ -371,6 +382,7 @@ namespace CombatPhase{
         /// </summary>
         public void EndCombat(){
             UnloadCombat();
+            winSound.Play();
             endCombatScreen.SetActive(true);
 
             int foodFound = player.GetComponent<Player>().suppliesGathered[0] * 20, gasFound = player.GetComponent<Player>().suppliesGathered[1],
@@ -453,6 +465,8 @@ namespace CombatPhase{
         /// End combat from leader death
         /// </summary>
         public void EndCombatDeath(){
+            loseSound.Play();
+            lowHPPanel.SetActive(false);
             UnloadCombat();
             GameLoop.GameOverScreen.SetActive(true);
             Agents.Clear();
@@ -527,7 +541,8 @@ namespace CombatPhase{
         /// <returns>The entity spawned</returns>
         private GameObject SpawnEntity(int type, bool isPlayer, bool isTarget){
             int spawnSelected, itemSelected = Random.Range(1, 101), enemySelected = Random.Range(0,3);
-            
+            rolledMutantSpawn = enemySelected;
+
             // 20% for food (0), 10% for gas (1), 20% for scrap (2), 20% for money (3), 10% for medkit (4), 20% for ammo (5)
             itemSelected = itemSelected <= 20 ? 0 : itemSelected <= 30 ? 1 : itemSelected <= 50 ? 2 : itemSelected <= 70 ? 3 : itemSelected <= 80 ? 4 : 5; 
             GameObject[] spawnPointsOfInterest = type == 1 ? pickupSpawnPoints : type == 2 ? playerSpawnPoints: enemySpawnPoints;
@@ -537,7 +552,6 @@ namespace CombatPhase{
             // If spawning an enemy during non-defence missions, spawn wherever. Otherwise pick an unused spawnpoint
             if(type == 3 && (JobType == 1 || JobType == 2)){
                 spawnSelected = Random.Range(0, spawnPointsOfInterest.Length);
-                rolledMutantSpawn = enemySelected;
             }
             else if(type == 4 && TravelLoop.InFinalCombat){
                 toSpawn = enemyPrefabs[3];

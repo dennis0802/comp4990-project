@@ -91,6 +91,7 @@ namespace UI{
         /// Confirm that score was viewed.
         /// </summary>
         public void ConfirmView(){
+            SceneManager.LoadScene(0);
             GameLoop.FileId = -1;
         }
     }
