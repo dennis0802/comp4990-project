@@ -109,9 +109,14 @@ namespace CombatPhase{
         private AudioSource reloadAudio;
 
         /// <summary>
-        /// Physical attack audio, used for if attack missed
+        /// Physical attack audio
         /// </summary> 
         private AudioSource physSound;
+
+        /// <summary>
+        /// Hurt audio
+        /// </summary> 
+        private AudioSource hurtAudio;
 
         /// <summary>
         /// Text to alert the player
@@ -186,6 +191,7 @@ namespace CombatPhase{
             emptyAudio = GetComponents<AudioSource>()[1];
             reloadAudio = GetComponents<AudioSource>()[2];
             physSound = GetComponents<AudioSource>()[3];
+            hurtAudio = GetComponents<AudioSource>()[4];
 
             // Read the database: customize character with values read and get ammo available.
             InitializeCharacter();
@@ -382,6 +388,7 @@ namespace CombatPhase{
         private IEnumerator ReceiveDamage(int amt){
             damagedRecently = true;
             hp -= amt;
+            hurtAudio.Play();
 
             if(hp <= 0){
                 combatManager.EndCombatDeath();
@@ -429,6 +436,7 @@ namespace CombatPhase{
         public void RangedDamage(int amt){
             // Since this relies on a collision (ie. not frame-by-frame in Update, no invincibility frames are needed)
             hp -= amt;
+            hurtAudio.Play();
             if(hp <= 0){
                 combatManager.EndCombatDeath();
             }

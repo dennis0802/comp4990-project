@@ -37,6 +37,11 @@ namespace CombatPhase{
         /// The party member who shot the bullet (GameObject to generalize)
         /// </summary> 
         public GameObject Shooter {get; set;}
+    
+        /// <summary>
+        /// The type of shooter (1 = player, 2 = ally, 3 = mutant)
+        /// </summary>
+        private int shooterType; 
 
         // Start is called before the first frame update
         void Start()
@@ -48,6 +53,7 @@ namespace CombatPhase{
 
             // Ignore collisions with the party member who shot
             if(player != null){
+                shooterType = 1;
                 foreach(Collider hitbox in player.Colliders){
                     if(hitbox != null && hitbox.enabled){
                         Physics.IgnoreCollision(col, hitbox, true);
@@ -55,6 +61,7 @@ namespace CombatPhase{
                 }
             }
             else if(teammate != null){
+                shooterType = 2;
                 foreach(Collider hitbox in teammate.Colliders){
                     if(hitbox != null && hitbox.enabled){
                         Physics.IgnoreCollision(col, hitbox, true);
@@ -62,6 +69,7 @@ namespace CombatPhase{
                 }
             }
             else if(mutant != null){
+                shooterType = 3;
                 foreach(Collider hitbox in mutant.Colliders){
                     if(hitbox != null && hitbox.enabled){
                         Physics.IgnoreCollision(col, hitbox, true);
@@ -84,7 +92,8 @@ namespace CombatPhase{
         /// <param name="tr">The transform that was hit</param>
         private void HandleCollision(Transform tr){
             Transform startingTr = tr;
-            if(Shooter.GetType() == typeof(Player) || Shooter.GetType() == typeof(Teammate)){
+
+            if(shooterType <= 2){
                 // See if a mutant was hit
                 Mutant mutant;
                 do{
@@ -96,7 +105,7 @@ namespace CombatPhase{
                     mutant.RangedDamage(Damage);
                 }
             }
-            else if(Shooter.GetType() == typeof(Mutant)){
+            else{
                 // See if a mutant was hit
                 Teammate t;
                 do{
@@ -107,18 +116,17 @@ namespace CombatPhase{
                 if(t != null){
                     t.RangedDamage(Damage);
                 }
-                else{
-                    // See if player was hit
-                    Player p;
-                    tr = startingTr;
-                    do{
-                        p = tr.GetComponent<Player>();
-                        tr = tr.parent;
-                    } while (p == null && tr != null);
 
-                    if(p != null){
-                        p.RangedDamage(Damage);
-                    }
+                // See if player was hit
+                Player p;
+                tr = startingTr;
+                do{
+                    p = tr.GetComponent<Player>();
+                    tr = tr.parent;
+                } while (p == null && tr != null);
+
+                if(p != null){
+                    p.RangedDamage(Damage);
                 }
             }
 

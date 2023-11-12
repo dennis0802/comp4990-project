@@ -30,12 +30,12 @@ namespace AI.States{
                     m.shotDelay -= m.shotDelay <= 0.0f ? 0.0f : m.DeltaTime;
 
                     // Find a target if none set (this will also help mutants stay on one target).
-                    if(m.TargetTransform == null){
+                    if(m.TargetTransform is null){
                         m.TargetTransform = m.Sense<NearestPartySensor, Transform>();
                     }
 
                     // If player cannot be found, wander (pick a random position on the map)
-                    if(m.TargetTransform == null){
+                    if(m.TargetTransform is null){
                         if(m.GetVelocity().magnitude < m.minStopSpeed){
                             Vector2 pos = CombatManager.RandomPosition;
                             m.SetDestination(new Vector3(pos.x, 0, pos.y + 60f));
@@ -45,6 +45,7 @@ namespace AI.States{
                     // Move towards and attack
                     else{
                         Transform altTarget = m.Sense<NearestPartySensor, Transform>();
+                        m.LookToTarget(m.TargetTransform);
                     
                         // Attempt physical attack (type 0 and 1) when close enough
                         if(m.mutantType <= 1 && Vector3.Distance(m.TargetTransform.position, m.transform.position) < 2.0f){
@@ -66,8 +67,6 @@ namespace AI.States{
                         }
                         // Attempt a ranged attack (type 2 and 3) when close enough
                         else if(m.mutantType >= 1 && Vector3.Distance(m.TargetTransform.position, m.transform.position) < 15.0f){
-                            m.LookToTarget(m.TargetTransform);
-
                             if(m.shotDelay <= 0){
                                 m.Shoot();
                             }
@@ -98,7 +97,7 @@ namespace AI.States{
                     t.shotDelay -= t.shotDelay <= 0.0f ? 0.0f : t.DeltaTime;
 
                     // If in no particular danger (enemies not visible), wander for collectibles to collect or purely wander
-                    if(nearestMutant == null){
+                    if(nearestMutant is null){
                         Transform nearestCollectible = t.Sense<NearestCollectibleSensor, Transform>();
                         
                         // Wandering means leaving the defensive point
@@ -119,7 +118,7 @@ namespace AI.States{
                     }
 
                     // Find a defensive point not in use and attack if enemies visible
-                    else if(nearestMutant != null){
+                    else if(nearestMutant is not null){
                         // Attempt to check for an ammo pickup
                         Transform nearestCollectible = t.Sense<NearestCollectibleSensor, Transform>();
 

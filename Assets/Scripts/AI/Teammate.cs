@@ -111,6 +111,11 @@ namespace AI{
         private AudioSource shootingAudio;
 
         /// <summary>
+        /// Hurt audio
+        /// </summary> 
+        private AudioSource hurtAudio;
+
+        /// <summary>
         /// If player has sharpshooter perk
         /// </summary>
         public bool isSharpshooter;
@@ -120,11 +125,6 @@ namespace AI{
         /// </summary>
         public bool isHotHeaded;
 
-        /// <summary>
-        /// If player is actively poisoned
-        /// </summary>
-        public bool isPoisoned;
-
         protected override void Start(){
             base.Start();
             InitializeCharacter();
@@ -133,6 +133,7 @@ namespace AI{
             colliders.AddRange(GetComponentsInChildren<Collider>());
             Colliders = colliders.Distinct().ToArray();
             shootingAudio = GetComponents<AudioSource>()[0];
+            hurtAudio = GetComponents<AudioSource>()[1];
 
             physicalDamageOutput = CombatManager.PhysSelected == 3 ? 1 : CombatManager.PhysSelected == 4 ? 2 : 3;
             physicalDamageOutput += isHotHeaded ? 3 : 0;
@@ -227,6 +228,7 @@ namespace AI{
         private IEnumerator ReceiveDamage(int amt){
             damagedRecently = true;
             hp -= amt;
+            hurtAudio.Play();
 
             if(hp <= 0){
                 // Display on screen to alert player
@@ -260,7 +262,10 @@ namespace AI{
         public void RangedDamage(int amt){
             // Since this relies on a collision (ie. not frame-by-frame in Update, no invincibility frames are needed)
             hp -= amt;
+            hurtAudio.Play();
             if(hp <= 0){
+                alertText.text = allyName + " has perished.";
+
                 CombatManager.RemoveAgent(this);
                 Destroy(gameObject);
             }

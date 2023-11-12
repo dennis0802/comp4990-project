@@ -213,7 +213,7 @@ namespace CombatPhase{
                                     : "Equipped: " + weaponList[PhysSelected];
                 combatText.text += RestMenu.IsScavenging ? "\nTime: " + System.Math.Round(scavengeTimeLimit, 2) : "";
                 combatText.text += JobType == 1 || TravelLoop.GoingToCombat || TravelLoop.InFinalCombat ? "\nEnemies Remaining: " + EnemiesToKill : "";
-                lowHPPanel.SetActive(playerMain.hp <= 25);
+                lowHPPanel.SetActive(playerMain.hp <= 25 && playerMain.hp > 0);
 
                 // AI actions
                 if(Time.timeScale != 0){
@@ -304,6 +304,7 @@ namespace CombatPhase{
                 ally = SpawnEntity(2, false, false);
                 Teammate t = ally.GetComponent<Teammate>();
                 t.id = friend.Id;
+                t.leader = playerMain;
                 t.allyName = friend.CharacterName;
                 t.SetDetectionRange(35.0f);
                 t.usingGun = true;

@@ -55,14 +55,14 @@ namespace AI{
         public Collider[] Colliders {get; private set;}
 
         /// <summary>
-        /// Physical damage audio
+        /// Attack audio
         /// </summary> 
-        private AudioSource physDamageAudio;
+        private AudioSource attackAudio;
 
         /// <summary>
-        /// Shooting audio
+        /// Hurt audio
         /// </summary> 
-        private AudioSource shootingAudio;
+        private AudioSource hurtAudio;
 
         /// <summary>
         /// Location to spawn bullets regularly
@@ -75,8 +75,8 @@ namespace AI{
             colliders.AddRange(GetComponentsInChildren<Collider>());
             Colliders = colliders.Distinct().ToArray();
             shootLocation = GameObject.FindGameObjectsWithTag("ShootLocation").Where(s => s.GetComponentInParent<Mutant>() == this).FirstOrDefault();
-            physDamageAudio = GetComponents<AudioSource>()[0];
-            shootingAudio = GetComponents<AudioSource>()[1];
+            attackAudio = GetComponents<AudioSource>()[0];
+            hurtAudio = GetComponents<AudioSource>()[1];
         }
 
         /// <summary>
@@ -85,17 +85,12 @@ namespace AI{
         /// <param name="amt">The amount of damaged received</param>
         private IEnumerator ReceivePhysicalDamage(int amt){
             damagedRecently = true;
+            hurtAudio.Play();
             hp -= amt;
 
             // Die
             if(hp <= 0){
-                // Check if counters need to change
-                if(CombatManager.JobType == 1 || TravelLoop.GoingToCombat){
-                    CombatManager.EnemiesToKill--;
-                }
-                
-                CombatManager.RemoveAgent(this);
-                Destroy(gameObject);
+                Die();
             }
             yield return new WaitForSeconds(2.0f);
             damagedRecently = false;
@@ -120,15 +115,20 @@ namespace AI{
         public void RangedDamage(int amt){
             // Since this relies on a collision (ie. not frame-by-frame in Update, no invincibility frames are needed)
             hp -= amt;
+            hurtAudio.Play();
             if(hp <= 0){
-                // Check if counters need to change
-                if(CombatManager.JobType == 1 || TravelLoop.GoingToCombat || TravelLoop.InFinalCombat){
-                    CombatManager.EnemiesToKill--;
-                }
-
-                CombatManager.RemoveAgent(this);
-                Destroy(gameObject);
+                Die();
             }
+        }
+
+        public void Die(){
+            // Check if counters need to change
+            if(CombatManager.JobType == 1 || TravelLoop.GoingToCombat || TravelLoop.InFinalCombat){
+                CombatManager.EnemiesToKill--;
+            }
+
+            CombatManager.RemoveAgent(this);
+            Destroy(gameObject);
         }
 
         /// <summary>
@@ -161,7 +161,7 @@ namespace AI{
                 projectile.Velocity = mutantType == 3 ? 20 : 15;
                 projectile.Damage = mutantType == 3 ? 7 : 5;
 
-                shootingAudio.Play();
+                attackAudio.Play();
                 shotDelay = 1.0f;
             }
         }
