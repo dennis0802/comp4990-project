@@ -7,7 +7,7 @@ namespace CombatPhase{
     {
         public bool inUse = false;
         public bool set = false;
-        public float distance = 100f;
+        public float distance = 50f;
 
         void OnDrawGizmos(){
             // Depending on tag, draw a sphere to indicate location and rotation on Unity Editor
@@ -39,10 +39,16 @@ namespace CombatPhase{
 
             // If contact with the ground found and hasn't been set yet, set the spawnpoint on the ground
             if(!set && Physics.Raycast(transform.position, Vector3.down, out hit, distance)) {
-                Vector3 targetLocation = hit.point;
-                targetLocation += new Vector3(0, transform.localScale.y / 2, 0);
-                transform.position = targetLocation;
-                set = true;
+                if(hit.collider != null){
+                    Vector3 targetLocation = hit.point;
+                    targetLocation += new Vector3(0, transform.localPosition.y/8.5f, 0);
+                    transform.position = targetLocation;
+                    set = true;
+                }
+            }
+
+            if(set && transform.position.y >= 10.0f){
+                Destroy(gameObject);
             }
         }
     }

@@ -48,7 +48,7 @@ namespace CombatPhase.ProceduralGeneration {
         /// </summary>
         public void DrawMapInEditor(){
             #if UNITY_EDITOR
-            if(SceneManager.GetActiveScene().buildIndex == 3 || Equals(SceneManager.GetActiveScene().name, "Test")){
+            if(SceneManager.GetActiveScene().buildIndex == 1 || Equals(SceneManager.GetActiveScene().name, "ProceduralSandbox")){
                 MapData mapData = GenerateMapData(Vector2.zero);
 
                 MapDisplay display = FindObjectOfType<MapDisplay>();

@@ -145,6 +145,8 @@ namespace CombatPhase{
         void OnEnable()
         {
             UpdateIntroScreen();
+            mapGenerator = FindObjectOfType<MapGenerator>();
+            mapGenerator.noiseData.seed = Random.Range(0,10000);
             PrevMenuRef.SetActive(false);
             ZoomReticle = GameObject.FindWithTag("ZoomReticle");
             NormalReticle = GameObject.FindWithTag("NormalReticle");
@@ -156,8 +158,6 @@ namespace CombatPhase{
             }
             ZoomReticle.SetActive(false);
             NormalReticle.SetActive(false);
-            mapGenerator = FindObjectOfType<MapGenerator>();
-            mapGenerator.noiseData.seed = Random.Range(0,10000);
         }
 
         // Update is called once per frame

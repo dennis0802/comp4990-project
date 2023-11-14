@@ -220,7 +220,7 @@ namespace CombatPhase.ProceduralGeneration {
             public IEnumerator BakeCoroutine(){
                 // Delay required to ensure all terrain is visible before baking
                 yield return new WaitForSeconds(1);
-                // There is some required cost on the CPU for this to work but delay is about 10-15s for 1-time baking
+                // EDIT: making it so more than chunk appears will be expensive when done together with this. Instantaneous with 1
                 navMeshSurface.BuildNavMesh();
                 hasBaked = true;
             }

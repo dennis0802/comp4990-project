@@ -9,7 +9,7 @@ namespace CombatPhase.ProceduralGeneration{
     public class ObstacleGenerator : MonoBehaviour
     {
         private NavMeshSurface surface;
-        private int maxObjects = 50;
+        private int maxObjects = 500, maxBarricades = 6;
         private float yOffset = 12f;
         public GameObject[] obstacleObjects;
         private GameObject environment;
@@ -23,13 +23,28 @@ namespace CombatPhase.ProceduralGeneration{
         /// Spawn obstacles
         /// </spawn>
         void SpawnObjects(){
+            int barricadesSpawned = 0;
+
             // Attempt to spawn up to the max possible number of objects
             for(int i = 0; i < maxObjects; i++){
                 int objNum = Random.Range(0, obstacleObjects.Length);
-                float xPos = Random.Range(-45, 45);
-                float zPos = Random.Range(-45, 45);
+
+                /// Limit the amount of barricades that can be spawned
+                if(objNum == 2 && barricadesSpawned <= maxBarricades){
+                    barricadesSpawned++;
+                }
+                else{
+                    while(objNum == 2){
+                        objNum = Random.Range(0, obstacleObjects.Length);
+                    }
+                }
+
+                // Special case are barricades (elem 2) - these stay in the "center"
+                float xPos = objNum == 2 ? Random.Range(-45, 45) : Random.Range(-110, 110);
+                float zPos = objNum == 2 ? Random.Range(-45, 45) : Random.Range(-110, 110);
                 float yRot = Random.Range(0, 361);
                 Vector3 spawnPos = new Vector3(xPos, yOffset, zPos);
+
 
                 // If no collisions found, spawn the object
                 if(FindCollisions(spawnPos) < 1){
