@@ -15,7 +15,7 @@ namespace AI.Sensors{
                 return null;
             }
 
-            Mutant[] mutants = FindObjectsOfType<Mutant>().Where(t => t.name.Contains("Mutant") 
+            Mutant[] mutants = FindObjectsOfType<Mutant>().Where(t => Equals(t.tag, "Mutant")
                                   && Vector3.Distance(t.transform.position, teammate.transform.position) < teammate.DetectionRange).ToArray();
 
             if(mutants.Length == 0){

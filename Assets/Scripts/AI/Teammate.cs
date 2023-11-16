@@ -98,7 +98,7 @@ namespace AI{
         /// <summary>
         /// The defensive point this ally is using
         /// </summary>
-        public DefensivePoint defensivePointUsed;
+        public DefensivePoint defensivePointUsed = null;
 
         /// <summary>
         /// List of colliders on the agent
@@ -124,6 +124,11 @@ namespace AI{
         /// If player has hotheaded trait
         /// </summary>
         public bool isHotHeaded;
+
+        /// <summary>
+        /// If player is targeting a collectible
+        /// </summary>
+        public bool targetingCollectible;
 
         /// <summary>
         /// If player can shoot
@@ -243,7 +248,7 @@ namespace AI{
             // Die
             CombatManager.RemoveAgent(this);
             CombatManager.DeadMembers.Add(id);
-            Destroy(gameObject);
+            gameObject.SetActive(false);
         }
 
         /// <summary>

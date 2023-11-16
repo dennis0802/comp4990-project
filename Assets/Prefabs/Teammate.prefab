@@ -1647,7 +1647,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 3
+  m_Speed: 5
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
@@ -1689,6 +1689,8 @@ MonoBehaviour:
   defensivePointUsed: {fileID: 0}
   isSharpshooter: 0
   isHotHeaded: 0
+  physDelay: 0
+  reloadDelay: 0
 --- !u!114 &2721850336441479092
 MonoBehaviour:
   m_ObjectHideFlags: 0

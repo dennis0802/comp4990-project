@@ -70,7 +70,7 @@ namespace UI
 
         [Tooltip("Game object containing UI for the rest menu components.")]
         [SerializeField]
-        private GameObject restMenuUI;
+        private GameObject[] restMenuUI;
 
         [Tooltip("Game objects containing for the travel screen.")]
         [SerializeField]
@@ -178,16 +178,20 @@ namespace UI
                     int phase = DataUser.dataManager.GetSaveById(GameLoop.FileId).PhaseNum;
                     
                     if(phase == 0 || phase == 2){
-                        restMenuUI.SetActive(true);
-                        travelMenuUI[0].SetActive(false);
-                        travelMenuUI[1].SetActive(false);
-                        travelMenuUI[2].SetActive(true);
+                        for(int i = 0; i < restMenuUI.Length; i++){
+                            restMenuUI[i].SetActive(i <= 3);
+                        }
+                        for(int i = 0; i < travelMenuUI.Length; i++){
+                            travelMenuUI[i].SetActive(i == 2);
+                        }
                     }
                     else if(phase == 1){
-                        restMenuUI.SetActive(false);
-                        travelMenuUI[0].SetActive(true);
-                        travelMenuUI[1].SetActive(true);
-                        travelMenuUI[2].SetActive(false);
+                        for(int i = 0; i < restMenuUI.Length; i++){
+                            restMenuUI[i].SetActive(false);
+                        }
+                        for(int i = 0; i < travelMenuUI.Length; i++){
+                            travelMenuUI[i].SetActive(i != 2);
+                        }
                     }
                     activeUI.SetActive(true);
                 }

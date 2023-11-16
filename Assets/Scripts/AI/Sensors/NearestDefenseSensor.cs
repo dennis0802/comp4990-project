@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using CombatPhase;
 
 namespace AI.Sensors{
     public class NearestDefenseSensor : BaseSensor
@@ -15,9 +16,8 @@ namespace AI.Sensors{
                 return null;
             }
 
-            Transform[] defensivePoints = FindObjectsOfType<Transform>().Where(t => Equals(t.tag, "DefensivePoint") 
+            DefensivePoint[] defensivePoints = FindObjectsOfType<DefensivePoint>().Where(t => Equals(t.tag, "DefensivePoint") 
                                           && Vector3.Distance(t.transform.position, teammate.transform.position) < teammate.DetectionRange).ToArray();
-
             if(defensivePoints.Length == 0){
                 return null;
             }

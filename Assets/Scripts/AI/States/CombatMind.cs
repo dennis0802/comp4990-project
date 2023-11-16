@@ -25,14 +25,10 @@ namespace AI.States{
                 case Mutant mutant:
                     // Mutants are only concerned with attacking the player - find the nearest one
                     Mutant m = agent as Mutant;
+                    m.TargetTransform = m.Sense<NearestPartySensor, Transform>();
 
                     // Add delay to shooting
                     m.shotDelay -= m.shotDelay <= 0.0f ? 0.0f : m.DeltaTime;
-
-                    // Find a target if none set (this will also help mutants stay on one target).
-                    if(m.TargetTransform == null){
-                        m.TargetTransform = m.Sense<NearestPartySensor, Transform>();
-                    }
 
                     // If player cannot be found, wander (pick a random position on the map)
                     if(m.TargetTransform == null){
@@ -46,9 +42,13 @@ namespace AI.States{
                     else{
                         Transform altTarget = m.Sense<NearestPartySensor, Transform>();
                         m.LookToTarget(m.TargetTransform);
-                    
+
+                        // Detecting a character that is closer than the current target
+                        if(altTarget != m.TargetTransform && altTarget != null && Vector3.Distance(m.transform.position, altTarget.position) < Vector3.Distance(m.transform.position, m.TargetTransform.position)){
+                            m.TargetTransform = altTarget;
+                        }
                         // Attempt physical attack (type 0 and 1) when close enough
-                        if(m.mutantType <= 1 && Vector3.Distance(m.TargetTransform.position, m.transform.position) < 2.0f){
+                        else if(m.mutantType <= 1 && Vector3.Distance(m.TargetTransform.position, m.transform.position) < 2.0f){
                             Player player = m.TargetTransform.GetComponent<Player>();
                             Teammate partyMember = m.TargetTransform.GetComponent<Teammate>();
 
@@ -66,17 +66,14 @@ namespace AI.States{
                             }
                         }
                         // Attempt a ranged attack (type 2 and 3) when close enough
-                        else if(m.mutantType >= 1 && Vector3.Distance(m.TargetTransform.position, m.transform.position) < 15.0f){
+                        else if(m.mutantType >= 2 && Vector3.Distance(m.TargetTransform.position, m.transform.position) < 15.0f){
+                            m.LookToTarget(m.TargetTransform);
                             if(m.shotDelay <= 0){
                                 m.Shoot();
                             }
                         }
-                        // Detecting a character that is closer than the current target
-                        else if(altTarget != null && Vector3.Distance(m.transform.position, altTarget.position) < Vector3.Distance(m.transform.position, m.TargetTransform.position)){
-                            m.TargetTransform = altTarget;
-                        }
                         // Pursue the player until close enough
-                        else if(m.GetVelocity().magnitude < m.minStopSpeed){
+                        else{
                             m.SetDestination(m.TargetTransform.position);
                         }
 
@@ -106,12 +103,10 @@ namespace AI.States{
                         t.LeaveDefensivePoint();
 
                         // Collectible
-                        if(nearestCollectible != null){
-                            if(t.GetVelocity().magnitude < t.minStopSpeed){
-                                t.SetDestination(nearestCollectible.position);
-                            }
+                        if(nearestCollectible != null && !t.targetingCollectible){
+                            t.SetDestination(nearestCollectible.position);
+                            t.targetingCollectible = true;
                         }
-
                         // Wander
                         else if(t.GetVelocity().magnitude < t.minStopSpeed){
                             Vector2 pos = CombatManager.RandomPosition;
@@ -124,16 +119,29 @@ namespace AI.States{
                         // Attempt to check for an ammo pickup
                         Transform nearestCollectible = t.Sense<NearestCollectibleSensor, Transform>();
 
+                        // Attempt to keep a safe distance away (evade) if low hp OR reloading OR "recharging" a physical attack
+                        if((Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f && t.hp <= 25) || t.reloadDelay > 0.0f || t.physDelay > 0.0f){
+                            t.LeaveDefensivePoint();
+                            
+                            // Calculate the steering behaviour for evasion
+                            float mutantSpeed = nearestMutant.GetSpeed();
+                            float lookaheadTime = (nearestMutant.transform.position - t.transform.position).magnitude/(t.GetSpeed() + mutantSpeed);
+                            Vector3 mutantVelocity = nearestMutant.GetVelocity();
+
+                            Vector3 fleePosition = (t.transform.position - (nearestMutant.transform.position + mutantVelocity) * t.DeltaTime).normalized * t.GetSpeed() 
+                                                    - mutantVelocity;
+
+                            t.SetDestination(new Vector3(fleePosition.x, t.transform.position.y, fleePosition.z));
+                        }
                         // If the pickup is ammo and low on ammo, move towards it.
-                        if(t.ammoTotal <= 10 && nearestCollectible != null && t.GetComponent<AmmoPickup>() != null){
-                            if(t.GetVelocity().magnitude < t.minStopSpeed){
-                                t.LeaveDefensivePoint();
-                                t.SetDestination(nearestCollectible.position);
-                            }
+                        else if(t.ammoTotal <= 10 && nearestCollectible != null && t.GetComponent<AmmoPickup>() != null){
+                            t.LeaveDefensivePoint();
+                            t.SetDestination(nearestCollectible.position);
                         }
 
                         // If not at the defensive point using it, it is not in use.
                         else if(dp != null && t.defensivePointUsed == null){
+                            t.LookToTarget(dp.transform);
                             t.SetDestination(dp.transform.position);
                             dp.inUse = true;
                             t.defensivePointUsed = dp;
@@ -166,25 +174,9 @@ namespace AI.States{
 
                         // Physical attack within range, differs per weapon
                         else if(!t.usingGun && t.physDelay <= 0.0f && Vector3.Distance(nearestMutant.transform.position, t.transform.position) < CombatManager.PhysSelected * 2 && t.hp > 25){
-                            Debug.Log(t.name + " within physical range");
                             t.LookToTarget(nearestMutant.transform);
                             nearestMutant.PhysicalDamage(t.physicalDamageOutput);
                             t.physDelay = CombatManager.PhysSelected == 3 ? 0.5f : CombatManager.PhysSelected == 4 ? 1.0f : 2.0f;
-                        }
-
-                        // Attempt to keep a safe distance away (evade) if low hp
-                        else if(Vector3.Distance(nearestMutant.transform.position, t.transform.position) < 1.0f && t.hp <= 25){
-                            t.LeaveDefensivePoint();
-                            
-                            // Calculate the steering behaviour for evasion
-                            float mutantSpeed = nearestMutant.GetSpeed();
-                            float lookaheadTime = (nearestMutant.transform.position - t.transform.position).magnitude/(t.GetSpeed() + mutantSpeed);
-                            Vector3 mutantVelocity = nearestMutant.GetVelocity();
-
-                            Vector3 fleePosition = (t.transform.position - (nearestMutant.transform.position + mutantVelocity) * t.DeltaTime).normalized * t.GetSpeed() 
-                                                    - mutantVelocity;
-
-                            t.SetDestination(new Vector3(fleePosition.x, t.transform.position.y, fleePosition.z));
                         }
                     }
                     break;

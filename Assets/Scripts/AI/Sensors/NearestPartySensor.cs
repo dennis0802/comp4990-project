@@ -16,7 +16,7 @@ namespace AI.Sensors{
             }
 
             // Get the transforms of player/teammates who are in range
-            Transform[] party = FindObjectsOfType<Transform>().Where(t => t.name.Contains("Teammate") || t.name.Contains("Player") && 
+            Transform[] party = FindObjectsOfType<Transform>().Where(t => Equals(t.tag, "Player") && 
                                 Vector3.Distance(t.transform.position, mutant.transform.position) < mutant.DetectionRange).ToArray();
 
             if(party.Length == 0){

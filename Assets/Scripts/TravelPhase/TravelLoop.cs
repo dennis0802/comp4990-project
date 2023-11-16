@@ -569,6 +569,7 @@ namespace TravelPhase{
             // Transition back to town rest if distance matches the target
             if(newDistance == targetTownDistance){
                 PopupActive = true;
+                popupSound.Play();
                 int prevTown = townEntity.PrevTown, curTown = townEntity.CurTown;
                 destinationImageDisplay.sprite = GameLoop.RetrieveMapImage(prevTown, curTown);
                 destinationPopup.SetActive(true);

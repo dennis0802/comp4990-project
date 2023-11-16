@@ -143,16 +143,18 @@ namespace UI{
         private void SetResolutionText(){
             Vector3 pos = resText.transform.localPosition;
             switch(PlayerPrefs.GetInt("Resolution")){
-                case 0:
-                    resText.transform.localPosition = new Vector3(pos.x, 51f, pos.z);
+                case 2:
+                    resText.transform.localPosition = new Vector3(pos.x, -51f, pos.z);
                     break;
                 case 1:
                     resText.transform.localPosition = new Vector3(pos.x, 0f, pos.z);
                     break;
-                case 2:
-                    resText.transform.localPosition = new Vector3(pos.x, -51f, pos.z);
+                case 0:
+                    resText.transform.localPosition = new Vector3(pos.x, 51f, pos.z);
                     break;
                 default:
+                    resText.transform.localPosition = new Vector3(pos.x, -51f, pos.z);
+                    PlayerPrefs.SetInt("Resolution", 2);
                     return;
             }
         }

@@ -404,6 +404,9 @@ namespace CombatPhase{
 
             // Update HP
             foreach(Teammate teammate in teammates){
+                if(teammate.hp <= 0){
+                    continue;
+                }
                 ActiveCharacter character = DataUser.dataManager.GetCharacter(GameLoop.FileId, teammate.id);
                 character.Health = teammate.hp;
                 DataUser.dataManager.UpdateCharacter(character);
@@ -449,7 +452,7 @@ namespace CombatPhase{
                 temp += foodFound > 0 ? "* " + foodFound + " kg of food\n" : "";
                 temp += gasFound > 0 ? gasFound == 1 ? "* " + gasFound + " can of gas\n" : "* " + gasFound + " cans of gas\n" : "";
                 temp += scrapFound > 0 ? "* " + scrapFound + " scrap\n" : "";
-                temp += moneyFound > 0 ? "* $" + moneyFound : "";
+                temp += moneyFound > 0 ? "* $" + moneyFound + "\n" : "";
                 temp += medkitFound > 0 ? medkitFound == 1 ? "* " + medkitFound + " medkit\n" : "* " + medkitFound + " medkits\n" : "";
                 temp += ammoFound > 0 ? "* " + ammoFound + " ammo\n" : "";
 

@@ -20,11 +20,11 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
+  m_AmbientSkyColor: {r: 0.41660732, g: 0.47270676, b: 0.5849056, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 1
-  m_AmbientMode: 0
+  m_AmbientMode: 3
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
   m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
   m_HaloStrength: 0.5
@@ -108374,7 +108374,20 @@ MonoBehaviour:
   mainGameUI: {fileID: 803635375}
   mainMenuScreen: {fileID: 2009570008}
   activeUI: {fileID: 1848782353}
-  restMenuUI: {fileID: 1986573147}
+  restMenuUI:
+  - {fileID: 1986573147}
+  - {fileID: 1922656190}
+  - {fileID: 1690215246}
+  - {fileID: 870146076}
+  - {fileID: 1471038253}
+  - {fileID: 961125963}
+  - {fileID: 328886159}
+  - {fileID: 1333308842}
+  - {fileID: 1772637656}
+  - {fileID: 1796845262}
+  - {fileID: 1530499432}
+  - {fileID: 532966190}
+  - {fileID: 286300348}
   travelMenuUI:
   - {fileID: 1667640211}
   - {fileID: 1573380716}

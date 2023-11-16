@@ -23,6 +23,7 @@ TagManager:
   - ShotgunShootLocation
   - Mutant
   - MainPanel
+  - DefensivePoint
   layers:
   - Default
   - TransparentFX

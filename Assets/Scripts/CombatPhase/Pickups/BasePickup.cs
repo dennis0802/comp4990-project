@@ -42,6 +42,7 @@ namespace CombatPhase.Pickups{
                 OnPickup(player);
             }
             else if(teammate != null){
+                teammate.targetingCollectible = false;
                 OnPickup(teammate);
             }
         }
