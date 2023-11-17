@@ -362,7 +362,7 @@ namespace CombatPhase{
             }
 
             combatManager = GameObject.FindWithTag("CombatManager").GetComponent<CombatManager>();
-            shootLocation = GameObject.FindWithTag("ShootLocation");
+            shootLocation = GameObject.FindGameObjectsWithTag("ShootLocation").Where(s => s.GetComponentInParent<Player>() == this).First();
             shotgunShootLocations = GameObject.FindGameObjectsWithTag("ShotgunShootLocation");
 
             int gun = CombatManager.GunSelected;
