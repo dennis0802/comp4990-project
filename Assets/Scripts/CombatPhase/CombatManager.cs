@@ -394,7 +394,7 @@ namespace CombatPhase{
             if(DeadMembers.Count > 0){
                 foreach(int id in DeadMembers){
                     ActiveCharacter character = DataUser.dataManager.GetCharacter(GameLoop.FileId, id);
-                    if(character.CustomCharacterId != -1){
+                    if(character != null && character.CustomCharacterId != -1){
                         PerishedCustomCharacter perished = new PerishedCustomCharacter(){FileId = GameLoop.FileId, CustomCharacterId = character.CustomCharacterId};
                         DataUser.dataManager.InsertPerishedCustomCharacter(perished);
                     }

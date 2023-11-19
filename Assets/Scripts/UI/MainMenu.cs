@@ -283,7 +283,7 @@ namespace UI
         /// Start a new game
         /// </summary>
         public void StartNewGame(){
-            int startingFood = 100, startingGas = 20, startingScrap = 25, startingMoney = 30, startingMedkit = 1, startingBattery = 1, startingTire = 1, startingAmmo = 150,
+            int startingFood = 100, startingGas = 20, startingScrap = 25, startingMoney = 30, startingMedkit = 1, startingBattery = 1, startingTire = 1, startingAmmo = 500,
                 startingLeaderMorale = 75, startingPartnerMorale = 75;
 
             // Change starting data depending on difficulty
@@ -295,7 +295,7 @@ namespace UI
                 startingMedkit = 0;
                 startingBattery = 0;
                 startingTire = 0;
-                startingAmmo = 75;
+                startingAmmo = 250;
             }
 
             // Add medkits if healthcare perk is used
@@ -347,6 +347,10 @@ namespace UI
             // Prepare next screen
             travelMenuUI[0].SetActive(false);
             travelMenuUI[1].SetActive(false);
+            
+            for(int i = 0; i < restMenuUI.Length; i++){
+                restMenuUI[i].SetActive(i > 0 && i <= 3);
+            }
             
             TransitionMenu(targetFile);
             introWindow.SetActive(true);
