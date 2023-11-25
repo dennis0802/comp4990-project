@@ -216,9 +216,19 @@ namespace AI{
             alertText = GameObject.FindWithTag("AlertText").GetComponent<TextMeshProUGUI>();
             shootLocation = GameObject.FindGameObjectsWithTag("ShootLocation").Where(s => s.GetComponentInParent<Teammate>() == this).First();
             shotgunShootLocations = GameObject.FindGameObjectsWithTag("ShotgunShootLocation").Where(s => s.GetComponentInParent<Teammate>() == this).ToArray();
-
-            ammoTotal = Player.TotalAvailableAmmo/DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId).Count();
-            Player.TotalAvailableAmmo -= ammoTotal;
+            
+            int count = DataUser.dataManager.GetActiveCharacters().Where<ActiveCharacter>(c=>c.FileId == GameLoop.FileId).Count(), remainder = Player.TotalAvailableAmmo % count;
+            // Ammo divides UNEVENLY - give the extra to the player
+            if(remainder != 0){
+                ammoTotal = Player.TotalAvailableAmmo / count;
+                Player.TotalAvailableAmmo -= ammoTotal;
+                Player.TotalAvailableAmmo += remainder;
+            }
+            // Ammo divides evenly
+            else{
+                ammoTotal = Player.TotalAvailableAmmo / count;
+                Player.TotalAvailableAmmo -= ammoTotal;
+            }
             Reload();
         }
 

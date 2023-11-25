@@ -381,6 +381,7 @@ namespace CombatPhase{
         /// End combat and save results
         /// </summary>
         public void EndCombat(){
+            Teammate[] partyMembers = FindObjectsOfType<Teammate>().Where(t => t.name.Contains("Teammate")).ToArray();
             UnloadCombat();
             winSound.Play();
             endCombatScreen.SetActive(true);
@@ -418,7 +419,6 @@ namespace CombatPhase{
 
             // Ammo will be counted as total avaialble plus loaded since collected ammo can be used during combat
             // Sum up ammo remaining with teammates
-            Teammate[] partyMembers = FindObjectsOfType<Teammate>().Where(t => t.name.Contains("Teammate")).ToArray();
             int ammoRemaining = 0;
             foreach(Teammate t in partyMembers){
                 ammoRemaining += t.ammoTotal + t.ammoLoaded;
