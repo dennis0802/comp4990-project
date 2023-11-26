@@ -187,7 +187,7 @@ namespace UI
                     }
                     else if(phase == 1){
                         for(int i = 0; i < restMenuUI.Length; i++){
-                            restMenuUI[i].SetActive(false);
+                            restMenuUI[i].SetActive(i >= 1 && i <= 3);
                         }
                         for(int i = 0; i < travelMenuUI.Length; i++){
                             travelMenuUI[i].SetActive(i != 2);

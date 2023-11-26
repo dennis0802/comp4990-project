@@ -88,7 +88,7 @@ namespace RestPhase{
                 // Move the prompts
                 prompts[tries-1].transform.Translate(Vector3.right * speed * Time.deltaTime);
 
-                if(leftClickAction.triggered || prompts[tries-1].transform.position.x >= 17f){
+                if(leftClickAction.triggered || prompts[tries-1].GetComponent<RectTransform>().localPosition.x >= 50f){
                     tries--;
                     speed = Random.Range(50,90);
                     buttonClick.Play();
@@ -111,18 +111,19 @@ namespace RestPhase{
                 }
 
                 // Rate based on falling in between specified x-coordinates
-                if(Mathf.Abs(prompts[i].transform.localPosition.x) > 12f && Mathf.Abs(prompts[i].transform.localPosition.x) <= 17f){
-                    statuses[i].text = "Near Miss";
-                    amountRecovered += 6;
-                }
-                else if(Mathf.Abs(prompts[i].transform.localPosition.x) >= 9f && Mathf.Abs(prompts[i].transform.localPosition.x) <= 12f){
-                    statuses[i].text = "Good";
-                    amountRecovered += 7;
-                }
-                else if(prompts[i].transform.localPosition.x > -9f && prompts[i].transform.localPosition.x < 9f){
+                if(prompts[i].GetComponent<RectTransform>().localPosition.x <= 10f){
                     statuses[i].text = "Great";
                     amountRecovered += 8;
                 }
+                else if(Mathf.Abs(prompts[i].GetComponent<RectTransform>().localPosition.x) <= 15f){
+                    statuses[i].text = "Good";
+                    amountRecovered += 7;
+                }
+                else if(Mathf.Abs(prompts[i].GetComponent<RectTransform>().localPosition.x) <= 20f){
+                    statuses[i].text = "Near Miss";
+                    amountRecovered += 6;
+                }
+
                 else{
                     statuses[i].text = "Miss";
                 }
@@ -169,7 +170,8 @@ namespace RestPhase{
                 targets[i].SetActive(i < scrapUsed);
                 statuses[i].text = "";
                 prompts[i].SetActive(i < scrapUsed);
-                prompts[i].transform.localPosition = new Vector3(-400f, prompts[i].transform.localPosition.y, prompts[i].transform.localPosition.z);
+                prompts[i].GetComponent<RectTransform>().localPosition = new Vector3(-400f, prompts[i].GetComponent<RectTransform>().localPosition.y, 
+                                                                                        prompts[i].GetComponent<RectTransform>().localPosition.z);
             }
 
             yield return new WaitForSeconds(3.0f);

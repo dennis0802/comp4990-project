@@ -10,21 +10,18 @@ using UI;
 namespace TravelPhase{
     public class AnimateEnvironment : MonoBehaviour
     {
-        public GameObject genericMarker, cityMarker;
+        public GameObject genericMarker, cityMarker, wireMarker;
         public GameObject[] carTires;
-        private Vector3 movement, originalGenPos, originalCityPos;
+        public Vector3 originalGenPos, originalCityPos, originalWirePos;
+        private Vector3 movement;
         private bool statusRead, carIsBroken;
         public static bool NearingTown;
         private float rotationSpeed;
 
-        // Start is called before the first frame update
-        void Start()
-        {
-            originalGenPos = genericMarker.transform.position;
-            originalCityPos = cityMarker.transform.position;
-        }
-
         void OnEnable(){
+            genericMarker.GetComponent<RectTransform>().localPosition = originalGenPos;
+            wireMarker.GetComponent<RectTransform>().localPosition = originalWirePos;
+            cityMarker.GetComponent<RectTransform>().localPosition = originalCityPos;
             SetMovementSpeed();
         }
 
@@ -42,14 +39,6 @@ namespace TravelPhase{
 
             // "Animate" the background
             AnimateBackground();
-        }
-
-        /// <summary>
-        /// Reset the position of markers when reaching a destination
-        /// </summary>
-        public void OnLeaveTravel(){
-            genericMarker.transform.position = originalGenPos;
-            cityMarker.transform.position = originalCityPos;
         }
 
         /// <summary>
@@ -79,8 +68,8 @@ namespace TravelPhase{
             }
 
             // Reset marker when offscreen to the right
-            if(genericMarker.transform.position.x > 150f){
-                genericMarker.transform.position = originalGenPos;
+            if(genericMarker.GetComponent<RectTransform>().localPosition.x > 710f){
+                genericMarker.GetComponent<RectTransform>().localPosition = originalGenPos;
             }
         }
 
