@@ -77,14 +77,6 @@ namespace RestPhase{
             coroutine = StartCoroutine(Process());
         }
 
-        /// <summary>
-        /// Toggle obstacles to start moving as the minigame starts
-        /// </summary>
-        private void StartMoving(){
-            gameStarted = !gameStarted;
-            speed = Random.Range(50,90);
-        }
-
         private void Update(){
             if(gameStarted){
                 if(tries == 0){
@@ -190,7 +182,9 @@ namespace RestPhase{
             repairScreenCountText.text = "Go!";
             yield return new WaitForSeconds(1.0f);
             repairScreenCountText.text = "";
-            StartMoving();
+            gameStarted = !gameStarted;
+            speed = Random.Range(50,90);
+            
             yield return new WaitForSeconds(10.0f);
             StartCoroutine(ConcludeGame());
         }

@@ -427,10 +427,10 @@ namespace CombatPhase{
             // Manage rations with the hour that passed during scavenging
             Save save = DataUser.dataManager.GetSaveById(GameLoop.FileId);
             int time = save.CurrentTime, totalFood = save.Food, rations = save.RationMode;
-            totalFood = totalFood + foodFound - rations * partyMembers.Count() + 1 > 0 ? totalFood + foodFound - rations * partyMembers.Count() + 1 : 0;
+            totalFood = totalFood + foodFound - rations * (partyMembers.Count() + 1) > 0 ? totalFood + foodFound - rations * (partyMembers.Count() + 1) : 0;
             time = time + 1 == 25 ? 1 : time + 1;
 
-            save.Food += totalFood;
+            save.Food = totalFood;
             save.Gas += gasFound;
             save.Money += moneyFound;
             save.Medkit += medkitFound;

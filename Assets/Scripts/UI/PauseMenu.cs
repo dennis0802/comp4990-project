@@ -102,6 +102,7 @@ namespace UI{
             backgroundPanel.SetActive(true);
             GameLoop.FileId = -1;
             Time.timeScale = 1.0f;
+            AnimateEnvironment.NearingTown = false;
             SceneManager.LoadScene(0);
             mainGameUI.SetActive(false);
             mainRestUI.SetActive(false);
