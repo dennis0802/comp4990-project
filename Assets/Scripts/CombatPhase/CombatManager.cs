@@ -432,6 +432,7 @@ namespace CombatPhase{
 
             save.Food = totalFood;
             save.Gas += gasFound;
+            save.Scrap += scrapFound;
             save.Money += moneyFound;
             save.Medkit += medkitFound;
             save.Ammo = (Player.AmmoLoaded + Player.TotalAvailableAmmo + ammoRemaining);
@@ -485,6 +486,7 @@ namespace CombatPhase{
                 SucceededJob = true;
                 TargetItemFound = false;
                 SceneManager.LoadScene(0);
+                JobType = 0;
                 PrevMenuRef.SetActive(true);
             }
             else if(RestMenu.IsScavenging){
